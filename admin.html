@@ -1,0 +1,483 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Black Horse — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Oswald:wght@500;600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#15130E; --green:#1E3A2E; --green-light:#2C5642;
+    --paper:#F3EADB; --paper-2:#EBE0CB; --brass:#B78B3F; --brass-light:#D8B26C;
+    --brick:#7C2E24; --text-dark:#241F18; --line:#D8CBAE;
+    --ok:#2C5642; --pending:#B78B3F; --cancel:#7C2E24;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Work Sans',sans-serif;background:var(--paper-2);color:var(--text-dark);font-size:15px;}
+  h1,h2,h3{font-family:'Fraunces',serif;margin:0;}
+  .eyebrow{font-family:'Oswald',sans-serif;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;font-size:11px;color:var(--brass);}
+  button{font-family:'Oswald',sans-serif;cursor:pointer;}
+  input,textarea,select{font-family:'Work Sans',sans-serif;}
+
+  .app{display:grid;grid-template-columns:230px 1fr;min-height:100vh;}
+  @media(max-width:800px){.app{grid-template-columns:1fr;}}
+
+  .sidebar{background:var(--ink);color:var(--paper);padding:28px 20px;}
+  .sidebar .brand{font-size:19px;color:var(--paper);margin-bottom:4px;}
+  .sidebar .sub{font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--brass-light);margin-bottom:30px;display:block;}
+  .tab-btn{
+    display:block;width:100%;text-align:left;background:none;border:none;color:rgba(243,234,219,0.72);
+    font-family:'Oswald',sans-serif;font-size:12.5px;letter-spacing:0.08em;text-transform:uppercase;
+    padding:12px 12px;border-radius:2px;margin-bottom:4px;border-left:3px solid transparent;
+  }
+  .tab-btn:hover{background:rgba(243,234,219,0.06);color:var(--paper);}
+  .tab-btn.active{background:rgba(183,139,63,0.14);color:var(--brass-light);border-left-color:var(--brass);}
+
+  .main{padding:34px 40px;}
+  @media(max-width:600px){.main{padding:24px 18px;}}
+  .panel{display:none;}
+  .panel.active{display:block;}
+  .panel-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap;gap:14px;}
+  .panel-head h2{font-size:26px;}
+  .status-msg{font-size:13px;color:var(--green);min-height:18px;}
+
+  .btn{
+    font-weight:600;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;
+    padding:11px 20px;border-radius:2px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);
+  }
+  .btn:hover{background:#000;}
+  .btn.secondary{background:transparent;color:var(--ink);border-color:var(--line);}
+  .btn.secondary:hover{border-color:var(--ink);}
+  .btn.danger{background:transparent;color:var(--cancel);border-color:var(--cancel);}
+
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);}
+  th,td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:top;}
+  th{font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#7A6E58;background:var(--paper);}
+  tr:last-child td{border-bottom:none;}
+  .empty-row td{text-align:center;color:#8a7f6a;padding:30px;}
+
+  .badge{display:inline-block;padding:4px 10px;border-radius:999px;font-family:'Oswald',sans-serif;font-size:10.5px;letter-spacing:0.06em;text-transform:uppercase;}
+  .badge.confirmed{background:#E7EFE6;color:var(--ok);}
+  .badge.pending{background:#F6EEDD;color:#8a6524;}
+  .badge.cancelled{background:#F5E3E0;color:var(--cancel);}
+
+  select.status-select{border:1px solid var(--line);border-radius:2px;padding:6px 8px;font-size:12.5px;background:#fff;}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:2px;padding:26px 28px;margin-bottom:22px;}
+  .card h3{font-size:16px;margin-bottom:16px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#7A6E58;margin-bottom:6px;}
+  .field input, .field textarea{width:100%;border:1px solid var(--line);border-radius:2px;padding:10px 12px;font-size:14px;background:var(--paper);}
+  .field textarea{min-height:70px;resize:vertical;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  @media(max-width:600px){.grid2{grid-template-columns:1fr;}}
+
+  .hours-row{display:grid;grid-template-columns:110px 1fr 1fr 100px;gap:14px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);}
+  .hours-row:last-child{border-bottom:none;}
+  .hours-row .day{font-family:'Oswald',sans-serif;letter-spacing:0.06em;text-transform:uppercase;font-size:12.5px;}
+  .hours-row input[type=time]{border:1px solid var(--line);border-radius:2px;padding:8px;width:100%;background:var(--paper);}
+  .hours-row label.closed-lbl{font-size:12px;display:flex;align-items:center;gap:6px;color:#7A6E58;}
+
+  .add-form{display:none;margin-top:16px;}
+  .add-form.open{display:block;}
+
+  .delete-x{background:none;border:none;color:var(--cancel);font-size:16px;cursor:pointer;padding:0 4px;}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">The Black Horse</div>
+    <span class="sub">Admin dashboard</span>
+    <button class="tab-btn active" data-tab="bookings">Table bookings</button>
+    <button class="tab-btn" data-tab="hire">Private hire enquiries</button>
+    <button class="tab-btn" data-tab="content">Site content</button>
+    <button class="tab-btn" data-tab="hours">Opening hours</button>
+  </aside>
+
+  <main class="main">
+
+    <!-- BOOKINGS -->
+    <section class="panel active" id="panel-bookings">
+      <div class="panel-head">
+        <div><span class="eyebrow">Manage</span><h2>Table bookings</h2></div>
+        <div class="toolbar">
+          <button class="btn secondary" id="toggleAddBooking">Add booking</button>
+        </div>
+      </div>
+      <div class="card add-form" id="addBookingForm">
+        <h3>New booking</h3>
+        <div class="grid2">
+          <div class="field"><label>Name</label><input id="b-name" type="text"></div>
+          <div class="field"><label>Email</label><input id="b-email" type="email"></div>
+          <div class="field"><label>Phone</label><input id="b-phone" type="tel"></div>
+          <div class="field"><label>Guests</label><input id="b-guests" type="number" min="1"></div>
+          <div class="field"><label>Date</label><input id="b-date" type="date"></div>
+          <div class="field"><label>Time</label><input id="b-time" type="time"></div>
+        </div>
+        <div class="field"><label>Notes</label><textarea id="b-notes"></textarea></div>
+        <button class="btn" id="saveBooking">Save booking</button>
+      </div>
+      <div style="overflow-x:auto;margin-top:18px;">
+        <table>
+          <thead><tr><th>Name</th><th>Contact</th><th>Guests</th><th>Date &amp; time</th><th>Notes</th><th>Status</th><th></th></tr></thead>
+          <tbody id="bookingsBody"></tbody>
+        </table>
+      </div>
+      <div class="status-msg" id="bookingsMsg"></div>
+    </section>
+
+    <!-- HIRE ENQUIRIES -->
+    <section class="panel" id="panel-hire">
+      <div class="panel-head">
+        <div><span class="eyebrow">Manage</span><h2>Private hire enquiries</h2></div>
+        <div class="toolbar">
+          <button class="btn secondary" id="toggleAddHire">Add enquiry</button>
+        </div>
+      </div>
+      <div class="card add-form" id="addHireForm">
+        <h3>New enquiry</h3>
+        <div class="grid2">
+          <div class="field"><label>Name</label><input id="h-name" type="text"></div>
+          <div class="field"><label>Email</label><input id="h-email" type="email"></div>
+          <div class="field"><label>Phone</label><input id="h-phone" type="tel"></div>
+          <div class="field"><label>Event type</label><input id="h-type" type="text" placeholder="Birthday, work party, wake..."></div>
+          <div class="field"><label>Guest count</label><input id="h-guests" type="number" min="1"></div>
+          <div class="field"><label>Preferred date</label><input id="h-date" type="date"></div>
+        </div>
+        <div class="field"><label>Message</label><textarea id="h-message"></textarea></div>
+        <button class="btn" id="saveHire">Save enquiry</button>
+      </div>
+      <div style="overflow-x:auto;margin-top:18px;">
+        <table>
+          <thead><tr><th>Name</th><th>Contact</th><th>Event</th><th>Guests</th><th>Preferred date</th><th>Message</th><th>Status</th><th></th></tr></thead>
+          <tbody id="hireBody"></tbody>
+        </table>
+      </div>
+      <div class="status-msg" id="hireMsg"></div>
+    </section>
+
+    <!-- CONTENT -->
+    <section class="panel" id="panel-content">
+      <div class="panel-head">
+        <div><span class="eyebrow">Manage</span><h2>Site content</h2></div>
+        <button class="btn" id="saveContent">Save changes</button>
+      </div>
+      <div class="card">
+        <h3>Hero</h3>
+        <div class="field"><label>Tagline</label><input id="c-tagline" type="text"></div>
+      </div>
+      <div class="card">
+        <h3>Welcome section</h3>
+        <div class="field"><label>Intro paragraph</label><textarea id="c-welcome"></textarea></div>
+      </div>
+      <div class="card">
+        <h3>Food &amp; drink</h3>
+        <div class="field"><label>Food &amp; drink blurb</label><textarea id="c-food"></textarea></div>
+        <div class="field"><label>Drinks blurb</label><textarea id="c-drinks"></textarea></div>
+      </div>
+      <div class="card">
+        <h3>Terrace</h3>
+        <div class="field"><label>Terrace blurb</label><textarea id="c-terrace"></textarea></div>
+      </div>
+      <div class="card">
+        <h3>Private hire</h3>
+        <div class="field"><label>Guest capacity</label><input id="c-capacity" type="number" min="1"></div>
+        <div class="field"><label>Private hire blurb</label><textarea id="c-hire"></textarea></div>
+      </div>
+      <div class="status-msg" id="contentMsg"></div>
+    </section>
+
+    <!-- HOURS -->
+    <section class="panel" id="panel-hours">
+      <div class="panel-head">
+        <div><span class="eyebrow">Manage</span><h2>Opening hours</h2></div>
+        <button class="btn" id="saveHours">Save hours</button>
+      </div>
+      <div class="card" id="hoursCard"></div>
+      <div class="status-msg" id="hoursMsg"></div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+// ---------- tabs ----------
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+function esc(s){
+  if(s===undefined || s===null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function flash(elId, text, isError){
+  const el = document.getElementById(elId);
+  el.textContent = text;
+  el.style.color = isError ? '#7C2E24' : '#2C5642';
+  setTimeout(()=>{ el.textContent=''; }, 3000);
+}
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+// ---------- bookings ----------
+let bookings = [];
+document.getElementById('toggleAddBooking').addEventListener('click', ()=>{
+  document.getElementById('addBookingForm').classList.toggle('open');
+});
+async function loadBookings(){
+  try{
+    const res = await window.storage.get('bookings', true);
+    bookings = res ? JSON.parse(res.value) : [];
+  }catch(e){ bookings = []; }
+  renderBookings();
+}
+async function persistBookings(){
+  await window.storage.set('bookings', JSON.stringify(bookings), true);
+}
+function renderBookings(){
+  const body = document.getElementById('bookingsBody');
+  if(bookings.length === 0){
+    body.innerHTML = '<tr class="empty-row"><td colspan="7">No bookings yet.</td></tr>';
+    return;
+  }
+  body.innerHTML = bookings.slice().sort((a,b)=> (a.date+a.time).localeCompare(b.date+b.time))
+    .map(b => `
+    <tr>
+      <td>${esc(b.name)}</td>
+      <td>${esc(b.email)}<br><span style="color:#7A6E58;">${esc(b.phone)}</span></td>
+      <td>${esc(b.guests)}</td>
+      <td>${esc(b.date)}<br>${esc(b.time)}</td>
+      <td style="max-width:220px;">${esc(b.notes)}</td>
+      <td>
+        <select class="status-select" data-id="${b.id}" data-kind="booking">
+          <option value="pending" ${b.status==='pending'?'selected':''}>Pending</option>
+          <option value="confirmed" ${b.status==='confirmed'?'selected':''}>Confirmed</option>
+          <option value="cancelled" ${b.status==='cancelled'?'selected':''}>Cancelled</option>
+        </select>
+      </td>
+      <td><button class="delete-x" data-id="${b.id}" data-kind="booking" title="Delete">&times;</button></td>
+    </tr>`).join('');
+}
+document.getElementById('saveBooking').addEventListener('click', async ()=>{
+  const name = document.getElementById('b-name').value.trim();
+  const date = document.getElementById('b-date').value;
+  if(!name || !date){ flash('bookingsMsg','Name and date are required.', true); return; }
+  bookings.push({
+    id: uid(),
+    name, email: document.getElementById('b-email').value.trim(),
+    phone: document.getElementById('b-phone').value.trim(),
+    guests: document.getElementById('b-guests').value,
+    date, time: document.getElementById('b-time').value,
+    notes: document.getElementById('b-notes').value.trim(),
+    status: 'pending'
+  });
+  await persistBookings();
+  renderBookings();
+  document.getElementById('addBookingForm').classList.remove('open');
+  ['b-name','b-email','b-phone','b-guests','b-date','b-time','b-notes'].forEach(id=> document.getElementById(id).value='');
+  flash('bookingsMsg','Booking added.');
+});
+document.getElementById('bookingsBody').addEventListener('change', async (e)=>{
+  if(e.target.matches('select[data-kind="booking"]')){
+    const b = bookings.find(x=>x.id===e.target.dataset.id);
+    if(b){ b.status = e.target.value; await persistBookings(); flash('bookingsMsg','Status updated.'); }
+  }
+});
+document.getElementById('bookingsBody').addEventListener('click', async (e)=>{
+  if(e.target.matches('.delete-x[data-kind="booking"]')){
+    bookings = bookings.filter(x=>x.id !== e.target.dataset.id);
+    await persistBookings();
+    renderBookings();
+    flash('bookingsMsg','Booking deleted.');
+  }
+});
+
+// ---------- hire enquiries ----------
+let hires = [];
+document.getElementById('toggleAddHire').addEventListener('click', ()=>{
+  document.getElementById('addHireForm').classList.toggle('open');
+});
+async function loadHires(){
+  try{
+    const res = await window.storage.get('hire-enquiries', true);
+    hires = res ? JSON.parse(res.value) : [];
+  }catch(e){ hires = []; }
+  renderHires();
+}
+async function persistHires(){
+  await window.storage.set('hire-enquiries', JSON.stringify(hires), true);
+}
+function renderHires(){
+  const body = document.getElementById('hireBody');
+  if(hires.length === 0){
+    body.innerHTML = '<tr class="empty-row"><td colspan="8">No enquiries yet.</td></tr>';
+    return;
+  }
+  body.innerHTML = hires.slice().sort((a,b)=> (a.date||'').localeCompare(b.date||''))
+    .map(h => `
+    <tr>
+      <td>${esc(h.name)}</td>
+      <td>${esc(h.email)}<br><span style="color:#7A6E58;">${esc(h.phone)}</span></td>
+      <td>${esc(h.type)}</td>
+      <td>${esc(h.guests)}</td>
+      <td>${esc(h.date)}</td>
+      <td style="max-width:220px;">${esc(h.message)}</td>
+      <td>
+        <select class="status-select" data-id="${h.id}" data-kind="hire">
+          <option value="new" ${h.status==='new'?'selected':''}>New</option>
+          <option value="confirmed" ${h.status==='confirmed'?'selected':''}>Confirmed</option>
+          <option value="cancelled" ${h.status==='cancelled'?'selected':''}>Cancelled</option>
+        </select>
+      </td>
+      <td><button class="delete-x" data-id="${h.id}" data-kind="hire" title="Delete">&times;</button></td>
+    </tr>`).join('');
+}
+document.getElementById('saveHire').addEventListener('click', async ()=>{
+  const name = document.getElementById('h-name').value.trim();
+  if(!name){ flash('hireMsg','Name is required.', true); return; }
+  hires.push({
+    id: uid(),
+    name, email: document.getElementById('h-email').value.trim(),
+    phone: document.getElementById('h-phone').value.trim(),
+    type: document.getElementById('h-type').value.trim(),
+    guests: document.getElementById('h-guests').value,
+    date: document.getElementById('h-date').value,
+    message: document.getElementById('h-message').value.trim(),
+    status: 'new'
+  });
+  await persistHires();
+  renderHires();
+  document.getElementById('addHireForm').classList.remove('open');
+  ['h-name','h-email','h-phone','h-type','h-guests','h-date','h-message'].forEach(id=> document.getElementById(id).value='');
+  flash('hireMsg','Enquiry added.');
+});
+document.getElementById('hireBody').addEventListener('change', async (e)=>{
+  if(e.target.matches('select[data-kind="hire"]')){
+    const h = hires.find(x=>x.id===e.target.dataset.id);
+    if(h){ h.status = e.target.value; await persistHires(); flash('hireMsg','Status updated.'); }
+  }
+});
+document.getElementById('hireBody').addEventListener('click', async (e)=>{
+  if(e.target.matches('.delete-x[data-kind="hire"]')){
+    hires = hires.filter(x=>x.id !== e.target.dataset.id);
+    await persistHires();
+    renderHires();
+    flash('hireMsg','Enquiry deleted.');
+  }
+});
+
+// ---------- content ----------
+const defaultContent = {
+  tagline: 'Good food. Great drinks. Live sport. Good times.',
+  welcome: "Located on London Road, The Black Horse is a welcoming pub with plenty of space to relax, eat, drink and catch up with friends.",
+  food: "Enjoy a relaxed meal with friends and family, or simply drop in for a drink. Our pub offers a selection of classic food and drinks in a comfortable setting.",
+  drinks: "Enjoy a wide selection of drinks at the bar, including refreshing beers, cask ale and other favourites.",
+  terrace: "Make the most of the warmer months on our large outdoor terrace, with comfortable seating, private booths and a gas fire pit.",
+  capacity: 250,
+  hire: "Planning a birthday, celebration, party or private event? The Black Horse offers spaces suitable for gatherings of different sizes."
+};
+async function loadContent(){
+  let content = defaultContent;
+  try{
+    const res = await window.storage.get('site-content', true);
+    if(res) content = JSON.parse(res.value);
+  }catch(e){}
+  document.getElementById('c-tagline').value = content.tagline || '';
+  document.getElementById('c-welcome').value = content.welcome || '';
+  document.getElementById('c-food').value = content.food || '';
+  document.getElementById('c-drinks').value = content.drinks || '';
+  document.getElementById('c-terrace').value = content.terrace || '';
+  document.getElementById('c-capacity').value = content.capacity || '';
+  document.getElementById('c-hire').value = content.hire || '';
+}
+document.getElementById('saveContent').addEventListener('click', async ()=>{
+  const content = {
+    tagline: document.getElementById('c-tagline').value.trim(),
+    welcome: document.getElementById('c-welcome').value.trim(),
+    food: document.getElementById('c-food').value.trim(),
+    drinks: document.getElementById('c-drinks').value.trim(),
+    terrace: document.getElementById('c-terrace').value.trim(),
+    capacity: document.getElementById('c-capacity').value,
+    hire: document.getElementById('c-hire').value.trim()
+  };
+  try{
+    await window.storage.set('site-content', JSON.stringify(content), true);
+    flash('contentMsg','Content saved.');
+  }catch(e){ flash('contentMsg','Could not save content.', true); }
+});
+
+// ---------- hours ----------
+const defaultHours = {
+  Monday:{open:'09:00',close:'23:00',closed:false},
+  Tuesday:{open:'09:00',close:'23:00',closed:false},
+  Wednesday:{open:'09:00',close:'23:00',closed:false},
+  Thursday:{open:'09:00',close:'23:00',closed:false},
+  Friday:{open:'09:00',close:'23:00',closed:false},
+  Saturday:{open:'09:00',close:'23:00',closed:false},
+  Sunday:{open:'09:00',close:'22:00',closed:false}
+};
+function renderHoursForm(hours){
+  const card = document.getElementById('hoursCard');
+  const order = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  card.innerHTML = order.map(day=>{
+    const d = hours[day] || {open:'09:00',close:'22:00',closed:false};
+    return `<div class="hours-row" data-day="${day}">
+      <span class="day">${day}</span>
+      <input type="time" class="open-time" value="${d.open}" ${d.closed?'disabled':''}>
+      <input type="time" class="close-time" value="${d.close}" ${d.closed?'disabled':''}>
+      <label class="closed-lbl"><input type="checkbox" class="closed-check" ${d.closed?'checked':''}> Closed</label>
+    </div>`;
+  }).join('');
+  card.querySelectorAll('.closed-check').forEach(cb=>{
+    cb.addEventListener('change', (e)=>{
+      const row = e.target.closest('.hours-row');
+      row.querySelector('.open-time').disabled = e.target.checked;
+      row.querySelector('.close-time').disabled = e.target.checked;
+    });
+  });
+}
+async function loadHours(){
+  let hours = defaultHours;
+  try{
+    const res = await window.storage.get('opening-hours', true);
+    if(res) hours = JSON.parse(res.value);
+  }catch(e){}
+  renderHoursForm(hours);
+}
+document.getElementById('saveHours').addEventListener('click', async ()=>{
+  const hours = {};
+  document.querySelectorAll('.hours-row').forEach(row=>{
+    hours[row.dataset.day] = {
+      open: row.querySelector('.open-time').value,
+      close: row.querySelector('.close-time').value,
+      closed: row.querySelector('.closed-check').checked
+    };
+  });
+  try{
+    await window.storage.set('opening-hours', JSON.stringify(hours), true);
+    flash('hoursMsg','Opening hours saved.');
+  }catch(e){ flash('hoursMsg','Could not save hours.', true); }
+});
+
+// ---------- init ----------
+(async function init(){
+  await loadBookings();
+  await loadHires();
+  await loadContent();
+  await loadHours();
+})();
+</script>
+
+</body>
+</html>
