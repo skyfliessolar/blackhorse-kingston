@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Black Horse — Drunken Wok, Kingston upon Thames</title>
 <link rel="icon" href="logo.jpg">
+<meta name="description" content="The Black Horse, Kingston upon Thames — home of Drunken Wok Thai kitchen, live Sky &amp; TNT Sports, a large terrace with fire pit, and private hire for up to 250 guests.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://blackhorsedrunkenwok.co.uk/">
+<meta property="og:title" content="The Black Horse — Drunken Wok, Kingston upon Thames">
+<meta property="og:description" content="Thai food from Drunken Wok, live sport, a big terrace and private hire. 204 London Road, KT2 6QP.">
+<meta property="og:image" content="https://blackhorsedrunkenwok.co.uk/logo.jpg">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://blackhorsedrunkenwok.co.uk/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Oswald:wght@500;600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -213,6 +221,10 @@
   footer nav a{font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(241,232,214,0.55);}
   footer nav a:hover{color:var(--gold-light);}
   footer .fine{font-size:12.5px;color:rgba(241,232,214,0.3);border-top:1px solid var(--line-dark);padding-top:24px;margin-top:10px;}
+  footer .credit{margin-top:22px;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;
+    font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(241,232,214,0.38);}
+    footer .credit a{color:var(--gold-light);font-weight:600;border-bottom:1px solid transparent;padding-bottom:1px;transition:color .2s,border-color .2s;}
+  footer .credit a:hover{color:var(--gold);border-color:var(--gold);}
 </style>
 </head>
 <body>
@@ -421,7 +433,7 @@
           <textarea id="notes" placeholder="Tell us anything we should know about your booking."></textarea>
         </div>
         <button type="submit" class="btn btn-gold">Submit Booking</button>
-        <div id="book-confirm">Thanks &mdash; your booking request has been noted. We'll be in touch to confirm.</div>
+        <div id="book-confirm">Online booking is coming soon. To book your table now, please call us on <a href="tel:02035182275" style="color:var(--gold-light);font-weight:600;">020 3518 2275</a>.</div>
       </form>
     </div>
   </section>
@@ -476,7 +488,9 @@
       <a href="#book">Book a Table</a>
       <a href="#find">Find Us</a>
     </nav>
-    <div class="fine">204 London Road, Kingston upon Thames, KT2 6QP &nbsp;&middot;&nbsp; 020 3518 2275</div>
+    <div class="fine">&copy; <span id="yr">2026</span> The Black Horse &nbsp;&middot;&nbsp; 204 London Road, Kingston upon Thames, KT2 6QP &nbsp;&middot;&nbsp; 020 3518 2275</div>
+    <div class="credit">Website by <a href="https://stashlo.com" target="_blank" rel="noopener">Stashlo</a></div>
+    <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
   </div>
 </footer>
 
@@ -484,7 +498,6 @@
   document.getElementById('bookingForm').addEventListener('submit', function(e){
     e.preventDefault();
     document.getElementById('book-confirm').style.display = 'block';
-    this.reset();
   });
   (function(){
     var today = new Date().getDay();
