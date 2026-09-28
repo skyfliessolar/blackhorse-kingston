@@ -154,6 +154,7 @@ select.status[data-s=cancelled]{background:#F5E3E0;}
     <button class="tab-btn" data-tab="content">Site text</button>
     <button class="tab-btn" data-tab="hours">Opening hours</button>
     <button class="tab-btn" data-tab="staff" id="staffTab" hidden>Staff logins</button>
+    <button class="tab-btn" data-tab="account">My password</button>
     <div class="side-foot">
       <button id="notifBtn">🔔 Turn on alerts</button>
       Signed in as <span id="who"></span>
@@ -163,6 +164,7 @@ select.status[data-s=cancelled]{background:#F5E3E0;}
   </aside>
 
   <main class="main">
+    <div id="connErr" hidden style="background:#F5E3E0;border-left:4px solid #7C2E24;padding:12px 16px;margin-bottom:18px;font-size:14px;"></div>
 
     <!-- DASHBOARD -->
     <section class="panel active" id="p-dash">
@@ -316,17 +318,31 @@ select.status[data-s=cancelled]{background:#F5E3E0;}
       <div class="msg" id="hrMsg"></div>
     </section>
 
+    <!-- ACCOUNT -->
+    <section class="panel" id="p-account">
+      <div class="head"><div><span class="eyebrow">Your login</span><h2>Change my password</h2></div></div>
+      <div class="card" style="max-width:460px">
+        <div class="field"><label>Current password</label><input id="pw-cur" type="password" autocomplete="current-password"></div>
+        <div class="field"><label>New password (min 8 characters)</label><input id="pw-new" type="password" autocomplete="new-password"></div>
+        <div class="field"><label>Repeat new password</label><input id="pw-new2" type="password" autocomplete="new-password"></div>
+        <button class="btn" id="pwSave">Update password</button>
+        <div class="msg" id="pwMsg"></div>
+      </div>
+    </section>
+
     <!-- STAFF -->
     <section class="panel" id="p-staff">
       <div class="head"><div><span class="eyebrow">Owner only</span><h2>Staff logins</h2></div></div>
       <div class="card">
-        <p class="hint">1) In Firebase → Authentication → Users → <b>Add user</b>, create the staff member's email and password. 2) Then add the same email here to give them access.</p>
-        <div class="grid2"><div class="field"><label>Staff email</label><input id="st-email" type="email"></div>
-          <div class="field"><label>Name</label><input id="st-name"></div></div>
-        <button class="btn" id="addStaff">Give access</button>
+        <h3>Add a staff login</h3>
+        <p class="hint">Create a login for a team member and give them the email and password. They can change their password later under "My password". If someone forgets theirs, remove their access and create a new login.</p>
+        <div class="grid3"><div class="field"><label>Name</label><input id="st-name" autocomplete="off"></div>
+          <div class="field"><label>Staff email</label><input id="st-email" type="email" autocomplete="off"></div>
+          <div class="field"><label>Password (min 8 characters)</label><input id="st-pass" type="text" autocomplete="new-password"></div></div>
+        <button class="btn" id="addStaff">Create login</button>
         <div class="msg" id="stMsg"></div>
       </div>
-      <div class="tablewrap"><table><thead><tr><th>Email</th><th>Name</th><th></th></tr></thead><tbody id="stBody"></tbody></table></div>
+      <div class="tablewrap"><table><thead><tr><th>Email</th><th>Name</th><th>Access</th></tr></thead><tbody id="stBody"></tbody></table></div>
     </section>
 
   </main>
@@ -336,7 +352,7 @@ select.status[data-s=cancelled]{background:#F5E3E0;}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, collection, doc, addDoc, setDoc, getDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, serverTimestamp, query, where }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
@@ -350,7 +366,10 @@ const fmtD = iso => { if(!iso) return ''; const d=new Date(iso+'T00:00'); return
 const fmtTs = ts => ts && ts.toDate ? ts.toDate().toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
 const money = n => '£' + Number(n||0).toFixed(2).replace(/\.00$/,'');
 function flash(id, t, bad){ const el=$(id); el.textContent=t; el.style.color=bad?'#7C2E24':'#2C5642'; clearTimeout(el._t); el._t=setTimeout(()=>el.textContent='', bad?7000:3000); }
-function fail(id, e){ console.error(e); flash(id, e && e.code==='permission-denied' ? 'This login does not have admin access.' : 'Error: '+(e.message||e), true); }
+function showConnErr(e){ const b=$('connErr'); b.hidden=false;
+  b.textContent = e && e.code==='permission-denied' ? 'This login is not allowed to see bookings. Ask the owner to add you under Staff logins.' : 'Could not load live data — check your internet connection and refresh the page.'; }
+const FRIENDLY={'permission-denied':'This login does not have access to do that.','unavailable':'No internet connection — please try again.','auth/network-request-failed':'No internet connection — please try again.','auth/wrong-password':'Current password is incorrect.','auth/invalid-credential':'Current password is incorrect.','auth/weak-password':'Please choose a stronger password (8+ characters).','auth/too-many-requests':'Too many attempts — please wait a few minutes.'};
+function fail(id, e){ console.error(e); flash(id, (e && FRIENDLY[e.code]) || (e && e.friendly) || 'Something went wrong — please try again.', true); }
 
 /* ---------- tabs & mobile ---------- */
 function openTab(t){
@@ -398,7 +417,7 @@ function watch(col, onData, label, describe){
     const list=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(!first) snap.docChanges().forEach(ch=>{ if(ch.type==='added' && !ch.doc.metadata.hasPendingWrites) alertNew(label, describe(ch.doc.data())); });
     first=false; onData(list);
-  }, e=>console.error(col,e));
+  }, e=>{ console.error(col,e); showConnErr(e); });
 }
 
 /* ---------- auth ---------- */
@@ -417,7 +436,7 @@ onAuthStateChanged(auth, user=>{
 $('loginForm').onsubmit=async e=>{
   e.preventDefault(); $('loginErr').textContent=''; $('loginBtn').disabled=true;
   try{ await signInWithEmailAndPassword(auth,$('le').value.trim(),$('lp').value); $('lp').value=''; }
-  catch(err){ $('loginErr').textContent='Sign-in failed — check the email and password.'; }
+  catch(err){ $('loginErr').textContent = err.code==='auth/too-many-requests' ? 'Too many attempts — please wait a few minutes.' : err.code==='auth/network-request-failed' ? 'No internet connection.' : 'Sign-in failed — check the email and password.'; }
   finally{ $('loginBtn').disabled=false; }
 };
 $('logout').onclick=()=>signOut(auth);
@@ -490,7 +509,7 @@ $('bBody').onchange=async e=>{
   if(b.tableId && s==='cancelled' && b.status!=='cancelled') batch.delete(doc(db,'tableLocks',lockId(b)));
   if(b.tableId && b.status==='cancelled' && s!=='cancelled') batch.set(doc(db,'tableLocks',lockId(b)),{date:b.date,time:b.time,tableId:b.tableId,bookingId:b.id});
   try{ await batch.commit(); flash('bMsg', s==='cancelled' ? 'Cancelled — the table is free again.' : 'Status updated.'); }
-  catch(err){ renderBookings(); fail('bMsg', err.code==='permission-denied' && s!=='cancelled' ? {message:'That table has been booked by someone else since.'} : err); }
+  catch(err){ renderBookings(); fail('bMsg', err.code==='permission-denied' && s!=='cancelled' ? {friendly:'That table has been booked by someone else since.'} : err); }
 };
 $('bBody').onclick=async e=>{
   const id=e.target.dataset.del; if(!id) return;
@@ -524,7 +543,7 @@ $('saveBooking').onclick=async()=>{
     notes:$('nb-notes').value.trim(),status:'confirmed',source:'admin',seen:true,createdAt:serverTimestamp()});
   batch.set(doc(db,'tableLocks',`${date}_${time}_${tableId}`),{date,time,tableId,bookingId:ref.id});
   try{ await batch.commit(); ['nb-name','nb-phone','nb-email','nb-notes'].forEach(i=>$(i).value=''); flash('nbMsg','Booking saved.'); }
-  catch(err){ fail('nbMsg', err.code==='permission-denied'?{message:'That table was just taken — pick another.'}:err); }
+  catch(err){ fail('nbMsg', err.code==='permission-denied'?{friendly:'That table was just taken — pick another.'}:err); }
 };
 
 /* ---------- table plan ---------- */
@@ -678,13 +697,51 @@ async function loadHours(){
 $('saveHours').onclick=async()=>{ const h={}; document.querySelectorAll('.hours-row').forEach(r=>h[r.dataset.day]={open:r.querySelector('.o').value,close:r.querySelector('.c').value,closed:r.querySelector('.cl').checked});
   try{ await setDoc(doc(db,'site','hours'),h); flash('hrMsg','Saved — live on the website.'); }catch(err){ fail('hrMsg',err); } };
 
+/* ---------- my password ---------- */
+$('pwSave').onclick=async()=>{
+  const cur=$('pw-cur').value, n1=$('pw-new').value, n2=$('pw-new2').value;
+  if(n1.length<8) return flash('pwMsg','New password must be at least 8 characters.',true);
+  if(n1!==n2) return flash('pwMsg','The new passwords do not match.',true);
+  $('pwSave').disabled=true;
+  try{
+    const u=auth.currentUser;
+    await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, cur));
+    await updatePassword(u, n1);
+    ['pw-cur','pw-new','pw-new2'].forEach(i=>$(i).value=''); flash('pwMsg','Password updated.');
+  }catch(err){ fail('pwMsg',err); }
+  finally{ $('pwSave').disabled=false; }
+};
+
 /* ---------- staff ---------- */
 function renderStaff(){
-  $('stBody').innerHTML=`<tr><td>${esc(OWNER)}</td><td>Owner</td><td></td></tr>`+staff.map(s=>`<tr><td>${esc(s.id)}</td><td>${esc(s.name)}</td><td><button class="x" data-sdel="${esc(s.id)}">×</button></td></tr>`).join('');
+  $('stBody').innerHTML=`<tr><td>${esc(OWNER)}</td><td>Owner</td><td>Full</td></tr>`+staff.map(s=>`<tr><td>${esc(s.id)}</td><td>${esc(s.name)}</td>
+    <td><button class="btn small danger" data-sdel="${esc(s.id)}">Remove access</button></td></tr>`).join('');
 }
-$('addStaff').onclick=async()=>{ const em=$('st-email').value.trim().toLowerCase(); if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return flash('stMsg','Enter a valid email.',true);
-  try{ await setDoc(doc(db,'staff',em),{name:$('st-name').value.trim(),addedAt:serverTimestamp()}); $('st-email').value=$('st-name').value=''; flash('stMsg','Access given.'); }catch(err){ fail('stMsg',err); } };
-$('stBody').onclick=async e=>{ const id=e.target.dataset.sdel; if(!id||!confirm('Remove access for '+id+'?')) return; try{ await deleteDoc(doc(db,'staff',id)); }catch(err){ fail('stMsg',err); } };
+let staffApp=null;
+function staffAuth(){ if(!staffApp) staffApp=initializeApp(firebaseConfig,'staff-creator'); return getAuth(staffApp); }
+$('addStaff').onclick=async()=>{
+  const em=$('st-email').value.trim().toLowerCase(), pw=$('st-pass').value, name=$('st-name').value.trim();
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return flash('stMsg','Enter a valid email.',true);
+  if(pw.length<8) return flash('stMsg','Password must be at least 8 characters.',true);
+  $('addStaff').disabled=true;
+  let existed=false;
+  try{
+    const a=staffAuth();
+    try{ await createUserWithEmailAndPassword(a, em, pw); }
+    catch(e){ if(e.code==='auth/email-already-in-use') existed=true; else throw e; }
+    await signOut(a);
+    await setDoc(doc(db,'staff',em),{name,addedAt:serverTimestamp()});
+    ['st-email','st-pass','st-name'].forEach(i=>$(i).value='');
+    flash('stMsg', existed ? 'That email already had a login — it now has admin access with its existing password.' : `Login created for ${em}. Share the password with them privately.`);
+  }catch(err){
+    const m={'auth/invalid-email':'That email address is not valid.','auth/weak-password':'Please choose a stronger password.','auth/network-request-failed':'No internet connection — try again.'}[err.code];
+    m ? flash('stMsg',m,true) : fail('stMsg',err);
+  }finally{ $('addStaff').disabled=false; }
+};
+$('stBody').onclick=async e=>{
+  const id=e.target.dataset.sdel; if(!id||!confirm('Remove access for '+id+'? They will no longer be able to open the admin.')) return;
+  try{ await deleteDoc(doc(db,'staff',id)); flash('stMsg','Access removed.'); }catch(err){ fail('stMsg',err); }
+};
 </script>
 </body>
 </html>

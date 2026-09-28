@@ -633,6 +633,19 @@ window.currentMenu='food';
 function renderMenu(){
   const list = window.MENUS[window.currentMenu];
   $('menuPages').innerHTML = list.map((p,i)=>`<figure data-i="${i}"><img src="${esc(p.src)}" alt="${esc(p.cap)}" loading="lazy"><figcaption>${esc(p.cap)}</figcaption></figure>`).join('');
+  $('menuPages').querySelectorAll('img').forEach((img,i)=>{
+    img.onerror=()=>{ const s=img.getAttribute('src');
+      if(s.startsWith('menu/')){ const alt=s.slice(5); img.src=alt; list[i].src=alt; }   // images uploaded without the folder
+      else { const f=img.closest('figure'); if(f) f.style.display='none'; checkMenuEmpty(); } };
+  });
+}
+function checkMenuEmpty(){
+  const vis=[...document.querySelectorAll('#menuPages figure')].filter(f=>f.style.display!=='none').length;
+  let n=document.getElementById('menuSoon');
+  if(!vis && !n){ n=document.createElement('p'); n.id='menuSoon'; n.style.cssText='color:rgba(241,232,214,0.7);padding:20px 0;';
+    n.innerHTML='Our menu is being updated — please ask our team or call <a href="tel:02035182275" style="color:var(--gold-light)">020 3518 2275</a>.';
+    document.getElementById('menuPages').after(n); }
+  if(vis && n) n.remove();
 }
 $('menuTabs').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; window.currentMenu=b.dataset.menu;
   $('menuTabs').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b)); renderMenu(); };
