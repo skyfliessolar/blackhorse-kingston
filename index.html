@@ -193,6 +193,15 @@
   .field input:focus, .field textarea:focus{outline:2px solid var(--gold);outline-offset:1px;}
   .field textarea{resize:vertical;min-height:80px;}
   form.book-form .btn{width:100%;justify-content:center;margin-top:6px;}
+  .type-switch{display:flex;gap:10px;margin-bottom:22px;}
+  .type-switch label{flex:1;cursor:pointer;}
+  .type-switch input{position:absolute;opacity:0;pointer-events:none;}
+  .type-switch span{display:block;text-align:center;padding:12px;border:1px solid var(--line-dark);border-radius:2px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(241,232,214,0.6);}
+  .type-switch input:checked + span{border-color:var(--gold);color:var(--gold-light);background:rgba(201,169,97,0.08);}
+  .type-switch input:focus-visible + span{outline:2px solid var(--gold);}
+  .hire-only{display:none !important;} form.is-hire .hire-only{display:block !important;} form.is-hire span.hire-only{display:inline !important;} form.is-hire .field.table-only,form.is-hire div.table-only{display:none !important;} form.is-hire .table-only{display:none;}
+  #book-error{display:none;margin-top:16px;padding:14px 16px;background:rgba(160,60,50,0.15);border-left:3px solid #C0584A;font-size:14.5px;color:var(--cream);}
+  form.book-form .btn:disabled{opacity:.6;cursor:wait;}
   #book-confirm{display:none;margin-top:16px;padding:14px 16px;background:rgba(201,169,97,0.1);border-left:3px solid var(--gold);font-size:14.5px;color:var(--cream);}
 
   .hours-list{max-width:520px;margin:44px auto 0;}
@@ -225,6 +234,40 @@
     font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(241,232,214,0.38);}
     footer .credit a{color:var(--gold-light);font-weight:600;border-bottom:1px solid transparent;padding-bottom:1px;transition:color .2s,border-color .2s;}
   footer .credit a:hover{color:var(--gold);border-color:var(--gold);}
+
+  /* ---------- menu + gallery + lightbox ---------- */
+  .menu-tabs{display:flex;gap:10px;justify-content:center;margin:26px 0 30px;flex-wrap:wrap;}
+  .menu-tabs button{background:none;border:1px solid var(--line-dark);color:rgba(241,232,214,0.7);font-family:'Oswald',sans-serif;font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;padding:11px 22px;border-radius:999px;cursor:pointer;}
+  .menu-tabs button.active{border-color:var(--gold);color:var(--black);background:var(--gold);}
+  .menu-pages{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:18px;}
+  .menu-pages figure,.gallery-grid figure{margin:0;cursor:zoom-in;border:1px solid var(--line-dark);border-radius:2px;overflow:hidden;background:var(--black-2);transition:transform .2s,border-color .2s;}
+  .menu-pages figure:hover,.gallery-grid figure:hover{transform:translateY(-3px);border-color:var(--gold-dark);}
+  .menu-pages img{width:100%;aspect-ratio:1100/1556;object-fit:cover;}
+  .menu-pages figcaption,.gallery-grid figcaption{font-family:'Oswald',sans-serif;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-light);padding:10px 12px;}
+  @media(max-width:640px){.menu-pages{grid-template-columns:1fr 1fr;gap:10px;} .menu-pages figcaption{font-size:10px;padding:8px;}}
+  .menu-note{text-align:center;font-size:13.5px;color:rgba(241,232,214,0.55);margin-top:22px;}
+  .gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-top:36px;}
+  .gallery-grid img{width:100%;aspect-ratio:4/3;object-fit:cover;}
+  .lightbox{position:fixed;inset:0;background:rgba(6,5,4,.95);z-index:200;display:none;align-items:center;justify-content:center;flex-direction:column;padding:56px 12px 20px;}
+  .lightbox.open{display:flex;}
+  .lightbox img{max-width:100%;max-height:calc(100vh - 120px);object-fit:contain;box-shadow:0 10px 40px rgba(0,0,0,.6);}
+  .lightbox .lb-cap{font-family:'Oswald',sans-serif;letter-spacing:.1em;text-transform:uppercase;font-size:12px;color:var(--gold-light);margin-top:12px;}
+  .lightbox button{position:absolute;background:rgba(241,232,214,.08);border:1px solid var(--line-dark);color:var(--cream);width:46px;height:46px;border-radius:50%;font-size:22px;cursor:pointer;}
+  .lightbox .lb-close{top:12px;right:12px;} .lightbox .lb-prev{left:12px;top:50%;} .lightbox .lb-next{right:12px;top:50%;}
+  /* ---------- booking slots & extras ---------- */
+  .slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;}
+  .slot-grid label{cursor:pointer;} .slot-grid input{position:absolute;opacity:0;pointer-events:none;}
+  .slot-grid span{display:block;text-align:center;padding:10px 4px;border:1px solid var(--line-dark);border-radius:2px;font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:.05em;color:var(--cream);}
+  .slot-grid input:checked + span{background:var(--gold);color:var(--black);border-color:var(--gold);}
+  .slot-grid input:focus-visible + span{outline:2px solid var(--gold);}
+  .slot-grid label.full span{opacity:.35;text-decoration:line-through;cursor:not-allowed;}
+  .slot-hint{font-size:13.5px;color:rgba(241,232,214,0.6);padding:10px 0;}
+  .extra-opt{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1px solid var(--line-dark);border-radius:2px;margin-bottom:8px;cursor:pointer;}
+  .extra-opt input{margin-top:4px;accent-color:var(--gold);}
+  .extra-opt b{color:var(--gold-light);font-weight:500;} .extra-opt small{display:block;color:rgba(241,232,214,0.55);}
+  .extra-opt .price{margin-left:auto;font-family:'Oswald',sans-serif;color:var(--gold-light);white-space:nowrap;}
+  .extras-total{text-align:right;font-family:'Oswald',sans-serif;letter-spacing:.06em;color:var(--gold-light);margin:6px 0 16px;}
+  .contact-card{background:var(--black-2);border:1px solid var(--line-dark);padding:32px;border-radius:2px;max-width:720px;margin:0 auto;}
 </style>
 </head>
 <body>
@@ -236,9 +279,10 @@
       <span>The Black Horse<span class="brand-sub">Drunken Wok</span></span>
     </a>
     <nav class="links">
+      <a href="#menu">Menu</a>
       <a href="#food">Drunken Wok</a>
       <a href="#sport">Live Sport</a>
-      <a href="#terrace">Terrace</a>
+      <a href="#gallery" data-gallery-link hidden>Gallery</a>
       <a href="#hire">Private Hire</a>
       <a href="#hours">Hours</a>
       <a href="#find">Find Us</a>
@@ -261,7 +305,7 @@
       <span class="eyebrow">Kingston upon Thames</span>
       <h1>The Black Horse</h1>
       <div class="ornate-rule"><span class="bar"></span><span class="diamonds">&#10022;</span><span class="bar"></span></div>
-      <p class="tagline">Good drinks. Live sport. Good times.</p>
+      <p class="tagline" data-content="tagline">Good drinks. Live sport. Good times.</p>
       <div>
         <a class="kitchen-line" href="#food">
           <img class="mark" src="logo.jpg" alt="Drunken Wok logo">
@@ -270,7 +314,7 @@
       </div>
       <div class="hero-ctas">
         <a class="btn btn-gold" href="#book">Book a Table</a>
-        <a class="btn btn-outline-light" href="#food">View Our Menu</a>
+        <a class="btn btn-outline-light" href="#menu">View Our Menu</a>
       </div>
     </div>
   </section>
@@ -280,7 +324,7 @@
       <div>
         <span class="eyebrow">A Kingston local favourite</span>
         <h2>Welcome to The Black Horse</h2>
-        <p>Located on London Road, The Black Horse is a welcoming pub with plenty of space to relax, eat, drink and catch up with friends.</p>
+        <p data-content="welcome">Located on London Road, The Black Horse is a welcoming pub with plenty of space to relax, eat, drink and catch up with friends.</p>
         <p>We're home to Drunken Wok, our resident Thai kitchen serving authentic Thai cuisine crafted with tradition — alongside a full bar, live sport and a relaxed atmosphere for everyone.</p>
         <p>With an open-plan interior, central bar, lounge areas, fireplace and plenty of seating, we're the perfect place for everything from casual drinks to larger gatherings.</p>
       </div>
@@ -301,18 +345,33 @@
           <img class="mark" src="logo.jpg" alt="Drunken Wok logo">
         </div>
         <h2>Our Kitchen Drunken Wok</h2>
-        <p>Authentic Thai cuisine, crafted with tradition. Drunken Wok brings bold curries, wok-fired classics and comforting favourites to The Black Horse — perfect for a quick bite or settling in for the evening.</p>
-        <a class="btn btn-outline-light" href="#book" style="margin-top:8px;">View Our Menu</a>
+        <p data-content="food">Authentic Thai cuisine, crafted with tradition. Drunken Wok brings bold curries, wok-fired classics and comforting favourites to The Black Horse — perfect for a quick bite or settling in for the evening.</p>
+        <a class="btn btn-outline-light" href="#menu" style="margin-top:8px;">View Our Menu</a>
       </div>
       <div>
         <span class="eyebrow">Something for every taste</span>
         <h2 style="margin-top:14px;">Drinks</h2>
-        <p>Enjoy a wide selection of drinks at the bar, including refreshing beers, cask ale and other favourites. Our welcoming bar is the perfect place to meet friends, enjoy a drink after work or settle in for an evening.</p>
+        <p data-content="drinks">Enjoy a wide selection of drinks at the bar, including refreshing beers, cask ale and other favourites. Our welcoming bar is the perfect place to meet friends, enjoy a drink after work or settle in for an evening.</p>
         <div class="highlight-card">
           <h3>Cask Ale</h3>
           <p style="margin:0;">For lovers of traditional British beer, we offer cask ale alongside our wider drinks selection.</p>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- MENU -->
+  <section id="menu">
+    <div class="wrap" style="text-align:center;">
+      <span class="eyebrow">Drunken Wok</span>
+      <h2 style="font-size:clamp(28px,4vw,42px);margin:14px 0 6px;color:var(--gold-light);">Our Menu</h2>
+      <p style="color:rgba(241,232,214,0.7);margin:0;">Tap any page to read it full size.</p>
+      <div class="menu-tabs" id="menuTabs">
+        <button class="active" data-menu="food">Food menu</button>
+        <button data-menu="lunch">Lunch deal · 12–3pm</button>
+      </div>
+      <div class="menu-pages" id="menuPages"></div>
+      <p class="menu-note">Please tell our staff about any allergies before ordering. Full allergen information is available on request.</p>
     </div>
   </section>
 
@@ -334,7 +393,7 @@
       <div>
         <span class="eyebrow">Enjoy the outdoors</span>
         <h2 style="font-size:clamp(28px,3.6vw,38px);margin:14px 0 18px;">Our Terrace</h2>
-        <p style="max-width:46ch;">Make the most of the warmer months on our large outdoor terrace. With comfortable seating, private booths and a gas fire pit, it's a great place to relax with friends and enjoy a drink outdoors. Our outdoor area also features a container bar, making it ideal for busy summer days and evenings.</p>
+        <p style="max-width:46ch;" data-content="terrace">Make the most of the warmer months on our large outdoor terrace. With comfortable seating, private booths and a gas fire pit, it's a great place to relax with friends and enjoy a drink outdoors. Our outdoor area also features a container bar, making it ideal for busy summer days and evenings.</p>
       </div>
       <div class="firepit">
         <div class="glow"></div>
@@ -348,20 +407,29 @@
     </div>
   </section>
 
+  <!-- GALLERY (filled from admin uploads) -->
+  <section id="gallery" hidden>
+    <div class="wrap" style="text-align:center;">
+      <span class="eyebrow">Take a look inside</span>
+      <h2 style="font-size:clamp(28px,4vw,42px);margin:14px 0 0;color:var(--gold-light);">Gallery</h2>
+      <div class="gallery-grid" id="galleryGrid"></div>
+    </div>
+  </section>
+
   <div class="divider"><img class="mark" src="logo.jpg" alt="" style="width:40px;height:40px;"></div>
 
   <section id="hire">
     <div class="wrap hire-grid">
       <div class="capacity-stat">
-        <div class="num">250</div>
+        <div class="num" data-content="capacity">250</div>
         <div class="label">Guest capacity</div>
       </div>
       <div>
         <span class="eyebrow">Celebrate with us</span>
         <h2 style="font-size:clamp(28px,3.6vw,38px);margin:14px 0 18px;">Private Hire &amp; Functions</h2>
-        <p style="color:rgba(241,232,214,0.78);">Planning a birthday, celebration, party or private event? The Black Horse offers spaces suitable for gatherings of different sizes, with a total venue capacity of approximately 250 guests.</p>
+        <p style="color:rgba(241,232,214,0.78);" data-content="hire">Planning a birthday, celebration, party or private event? The Black Horse offers spaces suitable for gatherings of different sizes, with a total venue capacity of approximately 250 guests.</p>
         <p style="color:rgba(241,232,214,0.78);">Our function spaces provide a relaxed setting for celebrations, get-togethers and special occasions — with Drunken Wok on hand for catering. Speak to our team about your requirements and we'll help you plan your event.</p>
-        <a class="btn btn-gold" href="#book" style="margin-top:8px;">Enquire About Private Hire</a>
+        <a class="btn btn-gold" href="#book" data-enquiry="hire" style="margin-top:8px;">Enquire About Private Hire</a>
       </div>
     </div>
   </section>
@@ -415,25 +483,38 @@
         <p>Planning a meal or meeting friends? Book your table at The Black Horse and enjoy Drunken Wok's Thai kitchen, great drinks and a relaxed atmosphere.</p>
         <p style="margin-top:22px;">Prefer to call? Ring us on <a href="tel:02035182275" style="color:var(--gold-light);font-weight:500;">020 3518 2275</a>.</p>
       </div>
-      <form class="book-form" id="bookingForm">
-        <div class="form-row">
-          <div class="field"><label for="name">Name</label><input id="name" type="text" placeholder="Your name" required></div>
-          <div class="field"><label for="email">Email</label><input id="email" type="email" placeholder="Your email address" required></div>
+      <form class="book-form" id="bookingForm" novalidate>
+        <div class="type-switch" role="radiogroup" aria-label="What would you like to book?">
+          <label><input type="radio" name="kind" value="table" checked><span>Table booking</span></label>
+          <label><input type="radio" name="kind" value="hire"><span>Private hire / event</span></label>
         </div>
         <div class="form-row">
-          <div class="field"><label for="phone">Phone</label><input id="phone" type="tel" placeholder="Your phone number" required></div>
-          <div class="field"><label for="guests">Number of guests</label><input id="guests" type="number" min="1" placeholder="How many people?" required></div>
+          <div class="field"><label for="date"><span class="table-only">Date</span><span class="hire-only">Preferred date</span></label><input id="date" type="date" required></div>
+          <div class="field"><label for="guests">Number of guests</label><input id="guests" type="number" min="1" max="500" value="2" required></div>
         </div>
+        <div class="field table-only">
+          <label>Choose a time</label>
+          <div class="slot-grid" id="slotGrid"></div>
+          <div class="slot-hint" id="slotHint">Pick a date to see available times.</div>
+        </div>
+        <div class="field table-only" id="extrasField" hidden>
+          <label>Make it special (optional)</label>
+          <div id="extrasOpts"></div>
+          <div class="extras-total" id="extrasTotal"></div>
+        </div>
+        <div class="field hire-only"><label for="eventType">Type of event</label><input id="eventType" type="text" maxlength="100" placeholder="Birthday, work party, wake…"></div>
         <div class="form-row">
-          <div class="field"><label for="date">Date</label><input id="date" type="date" required></div>
-          <div class="field"><label for="time">Time</label><input id="time" type="time" required></div>
+          <div class="field"><label for="name">Name</label><input id="name" type="text" maxlength="100" placeholder="Your name" required></div>
+          <div class="field"><label for="phone">Phone</label><input id="phone" type="tel" maxlength="30" placeholder="Your phone number" required></div>
         </div>
+        <div class="field"><label for="email">Email</label><input id="email" type="email" maxlength="150" placeholder="Your email address" required></div>
         <div class="field">
-          <label for="notes">Special requirements</label>
-          <textarea id="notes" placeholder="Tell us anything we should know about your booking."></textarea>
+          <label for="notes"><span class="table-only">Special requirements</span><span class="hire-only">Tell us about your event</span></label>
+          <textarea id="notes" maxlength="1000" placeholder="Allergies, high chair, occasion…"></textarea>
         </div>
-        <button type="submit" class="btn btn-gold">Submit Booking</button>
-        <div id="book-confirm">Online booking is coming soon. To book your table now, please call us on <a href="tel:02035182275" style="color:var(--gold-light);font-weight:600;">020 3518 2275</a>.</div>
+        <button type="submit" class="btn btn-gold" id="bookBtn">Book now</button>
+        <div id="book-confirm" role="status"></div>
+        <div id="book-error" role="alert"></div>
       </form>
     </div>
   </section>
@@ -451,6 +532,28 @@
         <div class="hours-row" data-day="6"><span class="day">Saturday</span><span>12:00 PM &ndash; 11:00 PM</span></div>
         <div class="hours-row" data-day="0"><span class="day">Sunday</span><span>12:00 PM &ndash; 10:00 PM</span></div>
       </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section id="contact" class="section-panel">
+    <div class="wrap">
+      <div style="text-align:center;margin-bottom:30px;">
+        <span class="eyebrow">Get in touch</span>
+        <h2 style="font-size:clamp(28px,3.6vw,38px);margin:14px 0 8px;color:var(--gold-light);">Send us a message</h2>
+        <p style="margin:0;">Questions, feedback or takeaway enquiries — we'll get back to you.</p>
+      </div>
+      <form class="contact-card" id="contactForm" novalidate>
+        <div class="form-row">
+          <div class="field"><label for="m-name">Name</label><input id="m-name" maxlength="100" required></div>
+          <div class="field"><label for="m-phone">Phone (optional)</label><input id="m-phone" type="tel" maxlength="30"></div>
+        </div>
+        <div class="field"><label for="m-email">Email</label><input id="m-email" type="email" maxlength="150" required></div>
+        <div class="field"><label for="m-msg">Message</label><textarea id="m-msg" maxlength="1500" required></textarea></div>
+        <button class="btn btn-gold" id="m-btn" type="submit" style="width:100%;justify-content:center;">Send message</button>
+        <div id="m-ok" style="display:none;margin-top:14px;padding:12px 14px;border-left:3px solid var(--gold);background:rgba(201,169,97,0.1);">Thanks — your message has been sent. We'll reply soon.</div>
+        <div id="m-err" style="display:none;margin-top:14px;padding:12px 14px;border-left:3px solid #C0584A;background:rgba(160,60,50,0.15);">Sorry, that didn't send. Please call 020 3518 2275.</div>
+      </form>
     </div>
   </section>
 
@@ -481,11 +584,12 @@
     </a>
     <p class="tagline">Drunken Wok — authentic Thai cuisine, crafted with tradition.</p>
     <nav>
+      <a href="#menu">Menu</a>
       <a href="#food">Drunken Wok</a>
       <a href="#sport">Live Sport</a>
-      <a href="#terrace">Terrace</a>
       <a href="#hire">Private Hire</a>
       <a href="#book">Book a Table</a>
+      <a href="#contact">Contact</a>
       <a href="#find">Find Us</a>
     </nav>
     <div class="fine">&copy; <span id="yr">2026</span> The Black Horse &nbsp;&middot;&nbsp; 204 London Road, Kingston upon Thames, KT2 6QP &nbsp;&middot;&nbsp; 020 3518 2275</div>
@@ -494,17 +598,231 @@
   </div>
 </footer>
 
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer">
+  <button class="lb-close" aria-label="Close">&times;</button>
+  <button class="lb-prev" aria-label="Previous">&lsaquo;</button>
+  <img alt="">
+  <div class="lb-cap"></div>
+  <button class="lb-next" aria-label="Next">&rsaquo;</button>
+</div>
 <script>
-  document.getElementById('bookingForm').addEventListener('submit', function(e){
-    e.preventDefault();
-    document.getElementById('book-confirm').style.display = 'block';
-  });
-  (function(){
-    var today = new Date().getDay();
-    var row = document.querySelector('.hours-row[data-day="' + today + '"]');
-    if(row){ row.classList.add('today'); }
-  })();
+(function(){
+const $ = id => document.getElementById(id);
+const esc = s => s==null ? '' : String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+/* ================= LIGHTBOX ================= */
+const lb = $('lightbox'); let lbList = [], lbIdx = 0;
+function openLb(list, i){ lbList=list; lbIdx=i; showLb(); lb.classList.add('open'); document.body.style.overflow='hidden'; }
+function showLb(){ const it=lbList[lbIdx]; lb.querySelector('img').src=it.src; lb.querySelector('.lb-cap').textContent=it.cap||'';
+  lb.querySelector('.lb-prev').style.display=lb.querySelector('.lb-next').style.display = lbList.length>1?'':'none'; }
+function closeLb(){ lb.classList.remove('open'); document.body.style.overflow=''; }
+lb.querySelector('.lb-close').onclick=closeLb;
+lb.querySelector('.lb-prev').onclick=e=>{ e.stopPropagation(); lbIdx=(lbIdx-1+lbList.length)%lbList.length; showLb(); };
+lb.querySelector('.lb-next').onclick=e=>{ e.stopPropagation(); lbIdx=(lbIdx+1)%lbList.length; showLb(); };
+lb.onclick=e=>{ if(e.target===lb) closeLb(); };
+document.addEventListener('keydown',e=>{ if(!lb.classList.contains('open')) return;
+  if(e.key==='Escape') closeLb(); if(e.key==='ArrowLeft') lb.querySelector('.lb-prev').click(); if(e.key==='ArrowRight') lb.querySelector('.lb-next').click(); });
+let tx=0; lb.addEventListener('touchstart',e=>tx=e.touches[0].clientX,{passive:true});
+lb.addEventListener('touchend',e=>{ const dx=e.changedTouches[0].clientX-tx; if(Math.abs(dx)>50) lb.querySelector(dx>0?'.lb-prev':'.lb-next').click(); });
+
+/* ================= MENU ================= */
+window.MENUS = {
+  food:  [1,2,3,4].map(n=>({src:`menu/food-${n}.jpg`, cap:['Cover','Starters, soups & salads','Mains, specials & sides','Kids menu & fresh juices'][n-1]})),
+  lunch: [1,2].map(n=>({src:`menu/lunch-${n}.jpg`, cap:['Lunch menu','Lunch deal · 12pm–3pm'][n-1]}))
+};
+window.currentMenu='food';
+function renderMenu(){
+  const list = window.MENUS[window.currentMenu];
+  $('menuPages').innerHTML = list.map((p,i)=>`<figure data-i="${i}"><img src="${esc(p.src)}" alt="${esc(p.cap)}" loading="lazy"><figcaption>${esc(p.cap)}</figcaption></figure>`).join('');
+}
+$('menuTabs').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; window.currentMenu=b.dataset.menu;
+  $('menuTabs').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b)); renderMenu(); };
+$('menuPages').onclick=e=>{ const f=e.target.closest('figure'); if(f) openLb(window.MENUS[window.currentMenu], Number(f.dataset.i)); };
+renderMenu();
+
+
+window.openLb = openLb; window.renderMenu = renderMenu;
+})();
 </script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, doc, getDoc, getDocs, query, where, writeBatch, addDoc, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { firebaseConfig } from "./firebase-config.js";
+
+const db = getFirestore(initializeApp(firebaseConfig));
+const $ = id => document.getElementById(id);
+const esc = s => s==null ? '' : String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money = n => '£' + Number(n||0).toFixed(2).replace(/\.00$/,'');
+const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const todayISO = () => { const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
+
+/* ================= GALLERY + uploaded menu pages ================= */
+async function loadGallery(){
+  try{
+    const snap = await getDocs(collection(db,'gallery'));
+    const all = snap.docs.map(d=>d.data()).sort((a,b)=>(a.order||0)-(b.order||0));
+    const pub = all.filter(g=>g.kind==='pub'), menu = all.filter(g=>g.kind==='menu');
+    if(menu.length){
+      window.MENUS.food = menu.map((m,i)=>({src:m.img, cap:m.caption||('Page '+(i+1))}));
+      $('menuTabs').hidden = true; window.currentMenu='food'; window.renderMenu();
+    }
+    if(pub.length){
+      const list = pub.map(p=>({src:p.img, cap:p.caption||''}));
+      $('galleryGrid').innerHTML = list.map((p,i)=>`<figure data-i="${i}"><img src="${p.src}" alt="${esc(p.cap||'The Black Horse')}" loading="lazy">${p.cap?`<figcaption>${esc(p.cap)}</figcaption>`:''}</figure>`).join('');
+      $('galleryGrid').onclick=e=>{ const f=e.target.closest('figure'); if(f) window.openLb(list, Number(f.dataset.i)); };
+      $('gallery').hidden=false; document.querySelectorAll('[data-gallery-link]').forEach(a=>a.hidden=false);
+    }
+  }catch(e){ console.warn('Gallery', e); }
+}
+
+/* ================= HOURS + CONTENT ================= */
+let hours = null;
+function fmt12(t){ if(!t) return ''; let [h,m]=t.split(':').map(Number); const ap=h>=12?'PM':'AM'; h=h%12||12; return `${h}:${String(m).padStart(2,'0')} ${ap}`; }
+async function loadHours(){
+  try{
+    const s = await getDoc(doc(db,'site','hours'));
+    if(s.exists()){
+      hours = s.data();
+      const order=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+      $('hoursList').innerHTML = order.map((d,i)=>{ const h=hours[d]; if(!h) return '';
+        return `<div class="hours-row" data-day="${(i+1)%7}"><span class="day">${d}</span><span>${h.closed?'Closed':fmt12(h.open)+' &ndash; '+fmt12(h.close)}</span></div>`; }).join('');
+    }
+  }catch(e){ console.warn('Hours', e); }
+  const row=document.querySelector('.hours-row[data-day="'+new Date().getDay()+'"]'); if(row) row.classList.add('today');
+}
+async function loadContent(){
+  try{ const s=await getDoc(doc(db,'site','content')); if(!s.exists()) return; const c=s.data();
+    document.querySelectorAll('[data-content]').forEach(el=>{ const v=c[el.dataset.content]; if(v!==undefined && v!==null && String(v).trim()!=='') el.textContent=v; });
+  }catch(e){ console.warn('Content', e); }
+}
+
+/* ================= BOOKING ================= */
+const form = $('bookingForm');
+const DEFAULT_SETTINGS = {
+  tables: Array.from({length:10},(_,i)=>({id:'T'+(i+1),name:'Table '+(i+1),seats:4})),
+  slots: ['12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00'],
+  maxGuests: 12, extras: []
+};
+let settings = DEFAULT_SETTINGS, freeTable = {};
+async function loadSettings(){
+  try{ const s=await getDoc(doc(db,'site','booking')); if(s.exists()) settings={...DEFAULT_SETTINGS,...s.data()}; }catch(e){ console.warn(e); }
+  $('extrasField').hidden = !settings.extras.length;
+  $('extrasOpts').innerHTML = settings.extras.map(x=>`<label class="extra-opt"><input type="checkbox" value="${esc(x.id)}">
+    <span><b>${esc(x.name)}</b>${x.desc?`<small>${esc(x.desc)}</small>`:''}</span><span class="price">+ ${money(x.price)}</span></label>`).join('');
+  updateExtras(); refreshSlots();
+}
+function chosenExtras(){ return [...$('extrasOpts').querySelectorAll('input:checked')].map(i=>settings.extras.find(x=>x.id===i.value)).filter(Boolean); }
+function updateExtras(){ const t=chosenExtras().reduce((s,x)=>s+Number(x.price||0),0);
+  $('extrasTotal').textContent = t ? `Extras: ${money(t)} — payable at the venue` : ''; }
+$('extrasOpts').addEventListener('change', updateExtras);
+
+function slotsForDay(dateStr){
+  const d=new Date(dateStr+'T00:00'); const h=hours && hours[DAYS[d.getDay()]];
+  if(h && h.closed) return null;
+  let list = settings.slots.slice();
+  if(h && h.open && h.close){ const close = h.close <= h.open ? '24:00' : h.close;
+    list = list.filter(s => s >= h.open && addMin(s,60) <= close); }
+  if(dateStr===todayISO()){ const now=new Date(); const cur=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+    list = list.filter(s => s > addMin(cur,30)); }
+  return list;
+}
+function addMin(t,m){ let [h,mm]=t.split(':').map(Number); mm+=m; h+=Math.floor(mm/60); mm%=60; return String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0'); }
+
+let slotReq=0;
+async function refreshSlots(){
+  if(form.classList.contains('is-hire')) return;
+  const date=$('date').value, guests=Number($('guests').value)||0, grid=$('slotGrid'), hint=$('slotHint');
+  grid.innerHTML=''; freeTable={};
+  if(!date){ hint.textContent='Pick a date to see available times.'; return; }
+  if(guests > settings.maxGuests){ hint.innerHTML=`For groups over ${settings.maxGuests}, please choose <b>Private hire / event</b> above or call 020 3518 2275.`; return; }
+  const slots=slotsForDay(date);
+  if(slots===null){ hint.textContent="Sorry, we're closed that day."; return; }
+  if(!slots.length){ hint.textContent='No more booking times left that day — please try another date.'; return; }
+  hint.textContent='Checking availability…';
+  const my=++slotReq;
+  let taken=[];
+  try{ taken=(await getDocs(query(collection(db,'tableLocks'), where('date','==',date)))).docs.map(d=>d.data()); }
+  catch(e){ console.warn(e); }
+  if(my!==slotReq) return;
+  const fits = settings.tables.filter(t=>t.seats>=guests).sort((a,b)=>a.seats-b.seats);
+  let any=false;
+  grid.innerHTML = slots.map(s=>{
+    const busy=new Set(taken.filter(l=>l.time===s).map(l=>l.tableId));
+    const t=fits.find(x=>!busy.has(x.id)); if(t){ freeTable[s]=t; any=true; }
+    return `<label class="${t?'':'full'}"><input type="radio" name="slot" value="${s}" ${t?'':'disabled'}><span>${s}</span></label>`;
+  }).join('');
+  hint.textContent = !fits.length ? `We don't have a single table for ${guests} — please choose Private hire / event or call us.`
+                   : any ? 'Greyed-out times are fully booked.' : 'Fully booked that day — please try another date.';
+}
+$('date').addEventListener('change',refreshSlots);
+$('guests').addEventListener('change',refreshSlots);
+
+function setKind(kind){
+  form.classList.toggle('is-hire', kind==='hire');
+  form.querySelector(`input[name=kind][value=${kind}]`).checked=true;
+  $('bookBtn').textContent = kind==='hire' ? 'Send enquiry' : 'Book now';
+  if(kind==='table') refreshSlots();
+}
+form.querySelectorAll('input[name=kind]').forEach(r=>r.addEventListener('change',()=>setKind(r.value)));
+document.querySelectorAll('[data-enquiry="hire"]').forEach(a=>a.addEventListener('click',()=>setKind('hire')));
+document.querySelectorAll('a[href="#book"]:not([data-enquiry])').forEach(a=>a.addEventListener('click',()=>setKind('table')));
+$('date').min=todayISO();
+
+function showOk(html){ $('book-confirm').innerHTML=html; $('book-confirm').style.display='block'; }
+function showErr(html){ $('book-error').innerHTML=html; $('book-error').style.display='block'; }
+form.addEventListener('submit', async e=>{
+  e.preventDefault(); $('book-confirm').style.display='none'; $('book-error').style.display='none';
+  const isHire=form.classList.contains('is-hire');
+  const name=$('name').value.trim(), phone=$('phone').value.trim(), email=$('email').value.trim(), date=$('date').value, guests=Number($('guests').value);
+  if(!name||!phone||!email||!date||!guests) return showErr('Please fill in your name, phone, email, date and number of guests.');
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return showErr('Please check your email address.');
+  $('bookBtn').disabled=true;
+  try{
+    if(isHire){
+      await addDoc(collection(db,'hireEnquiries'),{name,email,phone,guests,date,type:$('eventType').value.trim(),message:$('notes').value.trim(),
+        status:'new',source:'website',seen:false,createdAt:serverTimestamp()});
+      showOk("Thanks — we've received your private hire enquiry and will be in touch shortly.");
+    }else{
+      const slot=form.querySelector('input[name=slot]:checked');
+      if(!slot){ $('bookBtn').disabled=false; return showErr('Please choose a time.'); }
+      const time=slot.value, table=freeTable[time];
+      if(!table){ $('bookBtn').disabled=false; return showErr('That time is no longer available — please pick another.'); }
+      const ex=chosenExtras(), total=ex.reduce((s,x)=>s+Number(x.price||0),0);
+      const ref=doc(collection(db,'bookings')), b=writeBatch(db);
+      b.set(ref,{name,email,phone,guests,date,time,tableId:table.id,tableName:table.name,
+        extras:ex.map(x=>({id:x.id,name:x.name,price:Number(x.price)})),extrasTotal:total,
+        notes:$('notes').value.trim(),status:'pending',source:'website',seen:false,createdAt:serverTimestamp()});
+      b.set(doc(db,'tableLocks',`${date}_${time}_${table.id}`),{date,time,tableId:table.id,bookingId:ref.id});
+      await b.commit();
+      const nice=new Date(date+'T00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+      showOk(`<b>Your table is reserved</b> — ${esc(nice)} at ${esc(time)} for ${guests}.${total?` Extras: ${money(total)}, payable at the venue.`:''}<br>We'll contact you to confirm. Need to change it? Call 020 3518 2275.`);
+    }
+    form.reset(); $('guests').value=2; setKind(isHire?'hire':'table'); updateExtras();
+  }catch(err){
+    console.error(err);
+    if(!isHire && err.code==='permission-denied'){ showErr('Sorry, someone has just booked that time. Please choose another.'); refreshSlots(); }
+    else showErr('Sorry, we couldn\'t send your request just now. Please call us on <a href="tel:02035182275" style="color:var(--gold-light);">020 3518 2275</a>.');
+  }finally{ $('bookBtn').disabled=false; }
+});
+
+/* ================= CONTACT ================= */
+$('contactForm').addEventListener('submit', async e=>{
+  e.preventDefault(); $('m-ok').style.display='none'; $('m-err').style.display='none';
+  const name=$('m-name').value.trim(), email=$('m-email').value.trim(), message=$('m-msg').value.trim();
+  if(!name||!email||!message){ $('m-err').textContent='Please add your name, email and a message.'; $('m-err').style.display='block'; return; }
+  $('m-btn').disabled=true;
+  try{ await addDoc(collection(db,'messages'),{name,email,phone:$('m-phone').value.trim(),message,seen:false,createdAt:serverTimestamp()});
+    $('contactForm').reset(); $('m-ok').style.display='block'; }
+  catch(err){ console.error(err); $('m-err').textContent="Sorry, that didn't send. Please call 020 3518 2275."; $('m-err').style.display='block'; }
+  finally{ $('m-btn').disabled=false; }
+});
+
+/* ================= START ================= */
+loadContent(); loadGallery();
+loadHours().then(loadSettings);
+setKind('table');
+</script>
+
 
 </body>
 </html>
