@@ -245,6 +245,25 @@
   .menu-pages img{width:100%;aspect-ratio:1100/1556;object-fit:cover;}
   .menu-pages figcaption,.gallery-grid figcaption{font-family:'Oswald',sans-serif;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-light);padding:10px 12px;}
   @media(max-width:640px){.menu-pages{grid-template-columns:1fr 1fr;gap:10px;} .menu-pages figcaption{font-size:10px;padding:8px;}}
+  .menu-cat{margin:0 auto 38px;max-width:980px;text-align:left;}
+  .menu-cat h3{font-family:'Cinzel',serif;color:var(--gold-light);font-size:clamp(20px,2.6vw,26px);text-align:center;margin:0 0 4px;letter-spacing:.04em;}
+  .menu-cat .sub{text-align:center;font-family:'Oswald',sans-serif;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:18px;}
+  .menu-cat .rule{width:60px;height:1px;background:var(--gold-dark);margin:10px auto 22px;}
+  .menu-items{display:grid;grid-template-columns:1fr 1fr;gap:18px 44px;}
+  @media(max-width:760px){.menu-items{grid-template-columns:1fr;gap:16px;}}
+  .mi-top{display:flex;align-items:baseline;gap:10px;}
+  .mi-name{font-family:'Oswald',sans-serif;font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:14.5px;color:var(--cream);}
+  .mi-dots{flex:1;border-bottom:1px dotted rgba(201,169,97,.4);transform:translateY(-4px);min-width:16px;}
+  .mi-price{font-family:'Oswald',sans-serif;color:var(--gold-light);font-size:14.5px;white-space:nowrap;}
+  .mi-desc{font-size:13.5px;color:rgba(241,232,214,0.62);margin-top:3px;line-height:1.5;}
+  .mi-hot{color:#E0574A;font-size:12px;margin-left:4px;}
+  .deal-box{max-width:760px;margin:0 auto 34px;border:1px solid var(--gold);padding:26px 24px;text-align:center;background:rgba(201,169,97,.05);}
+  .deal-box .deal-time{font-family:'Oswald',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-size:12.5px;}
+  .deal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px;}
+  @media(max-width:600px){.deal-grid{grid-template-columns:1fr;}}
+  .deal-grid div{border:1px solid var(--line-dark);padding:14px 10px;}
+  .deal-grid b{display:block;font-family:'Cinzel',serif;color:var(--gold-light);font-size:26px;}
+  .deal-grid span{font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:rgba(241,232,214,.7);}
   .menu-note{text-align:center;font-size:13.5px;color:rgba(241,232,214,0.55);margin-top:22px;}
   .gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-top:36px;}
   .gallery-grid img{width:100%;aspect-ratio:4/3;object-fit:cover;}
@@ -365,12 +384,14 @@
     <div class="wrap" style="text-align:center;">
       <span class="eyebrow">Drunken Wok</span>
       <h2 style="font-size:clamp(28px,4vw,42px);margin:14px 0 6px;color:var(--gold-light);">Our Menu</h2>
-      <p style="color:rgba(241,232,214,0.7);margin:0;">Tap any page to read it full size.</p>
+      <p style="color:rgba(241,232,214,0.7);margin:0;">Authentic Thai cuisine, crafted with tradition.</p>
       <div class="menu-tabs" id="menuTabs">
         <button class="active" data-menu="food">Food menu</button>
         <button data-menu="lunch">Lunch deal · 12–3pm</button>
+        <button data-menu="pages" id="pagesTab" hidden>Printed menu</button>
       </div>
-      <div class="menu-pages" id="menuPages"></div>
+      <div id="menuText"></div>
+      <div class="menu-pages" id="menuPages" hidden></div>
       <p class="menu-note">Please tell our staff about any allergies before ordering. Full allergen information is available on request.</p>
     </div>
   </section>
@@ -625,31 +646,76 @@ let tx=0; lb.addEventListener('touchstart',e=>tx=e.touches[0].clientX,{passive:t
 lb.addEventListener('touchend',e=>{ const dx=e.changedTouches[0].clientX-tx; if(Math.abs(dx)>50) lb.querySelector(dx>0?'.lb-prev':'.lb-next').click(); });
 
 /* ================= MENU ================= */
-window.MENUS = {
-  food:  [1,2,3,4].map(n=>({src:`menu/food-${n}.jpg`, cap:['Cover','Starters, soups & salads','Mains, specials & sides','Kids menu & fresh juices'][n-1]})),
-  lunch: [1,2].map(n=>({src:`menu/lunch-${n}.jpg`, cap:['Lunch menu','Lunch deal · 12pm–3pm'][n-1]}))
-};
-window.currentMenu='food';
+const V='Veg & Tofu / Chicken / Beef / Prawn';
+const FOOD=[
+ {t:'Starters', items:[
+  ['Chicken Satay','£8.50','Succulent chicken marinated in Thai spices with a rich peanut sauce'],
+  ['Fish Cake','£7.99','Spicy fish cake with Thai spices, served with sweet chilli sauce'],
+  ['Veg Spring Roll','£7.25','Deep-fried mixed vegetable spring roll with sweet chilli sauce'],
+  ['Duck Spring Roll','£8.99','Deep-fried aromatic duck spring roll with hoisin sauce'],
+  ['Prawn Popcorn','£9.99','Popcorn tempura shrimp with spicy creamy mayo'],
+  ['Chicken Wing','£8.50','Crispy chicken wings tossed in hot & honey sauce with spring onion'],
+  ['Crispy Tofu','£7.99','Deep-fried tofu with sweet & spicy peanut sauce'],
+  ['Edamame Beans','£5.99','Steamed edamame beans with rock salt'],
+  ['Prawn Crackers','£4.99','Light, crispy Asian snack made from ground shrimp, garlic and pepper']]},
+ {t:'Soups', sub:'Mushroom / Chicken / Prawn', items:[
+  ['Tom Yum','£7.99 / £8.99','Thai hot & sour creamy soup with mushroom, lemongrass, galangal and kaffir lime',1],
+  ['Tom Ka','£7.99 / £8.99','Thai coconut milk soup with mushroom, Thai herbs, fresh chilli and chilli oil']]},
+ {t:'Salads', items:[
+  ['Beef Salad','£9.99','British beef slices with green salad, cherry tomato and mint, in a chilli-lime dressing'],
+  ['Raw Papaya Salad (Veg / Prawn)','£8.99 / £10.99','Green papaya with cherry tomato, green beans, carrot and peanut in a chilli-tamarind dressing',1]]},
+ {t:'Curries', sub:V, items:[
+  ['Green Curry','£13.99 / £14.99 / £15.99','Thai green curry with pea aubergine, Thai aubergine, bamboo shoot and sweet basil',1],
+  ['Panang Curry','£13.99 / £14.99 / £15.99','Rich, creamy red curry with pea & Thai aubergine, sweet basil and kaffir lime']]},
+ {t:'Stir Fried', sub:V, items:[
+  ['Chilli Basil','£13.99 / £14.99 / £15.99','Fresh chilli, garlic, French beans and holy basil in our house sauce'],
+  ['Cashew Nut','£13.99 / £14.99 / £15.99','Mushroom, mixed pepper, onion and cashew nuts with spring onion in our house sauce'],
+  ['Garlic','£13.99 / £14.99 / £15.99','Mixed pepper, onion and garlic in our house sauce'],
+  ['Pad Thai','£13.99 / £15.99','Flat rice noodles with Thai chives, bean sprouts, shallots, crushed peanut, egg and our special sauce']]},
+ {t:'House Specials', items:[
+  ['Red Curry Duck','£17.99','Rich red curry with roasted duck, pineapple, lychee, grapes, cherry tomato and sweet basil'],
+  ['Crispy Chilli Chicken','£15.99','Crispy chicken fillet in a tangy, sweet & spicy sauce with onion, pepper and a hint of basil'],
+  ['Special Fried Rice','£15.99','Fried rice with chicken & king prawn, egg and mixed vegetables in special house spice'],
+  ['Drunken Noodles','£15.99','Fresh rice noodles with vegetables, chicken & prawn in a chilli-garlic savoury sauce',1]]},
+ {t:'Sides', items:[
+  ['Steamed Jasmine Rice','£3.99',''],['Egg Fried Rice','£4.50',''],['Steamed Brown & Wild Rice','£4.99',''],
+  ['Stir-Fried Egg Noodle','£5.99','Yellow egg noodles with house spice and spring onion'],
+  ['Steamed Broccoli','£4.99',''],['Stir-Fried Asian Greens','£6.99','Asian greens with garlic, bean sprouts and house sauce']]},
+ {t:'Kids Menu', items:[
+  ['Kids Fried Rice','£6.99','Fried rice with chicken, egg and spring onion'],
+  ['Kids Egg Noodle','£6.99','Stir-fried noodles with egg, chicken and spring onion'],
+  ['Chicken Nuggets & Fries','£6.99','']]},
+ {t:'Fresh Juices', items:[
+  ['Apple','£6.99','Freshly pressed, crisp and naturally sweet'],
+  ['Beetroot','£6.99','Rich and smooth with natural sweetness'],
+  ['Carrot','£6.99','Naturally sweet and vibrant'],
+  ['Apple & Celery','£6.99','Crisp, refreshing and perfectly balanced'],
+  ['Apple & Ginger','£6.99','Sweet apple with a zesty ginger kick'],
+  ['Pineapple','£6.99','Tropical, sweet and tangy']]}
+];
+const LUNCH=[
+ {t:'Starters', items:[['Chicken Wing','','Crispy chicken wings in hot & honey sauce with spring onion'],['Fish Cake','','Spicy Thai fish cake with sweet chilli sauce'],
+   ['Veg Spring Roll','','Mixed vegetable spring roll with sweet chilli sauce'],['Edamame Beans','','Steamed with rock salt'],['Prawn Crackers','','Light and crispy']]},
+ {t:'Mains', sub:V+' · served with jasmine rice', items:[['Green Curry','','Pea aubergine, Thai aubergine, bamboo shoot and sweet basil',1],['Panang Curry','','Rich, creamy red curry with sweet basil and kaffir lime'],
+   ['Chilli Basil Stir Fry','','Fresh chilli, garlic, French beans and holy basil'],['Cashew Nut Stir Fry','','Mushroom, onion and cashew nuts with spring onion'],['Pad Thai (no beef)','','Flat rice noodles, chives, bean sprouts, peanut and egg']]},
+ {t:'Add-ons', items:[['Beef','+ £2.00',''],['Prawn','+ £2.50','']]}
+];
+const item=it=>`<div class="mi"><div class="mi-top"><span class="mi-name">${esc(it[0])}${it[3]?'<span class="mi-hot" title="Spicy">🌶</span>':''}</span>${it[1]?'<span class="mi-dots"></span><span class="mi-price">'+esc(it[1])+'</span>':''}</div>${it[2]?'<div class="mi-desc">'+esc(it[2])+'</div>':''}</div>`;
+const cats=list=>list.map(c=>`<div class="menu-cat"><h3>${esc(c.t)}</h3>${c.sub?'<div class="sub">'+esc(c.sub)+'</div>':'<div class="rule"></div>'}<div class="menu-items">${c.items.map(item).join('')}</div></div>`).join('');
+const DEAL=`<div class="deal-box"><div class="deal-time">Lunch deal · 12pm – 3pm</div>
+  <div class="deal-grid"><div><b>£10.99</b><span>Main</span></div><div><b>£15.00</b><span>Starter + main</span></div><div><b>£20.00</b><span>Starter + main + drink</span></div></div>
+  <div class="mi-desc" style="margin-top:12px">Drink: glass of house red or white (125ml), a pint of beer, or a soft drink / juice</div></div>`;
+window.MENU_PAGES=[]; window.currentMenu='food';
 function renderMenu(){
-  const list = window.MENUS[window.currentMenu];
-  $('menuPages').innerHTML = list.map((p,i)=>`<figure data-i="${i}"><img src="${esc(p.src)}" alt="${esc(p.cap)}" loading="lazy"><figcaption>${esc(p.cap)}</figcaption></figure>`).join('');
-  $('menuPages').querySelectorAll('img').forEach((img,i)=>{
-    img.onerror=()=>{ const s=img.getAttribute('src');
-      if(s.startsWith('menu/')){ const alt=s.slice(5); img.src=alt; list[i].src=alt; }   // images uploaded without the folder
-      else { const f=img.closest('figure'); if(f) f.style.display='none'; checkMenuEmpty(); } };
-  });
-}
-function checkMenuEmpty(){
-  const vis=[...document.querySelectorAll('#menuPages figure')].filter(f=>f.style.display!=='none').length;
-  let n=document.getElementById('menuSoon');
-  if(!vis && !n){ n=document.createElement('p'); n.id='menuSoon'; n.style.cssText='color:rgba(241,232,214,0.7);padding:20px 0;';
-    n.innerHTML='Our menu is being updated — please ask our team or call <a href="tel:02035182275" style="color:var(--gold-light)">020 3518 2275</a>.';
-    document.getElementById('menuPages').after(n); }
-  if(vis && n) n.remove();
+  const t=$('menuText'), p=$('menuPages'), m=window.currentMenu;
+  if(m==='pages'){ t.hidden=true; p.hidden=false;
+    p.innerHTML=window.MENU_PAGES.map((x,i)=>`<figure data-i="${i}"><img src="${x.src}" alt="${esc(x.cap)}" loading="lazy"><figcaption>${esc(x.cap)}</figcaption></figure>`).join(''); return; }
+  p.hidden=true; t.hidden=false;
+  t.innerHTML = m==='lunch' ? DEAL+cats(LUNCH) : cats(FOOD);
 }
 $('menuTabs').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; window.currentMenu=b.dataset.menu;
   $('menuTabs').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b)); renderMenu(); };
-$('menuPages').onclick=e=>{ const f=e.target.closest('figure'); if(f) openLb(window.MENUS[window.currentMenu], Number(f.dataset.i)); };
+$('menuPages').onclick=e=>{ const f=e.target.closest('figure'); if(f) openLb(window.MENU_PAGES, Number(f.dataset.i)); };
 renderMenu();
 
 
@@ -676,8 +742,8 @@ async function loadGallery(){
     const all = snap.docs.map(d=>d.data()).sort((a,b)=>(a.order||0)-(b.order||0));
     const pub = all.filter(g=>g.kind==='pub'), menu = all.filter(g=>g.kind==='menu');
     if(menu.length){
-      window.MENUS.food = menu.map((m,i)=>({src:m.img, cap:m.caption||('Page '+(i+1))}));
-      $('menuTabs').hidden = true; window.currentMenu='food'; window.renderMenu();
+      window.MENU_PAGES = menu.map((m,i)=>({src:m.img, cap:m.caption||('Page '+(i+1))}));
+      $('pagesTab').hidden = false;
     }
     if(pub.length){
       const list = pub.map(p=>({src:p.img, cap:p.caption||''}));
