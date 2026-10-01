@@ -120,6 +120,34 @@ select.status[data-s=cancelled]{background:#F5E3E0;}
 .rowed input{border:1px solid var(--line);padding:8px;border-radius:2px;background:var(--paper);width:100%;}
 .hours-row{display:grid;grid-template-columns:110px 1fr 1fr 100px;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);}
 .hours-row input[type=time]{border:1px solid var(--line);padding:7px;background:var(--paper);width:100%;}
+.modal-bg{position:fixed;inset:0;background:rgba(20,17,12,.55);z-index:80;display:flex;align-items:flex-start;justify-content:center;padding:30px 14px;overflow:auto;}
+.modal{background:#fff;width:100%;max-width:720px;border-radius:2px;border-top:4px solid var(--brass);padding:24px 26px;box-shadow:0 20px 60px rgba(0,0,0,.35);}
+.modal .mhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.modal .mhead h3{font-size:20px;}
+.modal .close{background:none;border:none;font-size:26px;line-height:1;color:var(--muted);}
+.modal .mfoot{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:8px;}
+.modal .mfoot .spacer{flex:1;}
+.chips label{display:inline-flex;gap:6px;align-items:center;margin:0 14px 8px 0;font-size:14px;}
+tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
+.plan td.free{cursor:pointer;} .plan td.free:hover{background:#F3EADB;color:var(--ink);}
+.plan td.taken{cursor:pointer;} .plan td.taken:hover{outline:2px solid var(--brass);outline-offset:-2px;}
+.plan tr.area th{background:var(--ink);color:var(--brass-light);font-family:Oswald,sans-serif;letter-spacing:.1em;text-transform:uppercase;font-size:11px;text-align:left;}
+.gitem .gbar{flex-wrap:wrap;}
+.gtools{display:flex;gap:4px;width:100%;}
+.gtools button{flex:1;background:var(--paper);border:1px solid var(--line);padding:5px 0;font-size:13px;border-radius:2px;}
+.gtools button:hover{border-color:var(--ink);}
+.rowed.tables{grid-template-columns:1fr 1fr 80px 36px;}
+.place-block{margin-bottom:18px;}
+.place-block h4{font-family:Oswald,sans-serif;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;display:flex;align-items:center;gap:8px;}
+.place-block h4 .cnt{background:var(--paper);border-radius:999px;padding:1px 8px;color:var(--ink);}
+.gitem select{width:100%;border:1px solid var(--line);padding:5px;font-size:12px;background:#fff;}
+.gitem .vbox{height:130px;background:#15130E;color:var(--brass-light);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;font-size:12px;text-align:center;padding:8px;word-break:break-all;}
+.gitem .vbox b{font-size:28px;}
+.addbar{display:grid;grid-template-columns:1.2fr auto;gap:12px;align-items:end;}
+@media(max-width:700px){.addbar{grid-template-columns:1fr;}}
+.sitemap{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.sitemap span{font-size:11.5px;background:var(--paper);border:1px solid var(--line);padding:4px 9px;border-radius:999px;cursor:pointer;}
+.sitemap span.has{background:#E7EFE6;border-color:#9DBF9F;}
 .toast{position:fixed;right:18px;bottom:18px;background:var(--ink);color:var(--paper);padding:14px 18px;border-left:4px solid var(--brass);border-radius:2px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:99;max-width:320px;font-size:14px;display:none;}
 </style>
 </head>
@@ -149,10 +177,11 @@ select.status[data-s=cancelled]{background:#F5E3E0;}
     <button class="tab-btn" data-tab="hire">Private hire <span class="count" id="c-hire" hidden></span></button>
     <button class="tab-btn" data-tab="messages">Messages <span class="count" id="c-messages" hidden></span></button>
     <button class="tab-btn" data-tab="calls">Call log</button>
-    <button class="tab-btn" data-tab="photos">Photos &amp; menu</button>
+    <button class="tab-btn" data-tab="photos" id="photosTab" hidden>Photos &amp; videos</button>
     <button class="tab-btn" data-tab="settings">Tables &amp; charges</button>
     <button class="tab-btn" data-tab="content">Site text</button>
     <button class="tab-btn" data-tab="hours">Opening hours</button>
+    <button class="tab-btn" data-tab="notify" id="notifyTab" hidden>Email alerts</button>
     <button class="tab-btn" data-tab="staff" id="staffTab" hidden>Staff logins</button>
     <button class="tab-btn" data-tab="account">My password</button>
     <div class="side-foot">
@@ -185,27 +214,12 @@ select.status[data-s=cancelled]{background:#F5E3E0;}
         <div><span class="eyebrow">Manage</span><h2>Table bookings</h2></div>
         <div class="toolbar">
           <select id="bFilter" class="btn ghost" style="text-transform:none;font-family:Work Sans">
-            <option value="upcoming">Upcoming</option><option value="today">Today</option><option value="past">Past</option><option value="all">All</option>
+            <option value="current">Upcoming + unconfirmed</option><option value="today">Today</option><option value="pending">Waiting to confirm</option><option value="past">Past</option><option value="all">All</option>
           </select>
           <button class="btn" id="addBookingBtn">+ Phone / walk-in booking</button>
         </div>
       </div>
-      <div class="card" id="addBooking" hidden>
-        <h3>New booking</h3>
-        <div class="grid3">
-          <div class="field"><label>Date</label><input id="nb-date" type="date"></div>
-          <div class="field"><label>Guests</label><input id="nb-guests" type="number" min="1" value="2"></div>
-          <div class="field"><label>Time</label><select id="nb-time"></select></div>
-          <div class="field"><label>Table</label><select id="nb-table"></select></div>
-          <div class="field"><label>Name</label><input id="nb-name"></div>
-          <div class="field"><label>Phone</label><input id="nb-phone" type="tel"></div>
-          <div class="field"><label>Email</label><input id="nb-email" type="email"></div>
-        </div>
-        <div class="field"><label>Extras</label><div id="nb-extras" class="hint">No extras set up yet.</div></div>
-        <div class="field"><label>Notes</label><textarea id="nb-notes"></textarea></div>
-        <button class="btn" id="saveBooking">Save booking</button>
-        <div class="msg" id="nbMsg"></div>
-      </div>
+      <p class="hint" style="margin:-8px 0 12px">Tap any booking to view or edit it.</p>
       <div class="tablewrap"><table><thead><tr><th>Date &amp; time</th><th>Table</th><th>Name</th><th>Contact</th><th>Guests</th><th>Extras / charge</th><th>Notes</th><th>Status</th><th></th></tr></thead><tbody id="bBody"></tbody></table></div>
       <div class="msg" id="bMsg"></div>
     </section>
@@ -213,8 +227,8 @@ select.status[data-s=cancelled]{background:#F5E3E0;}
     <!-- TABLE PLAN -->
     <section class="panel" id="p-plan">
       <div class="head"><div><span class="eyebrow">At a glance</span><h2>Table plan</h2></div>
-        <div class="toolbar"><input type="date" id="planDate" class="btn ghost" style="font-family:Work Sans"></div></div>
-      <p class="hint">Booked tables show the guest's name. Customers on the website only see a table as unavailable, never who booked it.</p>
+        <div class="toolbar"><button class="btn ghost small" id="planPrev">◀</button><input type="date" id="planDate" class="btn ghost" style="font-family:Work Sans"><button class="btn ghost small" id="planNext">▶</button><button class="btn ghost small" id="planToday">Today</button></div></div>
+      <p class="hint">Tap a <b>free</b> slot to book it, or a booked slot to open and edit it. Customers only ever see a table as unavailable — never who booked it.</p>
       <div class="tablewrap" id="planWrap"></div>
     </section>
 
@@ -251,22 +265,41 @@ select.status[data-s=cancelled]{background:#F5E3E0;}
       <div class="tablewrap"><table><thead><tr><th>When</th><th>Caller</th><th>Phone</th><th>Reason</th><th>Notes</th><th>Logged by</th><th>Call back</th><th></th></tr></thead><tbody id="clBody"></tbody></table></div>
     </section>
 
-    <!-- PHOTOS -->
+    <!-- PHOTOS & VIDEOS (owner only) -->
     <section class="panel" id="p-photos">
-      <div class="head"><div><span class="eyebrow">Website</span><h2>Photos &amp; menu</h2></div></div>
+      <div class="head"><div><span class="eyebrow">Website · main admin only</span><h2>Photos &amp; videos</h2></div></div>
       <div class="card">
-        <h3>Pub photos (Gallery on the website)</h3>
-        <div class="drop" data-kind="pub">📷 Tap to choose photos, or drag them here<br><span class="hint">They're resized automatically so the site stays fast.</span></div>
-        <div class="gallery" id="g-pub"></div>
+        <h3>Add to the website</h3>
+        <div class="addbar">
+          <div class="field" style="margin:0"><label>Show it on the website at…</label><select id="addPlace"></select></div>
+          <button class="btn" id="pickPhotos">📷 Upload photos</button>
+        </div>
+        <div class="grid3" style="margin-top:14px">
+          <div class="field" style="grid-column:span 2"><label>…or paste a YouTube / Vimeo video link</label><input id="vidUrl" placeholder="https://www.youtube.com/watch?v=…"></div>
+          <div class="field"><label>Caption (optional)</label><input id="vidCap"></div>
+        </div>
+        <button class="btn ghost" id="addVideo">🎬 Add video</button>
+        <div class="drop" id="dropZone" style="margin-top:14px">…or drag photos here. They're resized automatically so the site stays fast.</div>
+        <div class="msg" id="phMsg"></div>
+        <p class="hint" style="margin-bottom:0">Where things can go (green = has content). Tap one to jump to it:</p>
+        <div class="sitemap" id="siteMap"></div>
       </div>
-      <div class="card">
-        <h3>Menu pages</h3>
-        <p class="hint">The site already shows the Food and Lunch menus. Upload new menu pages here to replace them, in page order. Delete them all to go back to the original menus.</p>
-        <div class="drop" data-kind="menu">📄 Tap to choose menu page images</div>
-        <div class="gallery" id="g-menu"></div>
-      </div>
+      <div id="placeLists"></div>
       <input type="file" id="fileIn" accept="image/*" multiple hidden>
-      <div class="msg" id="phMsg"></div>
+    </section>
+
+    <!-- EMAIL ALERTS (owner only) -->
+    <section class="panel" id="p-notify">
+      <div class="head"><div><span class="eyebrow">Main admin only</span><h2>Email alerts</h2></div><button class="btn" id="saveNotify">Save</button></div>
+      <div class="card" style="max-width:640px">
+        <div class="field"><label>Send new website requests to this email</label><input id="nt-email" type="email"></div>
+        <label class="hint" style="display:block;margin:6px 0"><input type="checkbox" id="nt-bookings"> Table bookings</label>
+        <label class="hint" style="display:block;margin:6px 0"><input type="checkbox" id="nt-hire"> Private hire enquiries</label>
+        <label class="hint" style="display:block;margin:6px 0 16px"><input type="checkbox" id="nt-messages"> Contact messages</label>
+        <button class="btn ghost" id="testNotify">Send a test email</button>
+        <div class="msg" id="ntMsg"></div>
+        <p class="hint" style="margin-top:14px"><b>First time only:</b> the very first email to a new address is an "Activate" email. Open it and click <b>Activate form</b> — after that, every booking, enquiry and message arrives in that inbox as well as here. Check the spam folder if it doesn't appear.</p>
+      </div>
     </section>
 
     <!-- SETTINGS -->
@@ -274,7 +307,7 @@ select.status[data-s=cancelled]{background:#F5E3E0;}
       <div class="head"><div><span class="eyebrow">Online booking</span><h2>Tables &amp; charges</h2></div><button class="btn" id="saveSettings">Save</button></div>
       <div class="card">
         <h3>Tables</h3>
-        <p class="hint">Each table can only be booked once per time slot. Customers are given the smallest free table that fits their group.</p>
+        <p class="hint">Each table can only be booked once per time slot. Give tables an <b>area</b> (e.g. Inside, Terrace, Booth) and customers can choose their preferred seating. They are given the smallest free table that fits their group.</p><datalist id="areaList"></datalist>
         <div id="tablesList"></div>
         <button class="btn ghost small" id="addTable">+ Add table</button>
       </div>
@@ -348,6 +381,32 @@ select.status[data-s=cancelled]{background:#F5E3E0;}
   </main>
 </div>
 </div>
+<div class="modal-bg" id="bkModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="bkTitle">
+    <div class="mhead"><h3 id="bkTitle">Booking</h3><button class="close" id="bkClose" aria-label="Close">&times;</button></div>
+    <div class="grid3">
+      <div class="field"><label>Date</label><input id="bk-date" type="date"></div>
+      <div class="field"><label>Time</label><select id="bk-time"></select></div>
+      <div class="field"><label>Guests</label><input id="bk-guests" type="number" min="1"></div>
+      <div class="field"><label>Table</label><select id="bk-table"></select></div>
+      <div class="field"><label>Status</label><select id="bk-status"><option value="pending">Pending</option><option value="confirmed">Confirmed</option><option value="cancelled">Cancelled</option></select></div>
+      <div class="field"><label>Source</label><input id="bk-source" disabled></div>
+      <div class="field"><label>Name</label><input id="bk-name"></div>
+      <div class="field"><label>Phone</label><input id="bk-phone" type="tel"></div>
+      <div class="field"><label>Email</label><input id="bk-email" type="email"></div>
+    </div>
+    <div class="field"><label>Extras</label><div id="bk-extras" class="chips hint"></div></div>
+    <div class="field"><label>Notes</label><textarea id="bk-notes"></textarea></div>
+    <div class="mfoot">
+      <button class="btn" id="bkSave">Save booking</button>
+      <a class="btn ghost" id="bkCall" href="#">📞 Call</a>
+      <span class="spacer"></span>
+      <button class="btn danger" id="bkDelete">Delete</button>
+    </div>
+    <div class="msg" id="bkMsg"></div>
+  </div>
+</div>
+<input type="file" id="replaceIn" accept="image/*" hidden>
 <div class="toast" id="toast"></div>
 
 <script type="module">
@@ -427,9 +486,9 @@ onAuthStateChanged(auth, user=>{
   if(!user){ $('appView').hidden=true; $('loginView').hidden=false; return; }
   $('loginView').hidden=true; $('appView').hidden=false;
   $('who').textContent=user.email;
-  isOwner = user.email.toLowerCase()===OWNER; $('staffTab').hidden=!isOwner;
+  isOwner = user.email.toLowerCase()===OWNER; ['staffTab','photosTab','notifyTab'].forEach(i=>$(i).hidden=!isOwner);
   $('dashDate').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
-  $('planDate').value = today(); $('nb-date').value = today();
+  $('planDate').value = today();
   if('Notification' in window && Notification.permission==='granted') $('notifBtn').textContent='🔔 Alerts on';
   start();
 });
@@ -452,8 +511,8 @@ const DEFAULT_SETTINGS={
 async function start(){
   try{ const s=await getDoc(doc(db,'site','booking')); settings = s.exists() ? {...DEFAULT_SETTINGS,...s.data()} : {...DEFAULT_SETTINGS}; }
   catch(e){ settings={...DEFAULT_SETTINGS}; }
-  renderSettings(); fillNewBookingForm();
-  unsubs.push(watch('bookings', l=>{bookings=l; renderBookings(); renderDash(); renderPlan(); fillNewBookingForm(); updateTitle(); },
+  renderSettings();
+  unsubs.push(watch('bookings', l=>{bookings=l; renderBookings(); renderDash(); renderPlan(); refreshModal(); updateTitle(); },
     '🍽 New table booking', d=>`${d.name} · ${d.guests} guests · ${fmtD(d.date)} ${d.time}`));
   unsubs.push(watch('hireEnquiries', l=>{hires=l; renderHires(); renderDash(); updateTitle(); },
     '🎉 New private hire enquiry', d=>`${d.name} · ${d.type||'Event'} · ${d.guests} guests`));
@@ -462,7 +521,7 @@ async function start(){
   unsubs.push(onSnapshot(collection(db,'calls'), s=>{calls=s.docs.map(d=>({id:d.id,...d.data()})); renderCalls();}));
   unsubs.push(onSnapshot(collection(db,'gallery'), s=>{gallery=s.docs.map(d=>({id:d.id,...d.data()})); renderGallery();}));
   if(isOwner) unsubs.push(onSnapshot(collection(db,'staff'), s=>{staff=s.docs.map(d=>({id:d.id,...d.data()})); renderStaff();}));
-  loadContent(); loadHours();
+  loadContent(); loadHours(); if(isOwner) loadNotify();
 }
 
 /* ---------- dashboard ---------- */
@@ -480,19 +539,21 @@ function renderDash(){
   const nm=messages.filter(m=>m.seen===false).length; $('s-msg').textContent=nm; $('st-msg').classList.toggle('alert',nm>0);
   const set=(id,n)=>{ $(id).textContent=n; $(id).hidden=!n; };
   set('c-bookings', pend); set('c-hire', nh); set('c-messages', nm);
-  $('todayBody').innerHTML = tb.length ? tb.map(b=>`<tr><td><b>${esc(b.time)}</b></td><td>${esc(b.tableName)}</td><td>${esc(b.name)}</td>
+  $('todayBody').innerHTML = tb.length ? tb.map(b=>`<tr class="rowlink" data-edit="${esc(b.id)}"><td><b>${esc(b.time)}</b></td><td>${esc(b.tableName)}</td><td>${esc(b.name)}</td>
     <td><a class="tel" href="tel:${esc(b.phone)}">${esc(b.phone)}</a></td><td>${esc(b.guests)}</td><td>${extrasPills(b)}</td><td>${esc(b.status)}</td></tr>`).join('')
     : '<tr class="empty"><td colspan="7">No bookings today yet.</td></tr>';
 }
 
+$('todayBody').onclick=e=>{ if(e.target.closest('a')) return; const tr=e.target.closest('tr[data-edit]'); if(tr) openBooking(bookings.find(x=>x.id===tr.dataset.edit)); };
 /* ---------- bookings ---------- */
 $('bFilter').onchange=renderBookings;
 function renderBookings(){
   const t=today(), f=$('bFilter').value;
-  let l=bookings.filter(b=> f==='all'||(f==='today'?b.date===t : f==='upcoming'?(b.date||'')>=t : (b.date||'')<t));
+  let l=bookings.filter(b=> f==='all' ? true : f==='today' ? b.date===t : f==='pending' ? b.status==='pending'
+      : f==='past' ? (b.date||'')<t : ((b.date||'')>=t || b.status==='pending'));
   l.sort((a,b)=>((a.date||'')+(a.time||'')).localeCompare((b.date||'')+(b.time||''))); if(f==='past') l.reverse();
-  $('bBody').innerHTML = l.length ? l.map(b=>`<tr class="${b.status==='cancelled'?'cancelled':''} ${b.seen===false?'unseen':''}">
-    <td><b>${esc(fmtD(b.date))}</b><br>${esc(b.time)}</td><td>${esc(b.tableName||'')}</td>
+  $('bBody').innerHTML = l.length ? l.map(b=>`<tr class="rowlink ${b.status==='cancelled'?'cancelled':''} ${b.seen===false?'unseen':''}" data-edit="${esc(b.id)}">
+    <td><b>${esc(fmtD(b.date))}</b>${(b.date||'')<t?' <span class="pill" style="background:#F5E3E0">past date</span>':''}<br>${esc(b.time)}</td><td>${esc(b.tableName||'')}${b.area?'<br><span class="hint">'+esc(b.area)+'</span>':''}</td>
     <td>${esc(b.name)} ${b.seen===false?'<span class="pill new">new</span>':''}<br><span class="hint">${b.source==='admin'?'phone / walk-in':'website'}</span></td>
     <td><a class="tel" href="tel:${esc(b.phone)}">📞 ${esc(b.phone)}</a><br><a href="mailto:${esc(b.email)}">${esc(b.email)}</a></td>
     <td>${esc(b.guests)}</td><td>${extrasPills(b)}</td><td style="max-width:220px">${esc(b.notes)}</td>
@@ -512,52 +573,114 @@ $('bBody').onchange=async e=>{
   catch(err){ renderBookings(); fail('bMsg', err.code==='permission-denied' && s!=='cancelled' ? {friendly:'That table has been booked by someone else since.'} : err); }
 };
 $('bBody').onclick=async e=>{
-  const id=e.target.dataset.del; if(!id) return;
+  if(e.target.closest('select,a,button:not([data-del])')) return;
+  const id=e.target.dataset.del;
+  if(!id){ const tr=e.target.closest('tr[data-edit]'); if(tr) openBooking(bookings.find(x=>x.id===tr.dataset.edit)); return; }
   const b=bookings.find(x=>x.id===id); if(!b || !confirm(`Delete ${b.name}'s booking permanently?`)) return;
   const batch=writeBatch(db); batch.delete(doc(db,'bookings',id));
   if(b.tableId && b.status!=='cancelled') batch.delete(doc(db,'tableLocks',lockId(b)));
   try{ await batch.commit(); flash('bMsg','Booking deleted.'); }catch(err){ fail('bMsg',err); }
 };
 
-/* new phone booking */
-$('addBookingBtn').onclick=()=>{ $('addBooking').hidden=!$('addBooking').hidden; fillNewBookingForm(); };
-['nb-date','nb-guests','nb-time'].forEach(id=>$(id).addEventListener('change',fillNewBookingForm));
-function takenAt(date,time){ return new Set(bookings.filter(b=>b.date===date && b.time===time && b.status!=='cancelled').map(b=>b.tableId)); }
-function fillNewBookingForm(){
-  const cur=$('nb-time').value;
-  $('nb-time').innerHTML=settings.slots.map(s=>`<option ${s===cur?'selected':''}>${esc(s)}</option>`).join('');
-  const date=$('nb-date').value, time=$('nb-time').value, g=Number($('nb-guests').value)||1, taken=takenAt(date,time);
-  const opts=settings.tables.filter(t=>!taken.has(t.id)).sort((a,b)=>a.seats-b.seats);
-  $('nb-table').innerHTML = opts.length ? opts.map(t=>`<option value="${esc(t.id)}">${esc(t.name)} (${t.seats} seats)${t.seats<g?' — too small':''}</option>`).join('') : '<option value="">No free tables</option>';
-  const fit=opts.find(t=>t.seats>=g); if(fit) $('nb-table').value=fit.id;
-  $('nb-extras').innerHTML = settings.extras.length ? settings.extras.map(x=>`<label style="margin-right:14px"><input type="checkbox" value="${esc(x.id)}"> ${esc(x.name)} (${money(x.price)})</label>`).join('') : 'No extras set up yet.';
+/* ---------- booking editor (new + edit) ---------- */
+let editing=null;   // booking being edited, or null for new
+function takenAt(date,time,exceptId){ return new Set(bookings.filter(b=>b.date===date && b.time===time && b.status!=='cancelled' && b.id!==exceptId).map(b=>b.tableId)); }
+function openBooking(b, preset){
+  editing=b||null;
+  $('bkTitle').textContent = b ? (b.name||'Booking') : 'New booking';
+  $('bk-date').value = b?b.date:(preset?.date||today());
+  $('bk-guests').value = b?b.guests:2;
+  $('bk-status').value = b?b.status:'confirmed';
+  $('bk-source').value = b ? (b.source==='admin'?'Phone / walk-in':'Website') : 'Phone / walk-in';
+  $('bk-name').value=b?b.name:''; $('bk-phone').value=b?b.phone:''; $('bk-email').value=b?b.email:''; $('bk-notes').value=b?b.notes:'';
+  fillTimes(b?b.time:(preset?.time));
+  fillTables(b?b.tableId:(preset?.tableId));
+  const chosen=new Set((b?.extras||[]).map(x=>x.id));
+  $('bk-extras').innerHTML = settings.extras.length ? settings.extras.map(x=>`<label><input type="checkbox" value="${esc(x.id)}" ${chosen.has(x.id)?'checked':''}> ${esc(x.name)} (${money(x.price)})</label>`).join('') : 'No extras set up yet — add them under Tables & charges.';
+  $('bkDelete').hidden=!b; $('bkCall').hidden=!(b&&b.phone); if(b&&b.phone) $('bkCall').href='tel:'+b.phone;
+  $('bkMsg').textContent=''; $('bkModal').hidden=false;
+  if(b && b.seen===false) updateDoc(doc(db,'bookings',b.id),{seen:true}).catch(()=>{});
 }
-$('saveBooking').onclick=async()=>{
-  const name=$('nb-name').value.trim(), date=$('nb-date').value, time=$('nb-time').value, tableId=$('nb-table').value;
-  if(!name||!date||!time||!tableId) return flash('nbMsg','Name, date, time and a free table are needed.',true);
+function fillTimes(sel){
+  const cur=sel||$('bk-time').value; const list=[...new Set([...settings.slots, ...(cur?[cur]:[])])].sort();
+  $('bk-time').innerHTML=list.map(s=>`<option ${s===cur?'selected':''}>${esc(s)}</option>`).join('');
+}
+function fillTables(sel){
+  const date=$('bk-date').value, time=$('bk-time').value, g=Number($('bk-guests').value)||1;
+  const taken=takenAt(date,time,editing?.id);
+  let opts=settings.tables.filter(t=>!taken.has(t.id)).sort((a,b)=>a.seats-b.seats);
+  if(sel && !opts.find(t=>t.id===sel) && !taken.has(sel)){ const t=settings.tables.find(x=>x.id===sel) || {id:sel,name:editing?.tableName||sel,seats:0}; opts.unshift(t); }
+  $('bk-table').innerHTML = opts.length ? opts.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}${t.area?' · '+esc(t.area):''} (${t.seats} seats)${t.seats&&t.seats<g?' — small':''}</option>`).join('') : '<option value="">No free tables at this time</option>';
+  const want = sel && opts.find(t=>t.id===sel) ? sel : (opts.find(t=>t.seats>=g)||opts[0]||{}).id;
+  if(want) $('bk-table').value=want;
+}
+function refreshModal(){ if(!$('bkModal').hidden) fillTables($('bk-table').value); }
+['bk-date','bk-time'].forEach(id=>$(id).addEventListener('change',()=>fillTables($('bk-table').value)));
+$('bk-guests').addEventListener('change',()=>fillTables(editing?$('bk-table').value:null));
+$('bkClose').onclick=()=>{ $('bkModal').hidden=true; };
+$('bkModal').addEventListener('click',e=>{ if(e.target.id==='bkModal') $('bkModal').hidden=true; });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') $('bkModal').hidden=true; });
+$('bkSave').onclick=async()=>{
+  const name=$('bk-name').value.trim(), date=$('bk-date').value, time=$('bk-time').value, tableId=$('bk-table').value, status=$('bk-status').value;
+  if(!name) return flash('bkMsg','Please add the guest name.',true);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return flash('bkMsg','Please choose a date.',true);
+  if(!time || !tableId) return flash('bkMsg','Please choose a time and a free table.',true);
   const t=settings.tables.find(x=>x.id===tableId);
-  const ex=[...$('nb-extras').querySelectorAll('input:checked')].map(i=>settings.extras.find(x=>x.id===i.value)).filter(Boolean);
-  const ref=doc(collection(db,'bookings')), batch=writeBatch(db);
-  batch.set(ref,{name,phone:$('nb-phone').value.trim(),email:$('nb-email').value.trim(),guests:Number($('nb-guests').value)||1,date,time,
-    tableId,tableName:t?t.name:tableId,extras:ex.map(x=>({id:x.id,name:x.name,price:Number(x.price)})),extrasTotal:ex.reduce((s,x)=>s+Number(x.price),0),
-    notes:$('nb-notes').value.trim(),status:'confirmed',source:'admin',seen:true,createdAt:serverTimestamp()});
-  batch.set(doc(db,'tableLocks',`${date}_${time}_${tableId}`),{date,time,tableId,bookingId:ref.id});
-  try{ await batch.commit(); ['nb-name','nb-phone','nb-email','nb-notes'].forEach(i=>$(i).value=''); flash('nbMsg','Booking saved.'); }
-  catch(err){ fail('nbMsg', err.code==='permission-denied'?{friendly:'That table was just taken — pick another.'}:err); }
+  const ex=[...$('bk-extras').querySelectorAll('input:checked')].map(i=>settings.extras.find(x=>x.id===i.value)).filter(Boolean);
+  const data={name,phone:$('bk-phone').value.trim(),email:$('bk-email').value.trim(),guests:Math.max(1,Number($('bk-guests').value)||1),date,time,
+    tableId,tableName:t?t.name:(editing?.tableName||tableId),area:t?.area||'',extras:ex.map(x=>({id:x.id,name:x.name,price:Number(x.price)})),
+    extrasTotal:ex.reduce((s,x)=>s+Number(x.price),0),notes:$('bk-notes').value.trim(),status,seen:true};
+  const batch=writeBatch(db);
+  const ref = editing ? doc(db,'bookings',editing.id) : doc(collection(db,'bookings'));
+  const newKey=`${date}_${time}_${tableId}`, newActive=status!=='cancelled';
+  if(editing){
+    const oldKey=editing.tableId?lockId(editing):null, oldActive=editing.status!=='cancelled' && !!oldKey;
+    batch.update(ref,data);
+    if(oldActive && (!newActive || oldKey!==newKey)) batch.delete(doc(db,'tableLocks',oldKey));
+    if(newActive && (!oldActive || oldKey!==newKey)) batch.set(doc(db,'tableLocks',newKey),{date,time,tableId,bookingId:ref.id});
+  }else{
+    batch.set(ref,{...data,source:'admin',createdAt:serverTimestamp()});
+    if(newActive) batch.set(doc(db,'tableLocks',newKey),{date,time,tableId,bookingId:ref.id});
+  }
+  $('bkSave').disabled=true;
+  try{ await batch.commit(); $('bkModal').hidden=true; flash('bMsg', editing?'Booking updated.':'Booking saved.'); }
+  catch(err){ fail('bkMsg', err.code==='permission-denied' ? {friendly:'That table is already booked at that time — choose another table or time.'} : err); }
+  finally{ $('bkSave').disabled=false; }
 };
+$('bkDelete').onclick=async()=>{
+  const b=editing; if(!b || !confirm(`Delete ${b.name}'s booking permanently?`)) return;
+  const batch=writeBatch(db); batch.delete(doc(db,'bookings',b.id));
+  if(b.tableId && b.status!=='cancelled') batch.delete(doc(db,'tableLocks',lockId(b)));
+  try{ await batch.commit(); $('bkModal').hidden=true; flash('bMsg','Booking deleted.'); }catch(err){ fail('bkMsg',err); }
+};
+$('addBookingBtn').onclick=()=>openBooking(null);
 
 /* ---------- table plan ---------- */
 $('planDate').onchange=renderPlan;
+const shiftDay=(iso,n)=>{ const d=new Date(iso+'T12:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
+$('planPrev').onclick=()=>{ $('planDate').value=shiftDay($('planDate').value||today(),-1); renderPlan(); };
+$('planNext').onclick=()=>{ $('planDate').value=shiftDay($('planDate').value||today(),1); renderPlan(); };
+$('planToday').onclick=()=>{ $('planDate').value=today(); renderPlan(); };
 function renderPlan(){
   const date=$('planDate').value||today();
   const day=bookings.filter(b=>b.date===date && b.status!=='cancelled');
   if(!settings.tables.length){ $('planWrap').innerHTML='<p class="hint">Add tables under "Tables & charges".</p>'; return; }
-  $('planWrap').innerHTML=`<table class="plan"><thead><tr><th class="tname">${esc(fmtD(date))}</th>${settings.slots.map(s=>`<th>${esc(s)}</th>`).join('')}</tr></thead><tbody>`+
-    settings.tables.map(t=>`<tr><th class="tname">${esc(t.name)} <span class="hint">(${t.seats})</span></th>`+settings.slots.map(s=>{
+  const slots=[...new Set([...settings.slots, ...day.map(b=>b.time)])].sort();
+  const areas=[...new Set(settings.tables.map(t=>t.area||''))];
+  const row=t=>`<tr><th class="tname">${esc(t.name)} <span class="hint">(${t.seats})</span></th>`+slots.map(s=>{
       const b=day.find(x=>x.tableId===t.id && x.time===s);
-      return b ? `<td class="taken ${b.status}" title="${esc(b.phone)} · ${esc(b.guests)} guests">${esc(b.name)}<br><span class="hint">${esc(b.guests)}p</span></td>` : '<td class="free">free</td>';
-    }).join('')+'</tr>').join('')+'</tbody></table>';
+      return b ? `<td class="taken ${b.status}" data-bid="${esc(b.id)}" title="${esc(b.phone)} · ${esc(b.guests)} guests">${esc(b.name)}<br><span class="hint">${esc(b.guests)}p · ${esc(b.status)}</span></td>`
+               : `<td class="free" data-t="${esc(t.id)}" data-s="${esc(s)}">+ book</td>`;
+    }).join('')+'</tr>';
+  const orphan=day.filter(b=>!settings.tables.find(t=>t.id===b.tableId));
+  $('planWrap').innerHTML=`<table class="plan"><thead><tr><th class="tname">${esc(fmtD(date))}</th>${slots.map(s=>`<th>${esc(s)}</th>`).join('')}</tr></thead><tbody>`+
+    areas.map(a=>(areas.length>1?`<tr class="area"><th colspan="${slots.length+1}">${esc(a||'Other')}</th></tr>`:'')+settings.tables.filter(t=>(t.area||'')===a).map(row).join('')).join('')+
+    '</tbody></table>'+(orphan.length?`<p class="hint" style="margin-top:10px">Bookings on removed tables: ${orphan.map(b=>`<a href="#" data-bid="${esc(b.id)}">${esc(b.name)} ${esc(b.time)}</a>`).join(', ')}</p>`:'');
 }
+$('planWrap').onclick=e=>{
+  const bid=e.target.closest('[data-bid]')?.dataset.bid; if(bid){ e.preventDefault(); return openBooking(bookings.find(x=>x.id===bid)); }
+  const td=e.target.closest('td.free'); if(td) openBooking(null,{date:$('planDate').value||today(),time:td.dataset.s,tableId:td.dataset.t});
+};
 
 /* ---------- hire ---------- */
 function renderHires(){
@@ -607,15 +730,15 @@ $('clBody').onclick=async e=>{
   if(e.target.dataset.del && confirm('Delete this call?')) try{ await deleteDoc(doc(db,'calls',e.target.dataset.del)); }catch(err){ fail('clMsg',err); }
 };
 
-/* ---------- photos ---------- */
-let uploadKind='pub';
-document.querySelectorAll('.drop').forEach(d=>{
-  d.onclick=()=>{ uploadKind=d.dataset.kind; $('fileIn').click(); };
-  d.ondragover=e=>{ e.preventDefault(); d.classList.add('over'); };
-  d.ondragleave=()=>d.classList.remove('over');
-  d.ondrop=e=>{ e.preventDefault(); d.classList.remove('over'); uploadKind=d.dataset.kind; upload([...e.dataTransfer.files]); };
-});
-$('fileIn').onchange=e=>{ upload([...e.target.files]); e.target.value=''; };
+/* ---------- photos & videos ---------- */
+const PLACES=[
+  ['hero-after','Below the top banner'],['welcome-after','After "Welcome"'],['kitchen-after','After Drunken Wok & Drinks'],
+  ['menu-after','After the Menu'],['sport-after','After Live Sport'],['terrace-after','After the Terrace'],['gallery','Gallery section'],
+  ['hire-after','After Private Hire'],['book-before','Before "Book a Table"'],['contact-after','After Contact'],['menupages','Menu → "Printed menu" tab']];
+const placeName=p=>(PLACES.find(x=>x[0]===p)||[p,p])[1];
+const placeOf=g=>g.place || (g.kind==='menu'?'menupages':'gallery');
+$('addPlace').innerHTML=PLACES.map(([v,n])=>`<option value="${v}">${esc(n)}</option>`).join('');
+$('addPlace').value='gallery';
 function shrink(file, max, q){
   return new Promise((res,rej)=>{ const img=new Image(); img.onload=()=>{
       let {width:w,height:h}=img; const r=Math.min(1,max/Math.max(w,h)); w=Math.round(w*r); h=Math.round(h*r);
@@ -623,36 +746,99 @@ function shrink(file, max, q){
       URL.revokeObjectURL(img.src); res(c.toDataURL('image/jpeg',q)); };
     img.onerror=rej; img.src=URL.createObjectURL(file); });
 }
+async function toData(file, place){ let d=await shrink(file, place==='menupages'?1600:1400, .8); if(d.length>950000) d=await shrink(file,1100,.66); if(d.length>950000) d=await shrink(file,900,.6); return d; }
+const itemsAt=p=>gallery.filter(g=>placeOf(g)===p).sort((a,b)=>(a.order||0)-(b.order||0));
 async function upload(files){
-  files=files.filter(f=>f.type.startsWith('image/')); if(!files.length) return;
-  const base=gallery.filter(g=>g.kind===uploadKind).length;
+  files=files.filter(f=>f.type.startsWith('image/')); if(!files.length) return flash('phMsg','Please choose image files (JPG/PNG).',true);
+  const place=$('addPlace').value, base=itemsAt(place).length;
   for(let i=0;i<files.length;i++){
     flash('phMsg',`Uploading ${i+1} of ${files.length}…`);
-    try{
-      let data=await shrink(files[i], uploadKind==='menu'?1600:1400, .78);
-      if(data.length>950000) data=await shrink(files[i], 1100, .65);
-      await addDoc(collection(db,'gallery'),{kind:uploadKind,img:data,caption:'',order:base+i,createdAt:serverTimestamp()});
-    }catch(err){ return fail('phMsg',err); }
+    try{ await addDoc(collection(db,'gallery'),{kind:'photo',place,img:await toData(files[i],place),caption:'',order:base+i,createdAt:serverTimestamp()}); }
+    catch(err){ return fail('phMsg',err); }
   }
-  flash('phMsg',`${files.length} photo${files.length>1?'s':''} added — now live on the website.`);
+  flash('phMsg',`${files.length} photo${files.length>1?'s':''} added to "${placeName(place)}" — live now.`);
 }
+$('pickPhotos').onclick=()=>$('fileIn').click();
+$('fileIn').onchange=e=>{ upload([...e.target.files]); e.target.value=''; };
+const dz=$('dropZone'); dz.onclick=()=>$('fileIn').click();
+dz.ondragover=e=>{ e.preventDefault(); dz.classList.add('over'); }; dz.ondragleave=()=>dz.classList.remove('over');
+dz.ondrop=e=>{ e.preventDefault(); dz.classList.remove('over'); upload([...e.dataTransfer.files]); };
+function videoOk(u){ return /(youtube\.com\/(watch\?v=|shorts\/|embed\/)|youtu\.be\/)[\w-]{6,}/.test(u) || /vimeo\.com\/(video\/)?\d+/.test(u) || /^https:\/\/.+\.(mp4|webm)(\?.*)?$/i.test(u); }
+$('addVideo').onclick=async()=>{
+  const url=$('vidUrl').value.trim(), place=$('addPlace').value;
+  if(place==='menupages') return flash('phMsg','Videos can\'t go in the printed menu — choose another place.',true);
+  if(!videoOk(url)) return flash('phMsg','Paste a YouTube or Vimeo link (or a direct .mp4 link).',true);
+  try{ await addDoc(collection(db,'gallery'),{kind:'video',place,url:url.slice(0,500),caption:$('vidCap').value.trim().slice(0,120),order:itemsAt(place).length,createdAt:serverTimestamp()});
+    $('vidUrl').value=$('vidCap').value=''; flash('phMsg',`Video added to "${placeName(place)}" — live now.`); }
+  catch(err){ fail('phMsg',err); }
+};
 function renderGallery(){
-  ['pub','menu'].forEach(k=>{
-    const l=gallery.filter(g=>g.kind===k).sort((a,b)=>(a.order||0)-(b.order||0));
-    $('g-'+k).innerHTML = l.length ? l.map(g=>`<div class="gitem"><img src="${g.img}" alt=""><div class="gbar">
-      <input value="${esc(g.caption)}" placeholder="${k==='menu'?'Page title':'Caption'}" data-cap="${esc(g.id)}"><button class="x" data-gdel="${esc(g.id)}">×</button></div></div>`).join('')
-      : `<p class="hint">${k==='menu'?'Using the original Food & Lunch menus.':'No photos yet.'}</p>`;
-  });
+  $('siteMap').innerHTML=PLACES.map(([p,n])=>{ const c=itemsAt(p).length; return `<span class="${c?'has':''}" data-jump="${p}">${esc(n)}${c?' · '+c:''}</span>`; }).join('');
+  const used=PLACES.filter(([p])=>itemsAt(p).length);
+  $('placeLists').innerHTML = used.length ? used.map(([p,n])=>{ const l=itemsAt(p); return `<div class="card place-block" id="pl-${p}"><h4>${esc(n)} <span class="cnt">${l.length}</span></h4><div class="gallery">${
+    l.map((g,i)=>`<div class="gitem">${g.url?`<div class="vbox"><b>▶</b>${esc(g.url.replace(/^https?:\/\//,'').slice(0,40))}</div>`:`<img src="${g.img}" alt="">`}<div class="gbar">
+      <input value="${esc(g.caption)}" placeholder="Caption" data-cap="${esc(g.id)}">
+      <select data-place="${esc(g.id)}" title="Move to another place">${PLACES.map(([v,nm])=>`<option value="${v}" ${v===p?'selected':''}>${esc(nm)}</option>`).join('')}</select>
+      <div class="gtools"><button data-move="-1" data-gid="${esc(g.id)}" ${i===0?'disabled':''} title="Move earlier">◀</button><button data-move="1" data-gid="${esc(g.id)}" ${i===l.length-1?'disabled':''} title="Move later">▶</button>
+      ${g.url?'':`<button data-repl="${esc(g.id)}" title="Replace photo">↻</button>`}<button data-gdel="${esc(g.id)}" title="Delete" style="color:#7C2E24">🗑</button></div></div></div>`).join('')}</div></div>`; }).join('')
+    : '<div class="card"><p class="hint" style="margin:0">Nothing added yet. Choose a place above and upload photos or add a video link.</p></div>';
 }
-$('p-photos').addEventListener('change',async e=>{ const id=e.target.dataset.cap; if(!id) return;
-  try{ await updateDoc(doc(db,'gallery',id),{caption:e.target.value.trim().slice(0,120)}); flash('phMsg','Caption saved.'); }catch(err){ fail('phMsg',err); } });
-$('p-photos').addEventListener('click',async e=>{ const id=e.target.dataset.gdel; if(!id||!confirm('Remove this photo from the website?')) return;
-  try{ await deleteDoc(doc(db,'gallery',id)); }catch(err){ fail('phMsg',err); } });
+$('siteMap').addEventListener('click',e=>{ const p=e.target.dataset.jump; if(!p) return; $('addPlace').value=p; const el=$('pl-'+p); (el||$('addPlace')).scrollIntoView({behavior:'smooth',block:'center'}); });
+$('p-photos').addEventListener('change',async e=>{
+  const cap=e.target.dataset.cap, mv=e.target.dataset.place;
+  if(cap) try{ await updateDoc(doc(db,'gallery',cap),{caption:e.target.value.trim().slice(0,120)}); flash('phMsg','Caption saved.'); }catch(err){ fail('phMsg',err); }
+  if(mv){ const g=gallery.find(x=>x.id===mv), to=e.target.value;
+    if(to==='menupages' && g.url){ renderGallery(); return flash('phMsg','Videos can\'t go in the printed menu.',true); }
+    try{ await updateDoc(doc(db,'gallery',mv),{place:to,order:itemsAt(to).length}); flash('phMsg',`Moved to "${placeName(to)}".`); }catch(err){ fail('phMsg',err); } }
+});
+let replaceId=null;
+$('p-photos').addEventListener('click',async e=>{
+  const bt=e.target.closest('button'); if(!bt) return;
+  if(bt.dataset.gdel){ if(!confirm('Remove this from the website?')) return;
+    try{ await deleteDoc(doc(db,'gallery',bt.dataset.gdel)); flash('phMsg','Removed.'); }catch(err){ fail('phMsg',err); } return; }
+  if(bt.dataset.repl){ replaceId=bt.dataset.repl; $('replaceIn').click(); return; }
+  if(bt.dataset.move){
+    const g=gallery.find(x=>x.id===bt.dataset.gid); const l=itemsAt(placeOf(g)); const i=l.findIndex(x=>x.id===g.id), j=i+Number(bt.dataset.move);
+    if(j<0||j>=l.length) return; [l[i],l[j]]=[l[j],l[i]];
+    const batch=writeBatch(db); l.forEach((x,n)=>{ if(x.order!==n) batch.update(doc(db,'gallery',x.id),{order:n}); });
+    try{ await batch.commit(); flash('phMsg','Order saved.'); }catch(err){ fail('phMsg',err); }
+  }
+});
+$('replaceIn').onchange=async e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f||!replaceId) return;
+  const g=gallery.find(x=>x.id===replaceId); flash('phMsg','Replacing photo…');
+  try{ await updateDoc(doc(db,'gallery',replaceId),{img:await toData(f,placeOf(g||{}))}); flash('phMsg','Photo replaced — live now.'); }
+  catch(err){ fail('phMsg',err); }
+};
+
+/* ---------- email alerts ---------- */
+let notifyCfg={email:'contact@drunkenwok.co.uk',bookings:true,hire:true,messages:true};
+async function loadNotify(){
+  try{ const s=await getDoc(doc(db,'site','notify')); if(s.exists()) notifyCfg={...notifyCfg,...s.data()}; }catch(e){}
+  $('nt-email').value=notifyCfg.email||''; ['bookings','hire','messages'].forEach(k=>$('nt-'+k).checked=notifyCfg[k]!==false);
+}
+$('saveNotify').onclick=async()=>{
+  const email=$('nt-email').value.trim();
+  if(email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return flash('ntMsg','Please enter a valid email.',true);
+  const d={email,bookings:$('nt-bookings').checked,hire:$('nt-hire').checked,messages:$('nt-messages').checked};
+  try{ await setDoc(doc(db,'site','notify'),d); notifyCfg=d; flash('ntMsg','Saved — new requests will be emailed to '+(email||'nobody')+'.'); }catch(err){ fail('ntMsg',err); }
+};
+$('testNotify').onclick=async()=>{
+  const email=$('nt-email').value.trim(); if(!email) return flash('ntMsg','Enter an email first.',true);
+  $('testNotify').disabled=true;
+  try{ const r=await fetch('https://formsubmit.co/ajax/'+encodeURIComponent(email),{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify({_subject:'Test — The Black Horse website alerts',_template:'table',_captcha:'false',Message:'Email alerts are working. New bookings, enquiries and messages will arrive like this.'})});
+    const j=await r.json().catch(()=>({}));
+    flash('ntMsg', /activat/i.test(j.message||'') ? 'Check '+email+' for an "Activate" email and click Activate — then send another test.' : (j.success==='true'||j.success===true ? 'Test sent — check the inbox (and spam).' : 'Sent — check the inbox for an Activate email or the test.')); }
+  catch(err){ flash('ntMsg','Could not reach the email service — check your internet and try again.',true); }
+  finally{ $('testNotify').disabled=false; }
+};
 
 /* ---------- settings ---------- */
 function renderSettings(){
-  $('tablesList').innerHTML='<div class="rowed tables hint"><span>Table name</span><span>Seats</span><span></span></div>'+settings.tables.map((t,i)=>`<div class="rowed tables" data-i="${i}">
-    <input class="t-name" value="${esc(t.name)}"><input class="t-seats" type="number" min="1" value="${t.seats}"><button class="x" data-rt="${i}">×</button></div>`).join('');
+  $('areaList').innerHTML=[...new Set(['Inside','Terrace','Booth','Bar area',...settings.tables.map(t=>t.area).filter(Boolean)])].map(a=>`<option value="${esc(a)}">`).join('');
+  $('tablesList').innerHTML='<div class="rowed tables hint"><span>Table name</span><span>Area (optional)</span><span>Seats</span><span></span></div>'+settings.tables.map((t,i)=>`<div class="rowed tables" data-i="${i}">
+    <input class="t-name" value="${esc(t.name)}"><input class="t-area" list="areaList" value="${esc(t.area||'')}" placeholder="e.g. Terrace"><input class="t-seats" type="number" min="1" value="${t.seats}"><button class="x" data-rt="${i}">×</button></div>`).join('');
   $('extrasList').innerHTML = settings.extras.length ? '<div class="rowed extras hint"><span>Extra</span><span>Price £</span><span>Short description</span><span></span></div>'+settings.extras.map((x,i)=>`<div class="rowed extras" data-i="${i}">
     <input class="x-name" value="${esc(x.name)}" placeholder="e.g. Birthday decoration"><input class="x-price" type="number" min="0" step="0.5" value="${x.price}">
     <input class="x-desc" value="${esc(x.desc||'')}" placeholder="e.g. Balloons & table setup"><button class="x" data-rx="${i}">×</button></div>`).join('') : '<p class="hint">No extras yet — add things like a birthday package, reserved booth or set menu.</p>';
@@ -660,13 +846,13 @@ function renderSettings(){
 }
 function readSettings(){
   const tables=[...document.querySelectorAll('#tablesList .rowed[data-i]')].map((r,i)=>{
-    const old=settings.tables[Number(r.dataset.i)]; return {id: old?.id || ('T'+Date.now().toString(36)+i), name:r.querySelector('.t-name').value.trim()||('Table '+(i+1)), seats:Math.max(1,Number(r.querySelector('.t-seats').value)||2)}; });
+    const old=settings.tables[Number(r.dataset.i)]; return {id: old?.id || ('T'+Date.now().toString(36)+i), name:r.querySelector('.t-name').value.trim()||('Table '+(i+1)), area:r.querySelector('.t-area').value.trim().slice(0,40), seats:Math.max(1,Number(r.querySelector('.t-seats').value)||2)}; });
   const extras=[...document.querySelectorAll('#extrasList .rowed[data-i]')].map((r,i)=>{
     const old=settings.extras[Number(r.dataset.i)]; return {id: old?.id || ('x'+Date.now().toString(36)+i), name:r.querySelector('.x-name').value.trim(), price:Math.max(0,Number(r.querySelector('.x-price').value)||0), desc:r.querySelector('.x-desc').value.trim()}; }).filter(x=>x.name);
   const slots=$('set-slots').value.split(',').map(s=>s.trim()).filter(s=>/^\d{1,2}:\d{2}$/.test(s)).map(s=>s.padStart(5,'0')).sort();
   return {tables, extras, slots, maxGuests:Math.max(1,Number($('set-max').value)||12)};
 }
-$('addTable').onclick=()=>{ settings={...settings,...readSettings()}; settings.tables.push({id:'T'+Date.now().toString(36),name:'Table '+(settings.tables.length+1),seats:4}); renderSettings(); };
+$('addTable').onclick=()=>{ settings={...settings,...readSettings()}; settings.tables.push({id:'T'+Date.now().toString(36),name:'Table '+(settings.tables.length+1),area:'',seats:4}); renderSettings(); };
 $('addExtra').onclick=()=>{ settings={...settings,...readSettings()}; settings.extras.push({id:'x'+Date.now().toString(36),name:'',price:0,desc:''}); renderSettings(); };
 $('p-settings').addEventListener('click',e=>{
   if(e.target.dataset.rt!==undefined){ settings={...settings,...readSettings()}; settings.tables.splice(Number(e.target.dataset.rt),1); renderSettings(); }
@@ -674,7 +860,7 @@ $('p-settings').addEventListener('click',e=>{
 });
 $('saveSettings').onclick=async()=>{
   const s=readSettings(); if(!s.slots.length) return flash('setMsg','Add at least one time slot, like 18:00.',true);
-  try{ await setDoc(doc(db,'site','booking'),s); settings=s; renderSettings(); renderPlan(); fillNewBookingForm(); flash('setMsg','Saved — online booking now uses these settings.'); }
+  try{ await setDoc(doc(db,'site','booking'),s); settings=s; renderSettings(); renderPlan(); flash('setMsg','Saved — online booking now uses these settings.'); }
   catch(err){ fail('setMsg',err); }
 };
 
