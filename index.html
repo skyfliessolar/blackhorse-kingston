@@ -264,10 +264,52 @@
   .deal-grid div{border:1px solid var(--line-dark);padding:14px 10px;}
   .deal-grid b{display:block;font-family:'Cinzel',serif;color:var(--gold-light);font-size:26px;}
   .deal-grid span{font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:rgba(241,232,214,.7);}
+  .cat-btns{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:0 auto 26px;max-width:900px;}
+  .cat-btns button{background:transparent;border:1px solid var(--line-dark);color:rgba(241,232,214,.8);font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:10px 16px;border-radius:2px;cursor:pointer;transition:all .2s;}
+  .cat-btns button:hover{border-color:var(--gold);color:var(--gold-light);}
+  .cat-btns button.on{background:rgba(201,169,97,.14);border-color:var(--gold);color:var(--gold-light);}
+  .cat-btns button .n{opacity:.55;margin-left:6px;font-size:11px;}
+  .menu-cat{animation:fadeUp .25s ease;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .media-slot{padding:56px 0;}
+  .media-slot .wrap{max-width:1120px;}
+  .media-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;}
+  .media-grid.one{grid-template-columns:1fr;max-width:980px;margin:0 auto;}
+  .media-grid figure{margin:0;border:1px solid var(--line-dark);border-radius:2px;overflow:hidden;background:var(--black-2);position:relative;}
+  .media-grid figure.ph{cursor:zoom-in;}
+  .media-grid img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;transition:transform .4s;}
+  .media-grid.one img{aspect-ratio:16/9;}
+  .media-grid figure.ph:hover img{transform:scale(1.03);}
+  .media-grid .vid{position:relative;aspect-ratio:16/9;width:100%;}
+  .media-grid .vid iframe,.media-grid .vid video{position:absolute;inset:0;width:100%;height:100%;border:0;}
+  .media-grid figcaption{font-family:'Oswald',sans-serif;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-light);padding:10px 12px;text-align:center;}
+  .menu-launch{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:820px;margin:28px auto 6px;}
+  @media(max-width:640px){.menu-launch{grid-template-columns:1fr;}}
+  .menu-card{display:flex;flex-direction:column;gap:6px;text-align:left;background:var(--black-2);border:1px solid var(--line-dark);border-radius:2px;padding:24px 22px;cursor:pointer;color:var(--cream);transition:border-color .2s,transform .2s;}
+  .menu-card:hover{border-color:var(--gold);transform:translateY(-2px);}
+  .menu-card .mc-k{font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);}
+  .menu-card .mc-t{font-family:'Cinzel',serif;font-size:26px;color:var(--gold-light);}
+  .menu-card .mc-s{font-size:14px;color:rgba(241,232,214,.65);}
+  .menu-card .mc-go{margin-top:8px;font-family:'Oswald',sans-serif;font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-light);}
+  .menu-modal{position:fixed;inset:0;z-index:150;background:var(--black);display:flex;flex-direction:column;}
+  .menu-modal[hidden]{display:none;}
+  .mm-head{flex:none;background:rgba(12,11,9,.97);border-bottom:1px solid var(--line-dark);padding:calc(10px + env(safe-area-inset-top,0px)) 14px 10px;}
+  .mm-top{display:flex;align-items:center;justify-content:space-between;max-width:1000px;margin:0 auto;}
+  .mm-title{font-family:'Cinzel',serif;color:var(--gold-light);font-size:18px;}
+  .mm-close{background:none;border:1px solid var(--line-dark);color:var(--cream);width:42px;height:42px;border-radius:50%;font-size:24px;cursor:pointer;}
+  .mm-tabs{margin:10px 0 8px !important;}
+  .mm-tabs button{padding:8px 16px !important;}
+  .mm-cats{flex-wrap:nowrap !important;overflow-x:auto;justify-content:flex-start !important;margin:0 auto !important;padding-bottom:4px;scrollbar-width:none;max-width:1000px;}
+  .mm-cats::-webkit-scrollbar{display:none;}
+  .mm-cats button{flex:none;}
+  @media(min-width:900px){.mm-cats{justify-content:center !important;flex-wrap:wrap !important;}}
+  .mm-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:26px 18px calc(20px + env(safe-area-inset-bottom,0px));scroll-behavior:smooth;}
+  .mm-body .menu-cat{scroll-margin-top:12px;}
+  body.menu-open{overflow:hidden;}
   .menu-note{text-align:center;font-size:13.5px;color:rgba(241,232,214,0.55);margin-top:22px;}
   .gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-top:36px;}
   .gallery-grid img{width:100%;aspect-ratio:4/3;object-fit:cover;}
-  .lightbox{position:fixed;inset:0;background:rgba(6,5,4,.95);z-index:200;display:none;align-items:center;justify-content:center;flex-direction:column;padding:56px 12px 20px;}
+  .lightbox{position:fixed;inset:0;background:rgba(6,5,4,.95);z-index:300;display:none;align-items:center;justify-content:center;flex-direction:column;padding:56px 12px 20px;}
   .lightbox.open{display:flex;}
   .lightbox img{max-width:100%;max-height:calc(100vh - 120px);object-fit:contain;box-shadow:0 10px 40px rgba(0,0,0,.6);}
   .lightbox .lb-cap{font-family:'Oswald',sans-serif;letter-spacing:.1em;text-transform:uppercase;font-size:12px;color:var(--gold-light);margin-top:12px;}
@@ -337,6 +379,8 @@
       </div>
     </div>
   </section>
+  <div class="media-slot" data-place="hero-after" hidden><div class="wrap"><div class="media-grid"></div></div></div>
+
 
   <section id="welcome">
     <div class="wrap welcome-grid">
@@ -354,6 +398,8 @@
       </div>
     </div>
   </section>
+  <div class="media-slot" data-place="welcome-after" hidden><div class="wrap"><div class="media-grid"></div></div></div>
+
 
   <div class="divider"><img class="mark" src="logo.jpg" alt="" style="width:40px;height:40px;"></div>
 
@@ -378,6 +424,8 @@
       </div>
     </div>
   </section>
+  <div class="media-slot" data-place="kitchen-after" hidden><div class="wrap"><div class="media-grid"></div></div></div>
+
 
   <!-- MENU -->
   <section id="menu">
@@ -385,16 +433,15 @@
       <span class="eyebrow">Drunken Wok</span>
       <h2 style="font-size:clamp(28px,4vw,42px);margin:14px 0 6px;color:var(--gold-light);">Our Menu</h2>
       <p style="color:rgba(241,232,214,0.7);margin:0;">Authentic Thai cuisine, crafted with tradition.</p>
-      <div class="menu-tabs" id="menuTabs">
-        <button class="active" data-menu="food">Food menu</button>
-        <button data-menu="lunch">Lunch deal · 12–3pm</button>
-        <button data-menu="pages" id="pagesTab" hidden>Printed menu</button>
+      <div class="menu-launch">
+        <button class="menu-card" data-open="food"><span class="mc-k">À la carte</span><span class="mc-t">Food menu</span><span class="mc-s">Starters · Soups · Curries · Stir fries · Specials</span><span class="mc-go">View menu →</span></button>
+        <button class="menu-card" data-open="lunch"><span class="mc-k">12pm – 3pm</span><span class="mc-t">Lunch deal</span><span class="mc-s">Main £10.99 · Starter + main £15 · + drink £20</span><span class="mc-go">View lunch menu →</span></button>
       </div>
-      <div id="menuText"></div>
-      <div class="menu-pages" id="menuPages" hidden></div>
       <p class="menu-note">Please tell our staff about any allergies before ordering. Full allergen information is available on request.</p>
     </div>
   </section>
+  <div class="media-slot" data-place="menu-after" hidden><div class="wrap"><div class="media-grid"></div></div></div>
+
 
   <section id="sport">
     <div class="wrap" style="text-align:center;">
@@ -408,6 +455,8 @@
       <div class="sport-strap">Live Sport &nbsp;&middot;&nbsp; Great Drinks &nbsp;&middot;&nbsp; Great Atmosphere</div>
     </div>
   </section>
+  <div class="media-slot" data-place="sport-after" hidden><div class="wrap"><div class="media-grid"></div></div></div>
+
 
   <section id="terrace" class="section-panel">
     <div class="wrap terrace-grid">
@@ -427,6 +476,8 @@
       </div>
     </div>
   </section>
+  <div class="media-slot" data-place="terrace-after" hidden><div class="wrap"><div class="media-grid"></div></div></div>
+
 
   <!-- GALLERY (filled from admin uploads) -->
   <section id="gallery" hidden>
@@ -454,6 +505,8 @@
       </div>
     </div>
   </section>
+  <div class="media-slot" data-place="hire-after" hidden><div class="wrap"><div class="media-grid"></div></div></div>
+
 
   <section id="why" class="section-panel">
     <div class="wrap" style="text-align:center;">
@@ -496,6 +549,8 @@
 
   <div class="divider"><img class="mark" src="logo.jpg" alt="" style="width:40px;height:40px;"></div>
 
+    <div class="media-slot" data-place="book-before" hidden><div class="wrap"><div class="media-grid"></div></div></div>
+
   <section id="book">
     <div class="wrap book-wrap">
       <div class="book-copy">
@@ -513,10 +568,15 @@
           <div class="field"><label for="date"><span class="table-only">Date</span><span class="hire-only">Preferred date</span></label><input id="date" type="date" required></div>
           <div class="field"><label for="guests">Number of guests</label><input id="guests" type="number" min="1" max="500" value="2" required></div>
         </div>
+        <div id="areaSlot"></div>
         <div class="field table-only">
           <label>Choose a time</label>
           <div class="slot-grid" id="slotGrid"></div>
           <div class="slot-hint" id="slotHint">Pick a date to see available times.</div>
+        </div>
+        <div class="field table-only" id="areaField" hidden>
+          <label for="area">Seating preference</label>
+          <select id="area" style="width:100%;border:1px solid var(--line-dark);border-radius:2px;padding:12px 14px;font-family:'Work Sans',sans-serif;font-size:15px;background:var(--black);color:var(--cream);"><option value="">No preference</option></select>
         </div>
         <div class="field table-only" id="extrasField" hidden>
           <label>Make it special (optional)</label>
@@ -577,6 +637,8 @@
       </form>
     </div>
   </section>
+  <div class="media-slot" data-place="contact-after" hidden><div class="wrap"><div class="media-grid"></div></div></div>
+
 
   <section id="find">
     <div class="wrap">
@@ -619,6 +681,23 @@
   </div>
 </footer>
 
+<div class="menu-modal" id="menuModal" hidden role="dialog" aria-modal="true" aria-label="Menu">
+  <div class="mm-head">
+    <div class="mm-top"><span class="mm-title">Drunken Wok · Menu</span><button class="mm-close" id="menuClose" aria-label="Close menu">&times;</button></div>
+    <div class="menu-tabs mm-tabs" id="menuTabs">
+        <button class="active" data-menu="food">Food menu</button>
+        <button data-menu="lunch">Lunch deal · 12–3pm</button>
+        <button data-menu="pages" id="pagesTab" hidden>Printed menu</button>
+      </div>
+    <div class="cat-btns mm-cats" id="catBtns"></div>
+  </div>
+  <div class="mm-body" id="mmBody">
+    <div id="menuText"></div>
+    <div class="menu-pages" id="menuPages" hidden></div>
+    <p class="menu-note">Please tell our staff about any allergies before ordering. Full allergen information is available on request.</p>
+    <div style="text-align:center;margin:10px 0 30px"><a class="btn btn-gold" href="#book" id="mmBook">Book a table</a></div>
+  </div>
+</div>
 <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer">
   <button class="lb-close" aria-label="Close">&times;</button>
   <button class="lb-prev" aria-label="Previous">&lsaquo;</button>
@@ -684,14 +763,7 @@ const FOOD=[
  {t:'Kids Menu', items:[
   ['Kids Fried Rice','£6.99','Fried rice with chicken, egg and spring onion'],
   ['Kids Egg Noodle','£6.99','Stir-fried noodles with egg, chicken and spring onion'],
-  ['Chicken Nuggets & Fries','£6.99','']]},
- {t:'Fresh Juices', items:[
-  ['Apple','£6.99','Freshly pressed, crisp and naturally sweet'],
-  ['Beetroot','£6.99','Rich and smooth with natural sweetness'],
-  ['Carrot','£6.99','Naturally sweet and vibrant'],
-  ['Apple & Celery','£6.99','Crisp, refreshing and perfectly balanced'],
-  ['Apple & Ginger','£6.99','Sweet apple with a zesty ginger kick'],
-  ['Pineapple','£6.99','Tropical, sweet and tangy']]}
+  ['Chicken Nuggets & Fries','£6.99','']]}
 ];
 const LUNCH=[
  {t:'Starters', items:[['Chicken Wing','','Crispy chicken wings in hot & honey sauce with spring onion'],['Fish Cake','','Spicy Thai fish cake with sweet chilli sauce'],
@@ -707,15 +779,37 @@ const DEAL=`<div class="deal-box"><div class="deal-time">Lunch deal · 12pm – 
   <div class="mi-desc" style="margin-top:12px">Drink: glass of house red or white (125ml), a pint of beer, or a soft drink / juice</div></div>`;
 window.MENU_PAGES=[]; window.currentMenu='food';
 function renderMenu(){
-  const t=$('menuText'), p=$('menuPages'), m=window.currentMenu;
-  if(m==='pages'){ t.hidden=true; p.hidden=false;
+  const t=$('menuText'), p=$('menuPages'), cb=$('catBtns'), m=window.currentMenu;
+  $('menuTabs').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x.dataset.menu===m));
+  if(m==='pages'){ t.hidden=true; cb.hidden=true; p.hidden=false;
     p.innerHTML=window.MENU_PAGES.map((x,i)=>`<figure data-i="${i}"><img src="${x.src}" alt="${esc(x.cap)}" loading="lazy"><figcaption>${esc(x.cap)}</figcaption></figure>`).join(''); return; }
-  p.hidden=true; t.hidden=false;
-  t.innerHTML = m==='lunch' ? DEAL+cats(LUNCH) : cats(FOOD);
+  p.hidden=true; t.hidden=false; cb.hidden=false;
+  const list = m==='lunch' ? LUNCH : FOOD;
+  cb.innerHTML = list.map((c,i)=>`<button type="button" data-ci="${i}" class="${i===0?'on':''}">${esc(c.t)}</button>`).join('');
+  t.innerHTML = (m==='lunch'?DEAL:'') + list.map((c,i)=>`<div class="menu-cat" id="mcat-${i}"><h3>${esc(c.t)}</h3>${c.sub?'<div class="sub">'+esc(c.sub)+'</div>':'<div class="rule"></div>'}<div class="menu-items">${c.items.map(item).join('')}</div></div>`).join('');
+  $('mmBody').scrollTop=0;
 }
-$('menuTabs').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; window.currentMenu=b.dataset.menu;
-  $('menuTabs').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b)); renderMenu(); };
+$('catBtns').onclick=e=>{ const b=e.target.closest('button[data-ci]'); if(!b) return;
+  const el=document.getElementById('mcat-'+b.dataset.ci), body=$('mmBody');
+  if(el) body.scrollTo({top:el.offsetTop-body.offsetTop-6,behavior:'smooth'}); };
+$('mmBody').addEventListener('scroll',()=>{ const body=$('mmBody'); let cur=0;
+  document.querySelectorAll('#menuText .menu-cat').forEach((c,i)=>{ if(c.offsetTop-body.offsetTop-40<=body.scrollTop) cur=i; });
+  $('catBtns').querySelectorAll('button').forEach((x,i)=>{ const on=i===cur; if(on!==x.classList.contains('on')){ x.classList.toggle('on',on); if(on) x.scrollIntoView({block:'nearest',inline:'center'}); } });
+},{passive:true});
+$('menuTabs').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; window.currentMenu=b.dataset.menu; renderMenu(); };
 $('menuPages').onclick=e=>{ const f=e.target.closest('figure'); if(f) openLb(window.MENU_PAGES, Number(f.dataset.i)); };
+let lastFocus=null;
+function openMenu(which){ window.currentMenu=which||'food'; renderMenu(); lastFocus=document.activeElement; $('menuModal').hidden=false; document.body.classList.add('menu-open'); $('menuClose').focus();
+  if(location.hash!=='#menu') history.pushState({menu:1},'','#menu'); }
+function closeMenu(fromPop){ if($('menuModal').hidden) return; $('menuModal').hidden=true; document.body.classList.remove('menu-open'); if(lastFocus) lastFocus.focus();
+  if(!fromPop && history.state && history.state.menu) history.back(); }
+window.openMenu=openMenu;
+$('menuClose').onclick=()=>closeMenu();
+window.addEventListener('popstate',()=>closeMenu(true));
+document.addEventListener('keydown',e=>{ if(e.key==='Escape' && !$('menuModal').hidden && !document.getElementById('lightbox').classList.contains('open')) closeMenu(); });
+document.querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>openMenu(b.dataset.open)));
+document.querySelectorAll('a[href="#menu"]').forEach(a=>a.addEventListener('click',e=>{ e.preventDefault(); openMenu('food'); }));
+$('mmBook').addEventListener('click',e=>{ e.preventDefault(); closeMenu(); setTimeout(()=>document.getElementById('book').scrollIntoView({behavior:'smooth'}),60); });
 renderMenu();
 
 
@@ -735,23 +829,44 @@ const money = n => '£' + Number(n||0).toFixed(2).replace(/\.00$/,'');
 const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const todayISO = () => { const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
 
-/* ================= GALLERY + uploaded menu pages ================= */
+/* ================= PHOTOS & VIDEOS (placed by admin) ================= */
+function placeOf(g){ return g.place || (g.kind==='menu' ? 'menupages' : 'gallery'); }
+function videoEmbed(url){
+  let m;
+  if((m=url.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{6,})/))) return `<iframe src="https://www.youtube-nocookie.com/embed/${m[1]}" title="Video" loading="lazy" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+  if((m=url.match(/vimeo\.com\/(?:video\/)?(\d+)/))) return `<iframe src="https://player.vimeo.com/video/${m[1]}" title="Video" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
+  if(/^https:\/\/.+\.(mp4|webm)(\?.*)?$/i.test(url)) return `<video src="${esc(url)}" controls preload="metadata" playsinline></video>`;
+  return '';
+}
+function renderGrid(grid, items){
+  const photos = items.filter(g=>g.img).map(g=>({src:g.img, cap:g.caption||''}));
+  grid.classList.toggle('one', items.length===1);
+  grid.innerHTML = items.map(g => g.url
+      ? `<figure><div class="vid">${videoEmbed(g.url)}</div>${g.caption?`<figcaption>${esc(g.caption)}</figcaption>`:''}</figure>`
+      : `<figure class="ph" data-pi="${photos.findIndex(p=>p.src===g.img)}"><img src="${g.img}" alt="${esc(g.caption||'The Black Horse')}" loading="lazy">${g.caption?`<figcaption>${esc(g.caption)}</figcaption>`:''}</figure>`).join('');
+  grid.onclick=e=>{ const f=e.target.closest('figure.ph'); if(f) window.openLb(photos, Number(f.dataset.pi)); };
+}
 async function loadGallery(){
   try{
     const snap = await getDocs(collection(db,'gallery'));
-    const all = snap.docs.map(d=>d.data()).sort((a,b)=>(a.order||0)-(b.order||0));
-    const pub = all.filter(g=>g.kind==='pub'), menu = all.filter(g=>g.kind==='menu');
-    if(menu.length){
-      window.MENU_PAGES = menu.map((m,i)=>({src:m.img, cap:m.caption||('Page '+(i+1))}));
-      $('pagesTab').hidden = false;
-    }
-    if(pub.length){
-      const list = pub.map(p=>({src:p.img, cap:p.caption||''}));
-      $('galleryGrid').innerHTML = list.map((p,i)=>`<figure data-i="${i}"><img src="${p.src}" alt="${esc(p.cap||'The Black Horse')}" loading="lazy">${p.cap?`<figcaption>${esc(p.cap)}</figcaption>`:''}</figure>`).join('');
-      $('galleryGrid').onclick=e=>{ const f=e.target.closest('figure'); if(f) window.openLb(list, Number(f.dataset.i)); };
-      $('gallery').hidden=false; document.querySelectorAll('[data-gallery-link]').forEach(a=>a.hidden=false);
-    }
+    const all = snap.docs.map(d=>d.data()).filter(g=>g.img || (g.url && videoEmbed(g.url))).sort((a,b)=>(a.order||0)-(b.order||0));
+    const by = {}; all.forEach(g=>{ (by[placeOf(g)] ||= []).push(g); });
+    if(by.menupages){ window.MENU_PAGES = by.menupages.filter(g=>g.img).map((m,i)=>({src:m.img, cap:m.caption||('Page '+(i+1))})); $('pagesTab').hidden = !window.MENU_PAGES.length; }
+    if(by.gallery){ renderGrid($('galleryGrid'), by.gallery); $('gallery').hidden=false; document.querySelectorAll('[data-gallery-link]').forEach(a=>a.hidden=false); }
+    document.querySelectorAll('.media-slot[data-place]').forEach(sl=>{
+      const items = by[sl.dataset.place]; if(!items || !items.length) return;
+      renderGrid(sl.querySelector('.media-grid'), items); sl.hidden=false;
+    });
   }catch(e){ console.warn('Gallery', e); }
+}
+
+/* ================= EMAIL ALERTS ================= */
+let notify = {email:'contact@drunkenwok.co.uk', bookings:true, hire:true, messages:true};
+getDoc(doc(db,'site','notify')).then(s=>{ if(s.exists()) notify={...notify,...s.data()}; }).catch(()=>{});
+function emailAlert(kind, subject, fields, replyTo){
+  if(!notify.email || notify[kind]===false) return;
+  const body = {_subject:subject, _template:'table', _captcha:'false', ...(replyTo?{_replyto:replyTo}:{}), ...fields};
+  fetch('https://formsubmit.co/ajax/'+encodeURIComponent(notify.email), {method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify(body)}).catch(()=>{});
 }
 
 /* ================= HOURS + CONTENT ================= */
@@ -786,6 +901,10 @@ let settings = DEFAULT_SETTINGS, freeTable = {};
 async function loadSettings(){
   try{ const s=await getDoc(doc(db,'site','booking')); if(s.exists()) settings={...DEFAULT_SETTINGS,...s.data()}; }catch(e){ console.warn(e); }
   $('extrasField').hidden = !settings.extras.length;
+  const areas=[...new Set(settings.tables.map(t=>(t.area||'').trim()).filter(Boolean))];
+  $('areaSlot').appendChild($('areaField'));
+  $('areaField').hidden = areas.length<2;
+  $('area').innerHTML = '<option value="">No preference</option>'+areas.map(a=>`<option>${esc(a)}</option>`).join('');
   $('extrasOpts').innerHTML = settings.extras.map(x=>`<label class="extra-opt"><input type="checkbox" value="${esc(x.id)}">
     <span><b>${esc(x.name)}</b>${x.desc?`<small>${esc(x.desc)}</small>`:''}</span><span class="price">+ ${money(x.price)}</span></label>`).join('');
   updateExtras(); refreshSlots();
@@ -807,12 +926,16 @@ function slotsForDay(dateStr){
 }
 function addMin(t,m){ let [h,mm]=t.split(':').map(Number); mm+=m; h+=Math.floor(mm/60); mm%=60; return String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0'); }
 
-let slotReq=0;
+let slotReq=0, lastSlotKey='';
 async function refreshSlots(){
   if(form.classList.contains('is-hire')) return;
   const date=$('date').value, guests=Number($('guests').value)||0, grid=$('slotGrid'), hint=$('slotHint');
-  grid.innerHTML=''; freeTable={};
+  const keep=(grid.querySelector('input[name=slot]:checked')||{}).value;
+  const key=[date,guests,$('area').value].join('|');
+  if(key===lastSlotKey && grid.children.length) return;      // nothing changed — don't wipe the customer's choice
+  lastSlotKey=key; grid.innerHTML=''; freeTable={};
   if(!date){ hint.textContent='Pick a date to see available times.'; return; }
+  if(!validDate(date)){ hint.textContent='Please choose a date from today onwards (up to a year ahead).'; return; }
   if(guests > settings.maxGuests){ hint.innerHTML=`For groups over ${settings.maxGuests}, please choose <b>Private hire / event</b> above or call 020 3518 2275.`; return; }
   const slots=slotsForDay(date);
   if(slots===null){ hint.textContent="Sorry, we're closed that day."; return; }
@@ -823,17 +946,22 @@ async function refreshSlots(){
   try{ taken=(await getDocs(query(collection(db,'tableLocks'), where('date','==',date)))).docs.map(d=>d.data()); }
   catch(e){ console.warn(e); }
   if(my!==slotReq) return;
-  const fits = settings.tables.filter(t=>t.seats>=guests).sort((a,b)=>a.seats-b.seats);
+  const want=$('area').value;
+  const fits = settings.tables.filter(t=>t.seats>=guests && (!want || (t.area||'')===want)).sort((a,b)=>a.seats-b.seats);
   let any=false;
   grid.innerHTML = slots.map(s=>{
     const busy=new Set(taken.filter(l=>l.time===s).map(l=>l.tableId));
     const t=fits.find(x=>!busy.has(x.id)); if(t){ freeTable[s]=t; any=true; }
-    return `<label class="${t?'':'full'}"><input type="radio" name="slot" value="${s}" ${t?'':'disabled'}><span>${s}</span></label>`;
+    return `<label class="${t?'':'full'}"><input type="radio" name="slot" value="${s}" ${t?'':'disabled'} ${t&&s===keep?'checked':''}><span>${s}</span></label>`;
   }).join('');
-  hint.textContent = !fits.length ? `We don't have a single table for ${guests} — please choose Private hire / event or call us.`
+  hint.textContent = !fits.length ? (want ? `No ${want} table fits ${guests} — try "No preference".` : `We don't have a single table for ${guests} — please choose Private hire / event or call us.`)
                    : any ? 'Greyed-out times are fully booked.' : 'Fully booked that day — please try another date.';
 }
 $('date').addEventListener('change',refreshSlots);
+$('area').addEventListener('change',refreshSlots);
+function validDate(iso){ if(!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false; const t=todayISO(); const max=new Date(); max.setFullYear(max.getFullYear()+1);
+  return iso>=t && iso<=max.toISOString().slice(0,10); }
+let gTimer; $('guests').addEventListener('input',()=>{ clearTimeout(gTimer); gTimer=setTimeout(refreshSlots,350); });
 $('guests').addEventListener('change',refreshSlots);
 
 function setKind(kind){
@@ -855,12 +983,15 @@ form.addEventListener('submit', async e=>{
   const name=$('name').value.trim(), phone=$('phone').value.trim(), email=$('email').value.trim(), date=$('date').value, guests=Number($('guests').value);
   if(!name||!phone||!email||!date||!guests) return showErr('Please fill in your name, phone, email, date and number of guests.');
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return showErr('Please check your email address.');
+  if(!validDate(date)) return showErr('Please choose a date from today onwards.');
+  if(!/^[0-9 +()-]{7,20}$/.test(phone)) return showErr('Please check your phone number.');
   $('bookBtn').disabled=true;
   try{
     if(isHire){
       await addDoc(collection(db,'hireEnquiries'),{name,email,phone,guests,date,type:$('eventType').value.trim(),message:$('notes').value.trim(),
         status:'new',source:'website',seen:false,createdAt:serverTimestamp()});
       showOk("Thanks — we've received your private hire enquiry and will be in touch shortly.");
+      emailAlert('hire', `New private hire enquiry — ${name} (${guests} guests)`, {Name:name, Phone:phone, Email:email, 'Event type':$('eventType').value.trim()||'-', Guests:guests, 'Preferred date':date, Message:$('notes').value.trim()||'-'}, email);
     }else{
       const slot=form.querySelector('input[name=slot]:checked');
       if(!slot){ $('bookBtn').disabled=false; return showErr('Please choose a time.'); }
@@ -868,18 +999,19 @@ form.addEventListener('submit', async e=>{
       if(!table){ $('bookBtn').disabled=false; return showErr('That time is no longer available — please pick another.'); }
       const ex=chosenExtras(), total=ex.reduce((s,x)=>s+Number(x.price||0),0);
       const ref=doc(collection(db,'bookings')), b=writeBatch(db);
-      b.set(ref,{name,email,phone,guests,date,time,tableId:table.id,tableName:table.name,
+      b.set(ref,{name,email,phone,guests,date,time,tableId:table.id,tableName:table.name,area:table.area||'',
         extras:ex.map(x=>({id:x.id,name:x.name,price:Number(x.price)})),extrasTotal:total,
         notes:$('notes').value.trim(),status:'pending',source:'website',seen:false,createdAt:serverTimestamp()});
       b.set(doc(db,'tableLocks',`${date}_${time}_${table.id}`),{date,time,tableId:table.id,bookingId:ref.id});
       await b.commit();
       const nice=new Date(date+'T00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+      emailAlert('bookings', `New table booking — ${name}, ${date} ${time} (${guests})`, {Name:name, Phone:phone, Email:email, Date:date, Time:time, Guests:guests, Table:table.name+(table.area?' · '+table.area:''), Extras:ex.map(x=>x.name+' £'+x.price).join(', ')||'-', 'Extras total':'£'+total, Notes:$('notes').value.trim()||'-'}, email);
       showOk(`<b>Your table is reserved</b> — ${esc(nice)} at ${esc(time)} for ${guests}.${total?` Extras: ${money(total)}, payable at the venue.`:''}<br>We'll contact you to confirm. Need to change it? Call 020 3518 2275.`);
     }
-    form.reset(); $('guests').value=2; setKind(isHire?'hire':'table'); updateExtras();
+    form.reset(); $('guests').value=2; lastSlotKey=''; setKind(isHire?'hire':'table'); updateExtras();
   }catch(err){
     console.error(err);
-    if(!isHire && err.code==='permission-denied'){ showErr('Sorry, someone has just booked that time. Please choose another.'); refreshSlots(); }
+    if(!isHire && err.code==='permission-denied'){ showErr('Sorry, someone has just booked that time. Please choose another.'); lastSlotKey=''; refreshSlots(); }
     else showErr('Sorry, we couldn\'t send your request just now. Please call us on <a href="tel:02035182275" style="color:var(--gold-light);">020 3518 2275</a>.');
   }finally{ $('bookBtn').disabled=false; }
 });
@@ -891,6 +1023,7 @@ $('contactForm').addEventListener('submit', async e=>{
   if(!name||!email||!message){ $('m-err').textContent='Please add your name, email and a message.'; $('m-err').style.display='block'; return; }
   $('m-btn').disabled=true;
   try{ await addDoc(collection(db,'messages'),{name,email,phone:$('m-phone').value.trim(),message,seen:false,createdAt:serverTimestamp()});
+    emailAlert('messages', `New website message — ${name}`, {Name:name, Email:email, Phone:$('m-phone').value.trim()||'-', Message:message}, email);
     $('contactForm').reset(); $('m-ok').style.display='block'; }
   catch(err){ console.error(err); $('m-err').textContent="Sorry, that didn't send. Please call 020 3518 2275."; $('m-err').style.display='block'; }
   finally{ $('m-btn').disabled=false; }
