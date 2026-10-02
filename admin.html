@@ -100,7 +100,7 @@ select.status[data-s=cancelled]{background:#F5E3E0;}
 .x{background:none;border:none;color:var(--cancel);font-size:18px;padding:0 4px;}
 
 .plan{border-collapse:collapse;background:#fff;}
-.plan th,.plan td{border:1px solid var(--line);padding:6px 8px;font-size:12px;text-align:center;min-width:86px;}
+.plan th,.plan td{border:1px solid var(--line);padding:6px 6px;font-size:12px;text-align:center;min-width:44px;}
 .plan td.free{color:#9a9180;}
 .plan td.taken{background:#F6EEDD;font-weight:600;}
 .plan td.taken.confirmed{background:#E7EFE6;}
@@ -148,6 +148,15 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
 .sitemap{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
 .sitemap span{font-size:11.5px;background:var(--paper);border:1px solid var(--line);padding:4px 9px;border-radius:999px;cursor:pointer;}
 .sitemap span.has{background:#E7EFE6;border-color:#9DBF9F;}
+.offer-card{background:#fff;border:1px solid var(--line);border-left:4px solid var(--brass);padding:18px 20px;margin-bottom:14px;}
+.offer-card.off{opacity:.6;border-left-color:var(--line);}
+.offer-card .grid4{display:grid;grid-template-columns:120px 1fr 1fr;gap:12px;}
+@media(max-width:700px){.offer-card .grid4{grid-template-columns:1fr;}}
+.offer-card .row2{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end;}
+@media(max-width:700px){.offer-card .row2{grid-template-columns:1fr 1fr;}}
+.switch{display:inline-flex;align-items:center;gap:8px;font-size:13px;}
+.perm-chips label{font-size:13px;margin:2px 10px 2px 0;}
+.plan td.taken{white-space:nowrap;}
 .toast{position:fixed;right:18px;bottom:18px;background:var(--ink);color:var(--paper);padding:14px 18px;border-left:4px solid var(--brass);border-radius:2px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:99;max-width:320px;font-size:14px;display:none;}
 </style>
 </head>
@@ -172,17 +181,18 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
     <div class="brand"><img src="logo.jpg" alt="">The Black Horse</div>
     <span class="sub">Admin dashboard</span>
     <button class="tab-btn active" data-tab="dash">Dashboard</button>
-    <button class="tab-btn" data-tab="bookings">Table bookings <span class="count" id="c-bookings" hidden></span></button>
-    <button class="tab-btn" data-tab="plan">Table plan</button>
-    <button class="tab-btn" data-tab="hire">Private hire <span class="count" id="c-hire" hidden></span></button>
-    <button class="tab-btn" data-tab="messages">Messages <span class="count" id="c-messages" hidden></span></button>
-    <button class="tab-btn" data-tab="calls">Call log</button>
-    <button class="tab-btn" data-tab="photos" id="photosTab" hidden>Photos &amp; videos</button>
-    <button class="tab-btn" data-tab="settings">Tables &amp; charges</button>
-    <button class="tab-btn" data-tab="content">Site text</button>
-    <button class="tab-btn" data-tab="hours">Opening hours</button>
-    <button class="tab-btn" data-tab="notify" id="notifyTab" hidden>Email alerts</button>
-    <button class="tab-btn" data-tab="staff" id="staffTab" hidden>Staff logins</button>
+    <button class="tab-btn" data-tab="bookings" data-perm="bookings">Table bookings <span class="count" id="c-bookings" hidden></span></button>
+    <button class="tab-btn" data-tab="plan" data-perm="bookings">Table plan</button>
+    <button class="tab-btn" data-tab="hire" data-perm="hire">Private hire <span class="count" id="c-hire" hidden></span></button>
+    <button class="tab-btn" data-tab="messages" data-perm="messages">Messages <span class="count" id="c-messages" hidden></span></button>
+    <button class="tab-btn" data-tab="calls" data-perm="calls">Call log</button>
+    <button class="tab-btn" data-tab="offers" data-perm="offers">Offers &amp; discounts</button>
+    <button class="tab-btn" data-tab="photos" data-perm="photos">Photos &amp; videos</button>
+    <button class="tab-btn" data-tab="settings" data-perm="settings">Tables &amp; charges</button>
+    <button class="tab-btn" data-tab="content" data-perm="content">Site text</button>
+    <button class="tab-btn" data-tab="hours" data-perm="hours">Opening hours</button>
+    <button class="tab-btn" data-tab="notify" data-perm="owner">Email alerts</button>
+    <button class="tab-btn" data-tab="staff" data-perm="owner">Staff &amp; permissions</button>
     <button class="tab-btn" data-tab="account">My password</button>
     <div class="side-foot">
       <button id="notifBtn">🔔 Turn on alerts</button>
@@ -199,13 +209,13 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
     <section class="panel active" id="p-dash">
       <div class="head"><div><span class="eyebrow">Today</span><h2 id="dashDate">Dashboard</h2></div></div>
       <div class="cards">
-        <div class="stat" data-go="bookings"><div class="n" id="s-today">0</div><div class="l">Bookings today</div></div>
-        <div class="stat" data-go="bookings"><div class="n" id="s-guests">0</div><div class="l">Guests today</div></div>
-        <div class="stat" data-go="bookings" id="st-pending"><div class="n" id="s-pending">0</div><div class="l">To confirm</div></div>
-        <div class="stat" data-go="hire" id="st-hire"><div class="n" id="s-hire">0</div><div class="l">New hire enquiries</div></div>
-        <div class="stat" data-go="messages" id="st-msg"><div class="n" id="s-msg">0</div><div class="l">New messages</div></div>
+        <div class="stat" data-go="bookings" data-perm="bookings"><div class="n" id="s-today">0</div><div class="l">Bookings today</div></div>
+        <div class="stat" data-go="bookings" data-perm="bookings"><div class="n" id="s-guests">0</div><div class="l">Guests today</div></div>
+        <div class="stat" data-go="bookings" data-perm="bookings" id="st-pending"><div class="n" id="s-pending">0</div><div class="l">To confirm</div></div>
+        <div class="stat" data-go="hire" data-perm="hire" id="st-hire"><div class="n" id="s-hire">0</div><div class="l">New hire enquiries</div></div>
+        <div class="stat" data-go="messages" data-perm="messages" id="st-msg"><div class="n" id="s-msg">0</div><div class="l">New messages</div></div>
       </div>
-      <div class="card"><h3>Today's bookings</h3><div class="tablewrap"><table><thead><tr><th>Time</th><th>Table</th><th>Name</th><th>Phone</th><th>Guests</th><th>Extras</th><th>Status</th></tr></thead><tbody id="todayBody"></tbody></table></div></div>
+      <div class="card" data-perm="bookings"><h3>Today's bookings</h3><div class="tablewrap"><table><thead><tr><th>Time</th><th>Table</th><th>Name</th><th>Phone</th><th>Guests</th><th>Extras</th><th>Status</th></tr></thead><tbody id="todayBody"></tbody></table></div></div>
     </section>
 
     <!-- BOOKINGS -->
@@ -302,6 +312,14 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
       </div>
     </section>
 
+    <!-- OFFERS -->
+    <section class="panel" id="p-offers">
+      <div class="head"><div><span class="eyebrow">Website</span><h2>Offers &amp; discounts</h2></div><button class="btn" id="addOffer">+ New offer</button></div>
+      <p class="hint" style="margin-top:-8px">Offers appear on the website straight away when they are <b>On</b> and within their dates. Leave dates empty to show them until you switch them off.</p>
+      <div id="offerList"></div>
+      <div class="msg" id="ofMsg"></div>
+    </section>
+
     <!-- SETTINGS -->
     <section class="panel" id="p-settings">
       <div class="head"><div><span class="eyebrow">Online booking</span><h2>Tables &amp; charges</h2></div><button class="btn" id="saveSettings">Save</button></div>
@@ -313,11 +331,12 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
       </div>
       <div class="card">
         <h3>Booking times</h3>
-        <div class="grid2">
-          <div class="field"><label>Time slots (comma separated)</label><input id="set-slots" placeholder="12:00, 13:00, 14:00"></div>
+        <div class="grid3">
+          <div class="field"><label>Table held for (minutes)</label><select id="set-dur"></select></div>
+          <div class="field"><label>Last booking before closing</label><select id="set-last"></select></div>
           <div class="field"><label>Largest group bookable online</label><input id="set-max" type="number" min="1"></div>
         </div>
-        <p class="hint">Slots outside the opening hours for that day are hidden automatically.</p>
+        <p class="hint">Customers can choose any time in 15-minute steps within your opening hours. A table is held for the time above, so bookings can never overlap.</p>
       </div>
       <div class="card">
         <h3>Special bookings &amp; extra charges</h3>
@@ -365,17 +384,18 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
 
     <!-- STAFF -->
     <section class="panel" id="p-staff">
-      <div class="head"><div><span class="eyebrow">Owner only</span><h2>Staff logins</h2></div></div>
+      <div class="head"><div><span class="eyebrow">Main admin only</span><h2>Staff &amp; permissions</h2></div></div>
       <div class="card">
         <h3>Add a staff login</h3>
-        <p class="hint">Create a login for a team member and give them the email and password. They can change their password later under "My password". If someone forgets theirs, remove their access and create a new login.</p>
         <div class="grid3"><div class="field"><label>Name</label><input id="st-name" autocomplete="off"></div>
           <div class="field"><label>Staff email</label><input id="st-email" type="email" autocomplete="off"></div>
           <div class="field"><label>Password (min 8 characters)</label><input id="st-pass" type="text" autocomplete="new-password"></div></div>
+        <div class="field"><label>What can they use?</label><div class="chips" id="st-perms"></div></div>
         <button class="btn" id="addStaff">Create login</button>
         <div class="msg" id="stMsg"></div>
+        <p class="hint">They can change their password under "My password". If someone forgets theirs, remove them and create a new login.</p>
       </div>
-      <div class="tablewrap"><table><thead><tr><th>Email</th><th>Name</th><th>Access</th></tr></thead><tbody id="stBody"></tbody></table></div>
+      <div class="tablewrap"><table><thead><tr><th>Staff</th><th>Can use</th><th></th></tr></thead><tbody id="stBody"></tbody></table></div>
     </section>
 
   </main>
@@ -388,6 +408,7 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
       <div class="field"><label>Date</label><input id="bk-date" type="date"></div>
       <div class="field"><label>Time</label><select id="bk-time"></select></div>
       <div class="field"><label>Guests</label><input id="bk-guests" type="number" min="1"></div>
+      <div class="field"><label>Length</label><select id="bk-dur"></select></div>
       <div class="field"><label>Table</label><select id="bk-table"></select></div>
       <div class="field"><label>Status</label><select id="bk-status"><option value="pending">Pending</option><option value="confirmed">Confirmed</option><option value="cancelled">Cancelled</option></select></div>
       <div class="field"><label>Source</label><input id="bk-source" disabled></div>
@@ -486,12 +507,26 @@ onAuthStateChanged(auth, user=>{
   if(!user){ $('appView').hidden=true; $('loginView').hidden=false; return; }
   $('loginView').hidden=true; $('appView').hidden=false;
   $('who').textContent=user.email;
-  isOwner = user.email.toLowerCase()===OWNER; ['staffTab','photosTab','notifyTab'].forEach(i=>$(i).hidden=!isOwner);
+  isOwner = user.email.toLowerCase()===OWNER;
   $('dashDate').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
   $('planDate').value = today();
   if('Notification' in window && Notification.permission==='granted') $('notifBtn').textContent='🔔 Alerts on';
-  start();
+  loadPerms(user).then(start);
 });
+const PERMS=[['bookings','Bookings & table plan'],['hire','Private hire'],['messages','Messages'],['calls','Call log'],['offers','Offers & discounts'],
+  ['photos','Photos & videos'],['settings','Tables & charges'],['content','Site text'],['hours','Opening hours']];
+const LEGACY={bookings:true,hire:true,messages:true,calls:true};
+let perms={};
+const can=p=> isOwner || (p!=='owner' && perms[p]===true);
+async function loadPerms(user){
+  if(isOwner){ perms=Object.fromEntries(PERMS.map(([k])=>[k,true])); }
+  else{ try{ const s=await getDoc(doc(db,'staff',user.email.toLowerCase())); perms = s.exists() ? (s.data().perms||LEGACY) : {}; }catch(e){ perms={}; } }
+  document.querySelectorAll('[data-perm]').forEach(el=>el.hidden=!can(el.dataset.perm));
+  const anyAccess = isOwner || PERMS.some(([k])=>perms[k]);
+  $('connErr').hidden = anyAccess;
+  if(!anyAccess) $('connErr').textContent='This login has no access yet — ask the main admin to give you permissions under Staff & permissions.';
+  const active=document.querySelector('.tab-btn.active'); if(active && active.hidden) openTab('dash');
+}
 $('loginForm').onsubmit=async e=>{
   e.preventDefault(); $('loginErr').textContent=''; $('loginBtn').disabled=true;
   try{ await signInWithEmailAndPassword(auth,$('le').value.trim(),$('lp').value); $('lp').value=''; }
@@ -501,27 +536,41 @@ $('loginForm').onsubmit=async e=>{
 $('logout').onclick=()=>signOut(auth);
 
 /* ---------- data ---------- */
-let bookings=[], hires=[], messages=[], calls=[], gallery=[], staff=[];
-let settings={tables:[],slots:[],maxGuests:12,extras:[]};
-const DEFAULT_SETTINGS={
-  tables:Array.from({length:10},(_,i)=>({id:'T'+(i+1),name:'Table '+(i+1),seats:4})),
-  slots:['12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00'],
-  maxGuests:12, extras:[]
-};
+let bookings=[], hires=[], messages=[], calls=[], gallery=[], staff=[], offers=[];
+let settings={tables:[],maxGuests:12,extras:[],duration:120,lastBefore:60};
+const DEFAULT_SETTINGS={ tables:Array.from({length:10},(_,i)=>({id:'T'+(i+1),name:'Table '+(i+1),seats:4})), maxGuests:12, extras:[], duration:120, lastBefore:60 };
+/* time helpers — bookings hold a table in half-hour blocks */
+const toMin=t=>{ const [h,m]=String(t).split(':').map(Number); return h*60+m; };
+const fromMin=m=>String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+const WEEK=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+let hoursCfg=null;
+const DH={Monday:{open:'12:00',close:'23:00',closed:false},Tuesday:{open:'12:00',close:'23:00',closed:false},Wednesday:{open:'12:00',close:'23:00',closed:false},
+  Thursday:{open:'12:00',close:'23:00',closed:false},Friday:{open:'12:00',close:'00:00',closed:false},Saturday:{open:'12:00',close:'00:00',closed:false},Sunday:{open:'12:00',close:'22:00',closed:false}};
+function dayWindow(date){ const h=(hoursCfg||DH)[WEEK[new Date(date+'T00:00').getDay()]]||{open:'12:00',close:'23:00'}; if(h.closed) return null; let o=toMin(h.open), c=toMin(h.close); if(c<=o) c+=1440; return {o,c}; }
+function blocksFor(date,time,dur){ const w=dayWindow(date)||{c:1440}; const t=toMin(time); const st=Math.floor(t/30)*30; const end=Math.min(t+(Number(dur)||120), Math.max(w.c,t+30), 1440);
+  const out=[]; for(let b=st; b<Math.max(end,st+30); b+=30) out.push(fromMin(b)); return out; }
+const keysOf=b=> (b.locks&&b.locks.length) ? b.locks : (b.tableId ? [`${b.date}_${b.time}_${b.tableId}`] : []);
+function occupancy(date, exceptId){ const m=new Map(); bookings.forEach(b=>{ if(b.date!==date||b.status==='cancelled'||b.id===exceptId) return;
+  keysOf(b).forEach(k=>{ const [, t, tid]=k.split('_'); m.set(t+'_'+tid, b); }); }); return m; }
 async function start(){
   try{ const s=await getDoc(doc(db,'site','booking')); settings = s.exists() ? {...DEFAULT_SETTINGS,...s.data()} : {...DEFAULT_SETTINGS}; }
   catch(e){ settings={...DEFAULT_SETTINGS}; }
+  try{ const h=await getDoc(doc(db,'site','hours')); if(h.exists()) hoursCfg={...DH,...h.data()}; }catch(e){}
   renderSettings();
-  unsubs.push(watch('bookings', l=>{bookings=l; renderBookings(); renderDash(); renderPlan(); refreshModal(); updateTitle(); },
+  if(can('bookings')) unsubs.push(watch('bookings', l=>{bookings=l; renderBookings(); renderDash(); renderPlan(); refreshModal(); updateTitle(); },
     '🍽 New table booking', d=>`${d.name} · ${d.guests} guests · ${fmtD(d.date)} ${d.time}`));
-  unsubs.push(watch('hireEnquiries', l=>{hires=l; renderHires(); renderDash(); updateTitle(); },
+  if(can('hire')) unsubs.push(watch('hireEnquiries', l=>{hires=l; renderHires(); renderDash(); updateTitle(); },
     '🎉 New private hire enquiry', d=>`${d.name} · ${d.type||'Event'} · ${d.guests} guests`));
-  unsubs.push(watch('messages', l=>{messages=l; renderMessages(); renderDash(); updateTitle(); },
+  if(can('messages')) unsubs.push(watch('messages', l=>{messages=l; renderMessages(); renderDash(); updateTitle(); },
     '✉️ New message', d=>`${d.name}: ${(d.message||'').slice(0,80)}`));
-  unsubs.push(onSnapshot(collection(db,'calls'), s=>{calls=s.docs.map(d=>({id:d.id,...d.data()})); renderCalls();}));
-  unsubs.push(onSnapshot(collection(db,'gallery'), s=>{gallery=s.docs.map(d=>({id:d.id,...d.data()})); renderGallery();}));
+  if(can('calls')) unsubs.push(onSnapshot(collection(db,'calls'), s=>{calls=s.docs.map(d=>({id:d.id,...d.data()})); renderCalls();}));
+  if(can('photos')) unsubs.push(onSnapshot(collection(db,'gallery'), s=>{gallery=s.docs.map(d=>({id:d.id,...d.data()})); renderGallery();}));
+  if(can('offers')) unsubs.push(onSnapshot(collection(db,'offers'), s=>{offers=s.docs.map(d=>({id:d.id,...d.data()})); renderOffers();}));
   if(isOwner) unsubs.push(onSnapshot(collection(db,'staff'), s=>{staff=s.docs.map(d=>({id:d.id,...d.data()})); renderStaff();}));
-  loadContent(); loadHours(); if(isOwner) loadNotify();
+  if(can('content')) loadContent();
+  if(can('hours')) loadHours();
+  if(isOwner) loadNotify();
+  renderDash();
 }
 
 /* ---------- dashboard ---------- */
@@ -530,6 +579,7 @@ function extrasPills(b){
   return names + (b.extrasTotal ? `<span class="pill money">${money(b.extrasTotal)}</span>` : '');
 }
 function renderDash(){
+  if(!can('bookings')&&!can('hire')&&!can('messages')) return;
   const t=today(), tb=bookings.filter(b=>b.date===t && b.status!=='cancelled').sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   $('s-today').textContent=tb.length;
   $('s-guests').textContent=tb.reduce((s,b)=>s+(Number(b.guests)||0),0);
@@ -562,13 +612,12 @@ function renderBookings(){
     <td><button class="x" data-del="${esc(b.id)}" title="Delete">×</button></td></tr>`).join('')
     : '<tr class="empty"><td colspan="9">No bookings here.</td></tr>';
 }
-const lockId = b => `${b.date}_${b.time}_${b.tableId}`;
 $('bBody').onchange=async e=>{
   if(!e.target.matches('select.status')) return;
   const b=bookings.find(x=>x.id===e.target.dataset.id), s=e.target.value; if(!b) return;
   const batch=writeBatch(db); batch.update(doc(db,'bookings',b.id),{status:s, seen:true});
-  if(b.tableId && s==='cancelled' && b.status!=='cancelled') batch.delete(doc(db,'tableLocks',lockId(b)));
-  if(b.tableId && b.status==='cancelled' && s!=='cancelled') batch.set(doc(db,'tableLocks',lockId(b)),{date:b.date,time:b.time,tableId:b.tableId,bookingId:b.id});
+  if(s==='cancelled' && b.status!=='cancelled') keysOf(b).forEach(k=>batch.delete(doc(db,'tableLocks',k)));
+  if(b.status==='cancelled' && s!=='cancelled') keysOf(b).forEach(k=>{ const [d,t,tid]=k.split('_'); batch.set(doc(db,'tableLocks',k),{date:d,time:t,tableId:tid,bookingId:b.id}); });
   try{ await batch.commit(); flash('bMsg', s==='cancelled' ? 'Cancelled — the table is free again.' : 'Status updated.'); }
   catch(err){ renderBookings(); fail('bMsg', err.code==='permission-denied' && s!=='cancelled' ? {friendly:'That table has been booked by someone else since.'} : err); }
 };
@@ -578,22 +627,26 @@ $('bBody').onclick=async e=>{
   if(!id){ const tr=e.target.closest('tr[data-edit]'); if(tr) openBooking(bookings.find(x=>x.id===tr.dataset.edit)); return; }
   const b=bookings.find(x=>x.id===id); if(!b || !confirm(`Delete ${b.name}'s booking permanently?`)) return;
   const batch=writeBatch(db); batch.delete(doc(db,'bookings',id));
-  if(b.tableId && b.status!=='cancelled') batch.delete(doc(db,'tableLocks',lockId(b)));
+  if(b.status!=='cancelled') keysOf(b).forEach(k=>batch.delete(doc(db,'tableLocks',k)));
   try{ await batch.commit(); flash('bMsg','Booking deleted.'); }catch(err){ fail('bMsg',err); }
 };
 
 /* ---------- booking editor (new + edit) ---------- */
-let editing=null;   // booking being edited, or null for new
-function takenAt(date,time,exceptId){ return new Set(bookings.filter(b=>b.date===date && b.time===time && b.status!=='cancelled' && b.id!==exceptId).map(b=>b.tableId)); }
+let editing=null;
+const DURS=[60,90,120,150,180,240];
+$('bk-dur').innerHTML=DURS.map(d=>`<option value="${d}">${d<120?d+' min':(d/60)+' hours'}</option>`).join('');
+$('bk-time').innerHTML=Array.from({length:96},(_,i)=>fromMin(i*15)).map(t=>`<option>${t}</option>`).join('');
 function openBooking(b, preset){
   editing=b||null;
   $('bkTitle').textContent = b ? (b.name||'Booking') : 'New booking';
   $('bk-date').value = b?b.date:(preset?.date||today());
   $('bk-guests').value = b?b.guests:2;
+  $('bk-time').value = b?b.time:(preset?.time||'19:00');
+  $('bk-dur').value = String(b?.duration || settings.duration || 120);
+  if(!$('bk-dur').value) $('bk-dur').value='120';
   $('bk-status').value = b?b.status:'confirmed';
   $('bk-source').value = b ? (b.source==='admin'?'Phone / walk-in':'Website') : 'Phone / walk-in';
   $('bk-name').value=b?b.name:''; $('bk-phone').value=b?b.phone:''; $('bk-email').value=b?b.email:''; $('bk-notes').value=b?b.notes:'';
-  fillTimes(b?b.time:(preset?.time));
   fillTables(b?b.tableId:(preset?.tableId));
   const chosen=new Set((b?.extras||[]).map(x=>x.id));
   $('bk-extras').innerHTML = settings.extras.length ? settings.extras.map(x=>`<label><input type="checkbox" value="${esc(x.id)}" ${chosen.has(x.id)?'checked':''}> ${esc(x.name)} (${money(x.price)})</label>`).join('') : 'No extras set up yet — add them under Tables & charges.';
@@ -601,56 +654,47 @@ function openBooking(b, preset){
   $('bkMsg').textContent=''; $('bkModal').hidden=false;
   if(b && b.seen===false) updateDoc(doc(db,'bookings',b.id),{seen:true}).catch(()=>{});
 }
-function fillTimes(sel){
-  const cur=sel||$('bk-time').value; const list=[...new Set([...settings.slots, ...(cur?[cur]:[])])].sort();
-  $('bk-time').innerHTML=list.map(s=>`<option ${s===cur?'selected':''}>${esc(s)}</option>`).join('');
-}
+function freeTables(date,time,dur,exceptId){ const occ=occupancy(date,exceptId), bl=blocksFor(date,time,dur); return settings.tables.filter(t=>bl.every(x=>!occ.has(x+'_'+t.id))); }
 function fillTables(sel){
-  const date=$('bk-date').value, time=$('bk-time').value, g=Number($('bk-guests').value)||1;
-  const taken=takenAt(date,time,editing?.id);
-  let opts=settings.tables.filter(t=>!taken.has(t.id)).sort((a,b)=>a.seats-b.seats);
-  if(sel && !opts.find(t=>t.id===sel) && !taken.has(sel)){ const t=settings.tables.find(x=>x.id===sel) || {id:sel,name:editing?.tableName||sel,seats:0}; opts.unshift(t); }
+  const date=$('bk-date').value, time=$('bk-time').value, dur=Number($('bk-dur').value)||120, g=Number($('bk-guests').value)||1;
+  let opts=freeTables(date,time,dur,editing?.id).sort((a,b)=>a.seats-b.seats);
+  const occ=occupancy(date,editing?.id), blocked=sel && blocksFor(date,time,dur).some(x=>occ.has(x+'_'+sel));
+  if(sel && !opts.find(t=>t.id===sel) && !blocked){ const t=settings.tables.find(x=>x.id===sel) || {id:sel,name:editing?.tableName||sel,seats:0}; opts.unshift(t); }
   $('bk-table').innerHTML = opts.length ? opts.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}${t.area?' · '+esc(t.area):''} (${t.seats} seats)${t.seats&&t.seats<g?' — small':''}</option>`).join('') : '<option value="">No free tables at this time</option>';
   const want = sel && opts.find(t=>t.id===sel) ? sel : (opts.find(t=>t.seats>=g)||opts[0]||{}).id;
   if(want) $('bk-table').value=want;
 }
 function refreshModal(){ if(!$('bkModal').hidden) fillTables($('bk-table').value); }
-['bk-date','bk-time'].forEach(id=>$(id).addEventListener('change',()=>fillTables($('bk-table').value)));
+['bk-date','bk-time','bk-dur'].forEach(id=>$(id).addEventListener('change',()=>fillTables($('bk-table').value)));
 $('bk-guests').addEventListener('change',()=>fillTables(editing?$('bk-table').value:null));
 $('bkClose').onclick=()=>{ $('bkModal').hidden=true; };
 $('bkModal').addEventListener('click',e=>{ if(e.target.id==='bkModal') $('bkModal').hidden=true; });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') $('bkModal').hidden=true; });
 $('bkSave').onclick=async()=>{
-  const name=$('bk-name').value.trim(), date=$('bk-date').value, time=$('bk-time').value, tableId=$('bk-table').value, status=$('bk-status').value;
+  const name=$('bk-name').value.trim(), date=$('bk-date').value, time=$('bk-time').value, tableId=$('bk-table').value, status=$('bk-status').value, dur=Number($('bk-dur').value)||120;
   if(!name) return flash('bkMsg','Please add the guest name.',true);
   if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return flash('bkMsg','Please choose a date.',true);
   if(!time || !tableId) return flash('bkMsg','Please choose a time and a free table.',true);
   const t=settings.tables.find(x=>x.id===tableId);
   const ex=[...$('bk-extras').querySelectorAll('input:checked')].map(i=>settings.extras.find(x=>x.id===i.value)).filter(Boolean);
-  const data={name,phone:$('bk-phone').value.trim(),email:$('bk-email').value.trim(),guests:Math.max(1,Number($('bk-guests').value)||1),date,time,
+  const newKeys=blocksFor(date,time,dur).map(b=>`${date}_${b}_${tableId}`);
+  const data={name,phone:$('bk-phone').value.trim(),email:$('bk-email').value.trim(),guests:Math.max(1,Number($('bk-guests').value)||1),date,time,duration:dur,locks:newKeys,
     tableId,tableName:t?t.name:(editing?.tableName||tableId),area:t?.area||'',extras:ex.map(x=>({id:x.id,name:x.name,price:Number(x.price)})),
     extrasTotal:ex.reduce((s,x)=>s+Number(x.price),0),notes:$('bk-notes').value.trim(),status,seen:true};
-  const batch=writeBatch(db);
-  const ref = editing ? doc(db,'bookings',editing.id) : doc(collection(db,'bookings'));
-  const newKey=`${date}_${time}_${tableId}`, newActive=status!=='cancelled';
-  if(editing){
-    const oldKey=editing.tableId?lockId(editing):null, oldActive=editing.status!=='cancelled' && !!oldKey;
-    batch.update(ref,data);
-    if(oldActive && (!newActive || oldKey!==newKey)) batch.delete(doc(db,'tableLocks',oldKey));
-    if(newActive && (!oldActive || oldKey!==newKey)) batch.set(doc(db,'tableLocks',newKey),{date,time,tableId,bookingId:ref.id});
-  }else{
-    batch.set(ref,{...data,source:'admin',createdAt:serverTimestamp()});
-    if(newActive) batch.set(doc(db,'tableLocks',newKey),{date,time,tableId,bookingId:ref.id});
-  }
+  const batch=writeBatch(db), ref = editing ? doc(db,'bookings',editing.id) : doc(collection(db,'bookings'));
+  const newActive=status!=='cancelled', oldActive=editing && editing.status!=='cancelled', oldKeys=editing?keysOf(editing):[];
+  if(editing) batch.update(ref,data); else batch.set(ref,{...data,source:'admin',createdAt:serverTimestamp()});
+  if(oldActive) oldKeys.filter(k=>!(newActive && newKeys.includes(k))).forEach(k=>batch.delete(doc(db,'tableLocks',k)));
+  if(newActive) newKeys.filter(k=>!(oldActive && oldKeys.includes(k))).forEach(k=>{ const [d,bt,tid]=k.split('_'); batch.set(doc(db,'tableLocks',k),{date:d,time:bt,tableId:tid,bookingId:ref.id}); });
   $('bkSave').disabled=true;
   try{ await batch.commit(); $('bkModal').hidden=true; flash('bMsg', editing?'Booking updated.':'Booking saved.'); }
-  catch(err){ fail('bkMsg', err.code==='permission-denied' ? {friendly:'That table is already booked at that time — choose another table or time.'} : err); }
+  catch(err){ fail('bkMsg', err.code==='permission-denied' ? {friendly:'That table is already booked for part of that time — choose another table or time.'} : err); }
   finally{ $('bkSave').disabled=false; }
 };
 $('bkDelete').onclick=async()=>{
   const b=editing; if(!b || !confirm(`Delete ${b.name}'s booking permanently?`)) return;
   const batch=writeBatch(db); batch.delete(doc(db,'bookings',b.id));
-  if(b.tableId && b.status!=='cancelled') batch.delete(doc(db,'tableLocks',lockId(b)));
+  if(b.status!=='cancelled') keysOf(b).forEach(k=>batch.delete(doc(db,'tableLocks',k)));
   try{ await batch.commit(); $('bkModal').hidden=true; flash('bMsg','Booking deleted.'); }catch(err){ fail('bkMsg',err); }
 };
 $('addBookingBtn').onclick=()=>openBooking(null);
@@ -663,18 +707,19 @@ $('planNext').onclick=()=>{ $('planDate').value=shiftDay($('planDate').value||to
 $('planToday').onclick=()=>{ $('planDate').value=today(); renderPlan(); };
 function renderPlan(){
   const date=$('planDate').value||today();
-  const day=bookings.filter(b=>b.date===date && b.status!=='cancelled');
   if(!settings.tables.length){ $('planWrap').innerHTML='<p class="hint">Add tables under "Tables & charges".</p>'; return; }
-  const slots=[...new Set([...settings.slots, ...day.map(b=>b.time)])].sort();
+  const w=dayWindow(date)||{o:720,c:1380}; const cols=[]; for(let m=Math.floor(w.o/30)*30; m<Math.min(w.c,1440); m+=30) cols.push(fromMin(m));
+  const occ=occupancy(date);
   const areas=[...new Set(settings.tables.map(t=>t.area||''))];
-  const row=t=>`<tr><th class="tname">${esc(t.name)} <span class="hint">(${t.seats})</span></th>`+slots.map(s=>{
-      const b=day.find(x=>x.tableId===t.id && x.time===s);
-      return b ? `<td class="taken ${b.status}" data-bid="${esc(b.id)}" title="${esc(b.phone)} · ${esc(b.guests)} guests">${esc(b.name)}<br><span class="hint">${esc(b.guests)}p · ${esc(b.status)}</span></td>`
-               : `<td class="free" data-t="${esc(t.id)}" data-s="${esc(s)}">+ book</td>`;
-    }).join('')+'</tr>';
-  const orphan=day.filter(b=>!settings.tables.find(t=>t.id===b.tableId));
-  $('planWrap').innerHTML=`<table class="plan"><thead><tr><th class="tname">${esc(fmtD(date))}</th>${slots.map(s=>`<th>${esc(s)}</th>`).join('')}</tr></thead><tbody>`+
-    areas.map(a=>(areas.length>1?`<tr class="area"><th colspan="${slots.length+1}">${esc(a||'Other')}</th></tr>`:'')+settings.tables.filter(t=>(t.area||'')===a).map(row).join('')).join('')+
+  const row=t=>{ let h=`<tr><th class="tname">${esc(t.name)} <span class="hint">(${t.seats})</span></th>`;
+    for(let i=0;i<cols.length;i++){ const b=occ.get(cols[i]+'_'+t.id);
+      if(b){ let span=1; while(i+span<cols.length && occ.get(cols[i+span]+'_'+t.id)===b) span++;
+        h+=`<td class="taken ${b.status}" colspan="${span}" data-bid="${esc(b.id)}" title="${esc(b.phone)} · ${esc(b.guests)} guests">${esc(b.name)}<br><span class="hint">${esc(b.time)} · ${esc(b.guests)}p</span></td>`; i+=span-1; }
+      else h+=`<td class="free" data-t="${esc(t.id)}" data-s="${cols[i]}">+</td>`; }
+    return h+'</tr>'; };
+  const orphan=bookings.filter(b=>b.date===date && b.status!=='cancelled' && !settings.tables.find(t=>t.id===b.tableId));
+  $('planWrap').innerHTML = (dayWindow(date)?'':'<p class="hint">Closed this day.</p>')+`<table class="plan"><thead><tr><th class="tname">${esc(fmtD(date))}</th>${cols.map(c=>`<th>${c.endsWith(':00')?c:'<span class="hint">'+c.slice(3)+'</span>'}</th>`).join('')}</tr></thead><tbody>`+
+    areas.map(a=>(areas.length>1?`<tr class="area"><th colspan="${cols.length+1}">${esc(a||'Other')}</th></tr>`:'')+settings.tables.filter(t=>(t.area||'')===a).map(row).join('')).join('')+
     '</tbody></table>'+(orphan.length?`<p class="hint" style="margin-top:10px">Bookings on removed tables: ${orphan.map(b=>`<a href="#" data-bid="${esc(b.id)}">${esc(b.name)} ${esc(b.time)}</a>`).join(', ')}</p>`:'');
 }
 $('planWrap').onclick=e=>{
@@ -842,15 +887,16 @@ function renderSettings(){
   $('extrasList').innerHTML = settings.extras.length ? '<div class="rowed extras hint"><span>Extra</span><span>Price £</span><span>Short description</span><span></span></div>'+settings.extras.map((x,i)=>`<div class="rowed extras" data-i="${i}">
     <input class="x-name" value="${esc(x.name)}" placeholder="e.g. Birthday decoration"><input class="x-price" type="number" min="0" step="0.5" value="${x.price}">
     <input class="x-desc" value="${esc(x.desc||'')}" placeholder="e.g. Balloons & table setup"><button class="x" data-rx="${i}">×</button></div>`).join('') : '<p class="hint">No extras yet — add things like a birthday package, reserved booth or set menu.</p>';
-  $('set-slots').value=settings.slots.join(', '); $('set-max').value=settings.maxGuests;
+  $('set-dur').innerHTML=[60,90,105,120,150,180].map(d=>`<option value="${d}" ${Number(settings.duration||120)===d?'selected':''}>${d<120?d+' minutes':(d/60)+' hours'}</option>`).join('');
+  $('set-last').innerHTML=[0,30,45,60,90,120].map(d=>`<option value="${d}" ${Number(settings.lastBefore??60)===d?'selected':''}>${d?d+' minutes':'Up to closing'}</option>`).join('');
+  $('set-max').value=settings.maxGuests;
 }
 function readSettings(){
   const tables=[...document.querySelectorAll('#tablesList .rowed[data-i]')].map((r,i)=>{
     const old=settings.tables[Number(r.dataset.i)]; return {id: old?.id || ('T'+Date.now().toString(36)+i), name:r.querySelector('.t-name').value.trim()||('Table '+(i+1)), area:r.querySelector('.t-area').value.trim().slice(0,40), seats:Math.max(1,Number(r.querySelector('.t-seats').value)||2)}; });
   const extras=[...document.querySelectorAll('#extrasList .rowed[data-i]')].map((r,i)=>{
     const old=settings.extras[Number(r.dataset.i)]; return {id: old?.id || ('x'+Date.now().toString(36)+i), name:r.querySelector('.x-name').value.trim(), price:Math.max(0,Number(r.querySelector('.x-price').value)||0), desc:r.querySelector('.x-desc').value.trim()}; }).filter(x=>x.name);
-  const slots=$('set-slots').value.split(',').map(s=>s.trim()).filter(s=>/^\d{1,2}:\d{2}$/.test(s)).map(s=>s.padStart(5,'0')).sort();
-  return {tables, extras, slots, maxGuests:Math.max(1,Number($('set-max').value)||12)};
+  return {tables, extras, maxGuests:Math.max(1,Number($('set-max').value)||12), duration:Number($('set-dur').value)||120, lastBefore:Number($('set-last').value)};
 }
 $('addTable').onclick=()=>{ settings={...settings,...readSettings()}; settings.tables.push({id:'T'+Date.now().toString(36),name:'Table '+(settings.tables.length+1),area:'',seats:4}); renderSettings(); };
 $('addExtra').onclick=()=>{ settings={...settings,...readSettings()}; settings.extras.push({id:'x'+Date.now().toString(36),name:'',price:0,desc:''}); renderSettings(); };
@@ -859,7 +905,7 @@ $('p-settings').addEventListener('click',e=>{
   if(e.target.dataset.rx!==undefined){ settings={...settings,...readSettings()}; settings.extras.splice(Number(e.target.dataset.rx),1); renderSettings(); }
 });
 $('saveSettings').onclick=async()=>{
-  const s=readSettings(); if(!s.slots.length) return flash('setMsg','Add at least one time slot, like 18:00.',true);
+  const s=readSettings(); if(!s.tables.length) return flash('setMsg','Add at least one table.',true);
   try{ await setDoc(doc(db,'site','booking'),s); settings=s; renderSettings(); renderPlan(); flash('setMsg','Saved — online booking now uses these settings.'); }
   catch(err){ fail('setMsg',err); }
 };
@@ -872,7 +918,7 @@ $('saveContent').onclick=async()=>{ const d={}; for(const[k,id] of Object.entrie
 
 /* ---------- hours ---------- */
 const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-const DH=Object.fromEntries(DAYS.map(d=>[d,{open:'12:00',close:d==='Sunday'?'22:00':'23:00',closed:false}]));
+
 async function loadHours(){
   let h=DH; try{ const s=await getDoc(doc(db,'site','hours')); if(s.exists()) h={...DH,...s.data()}; }catch(e){}
   $('hoursCard').innerHTML=DAYS.map(d=>`<div class="hours-row" data-day="${d}"><b>${d}</b>
@@ -881,7 +927,7 @@ async function loadHours(){
   $('hoursCard').querySelectorAll('.cl').forEach(cb=>cb.onchange=()=>{ const r=cb.closest('.hours-row'); r.querySelector('.o').disabled=r.querySelector('.c').disabled=cb.checked; });
 }
 $('saveHours').onclick=async()=>{ const h={}; document.querySelectorAll('.hours-row').forEach(r=>h[r.dataset.day]={open:r.querySelector('.o').value,close:r.querySelector('.c').value,closed:r.querySelector('.cl').checked});
-  try{ await setDoc(doc(db,'site','hours'),h); flash('hrMsg','Saved — live on the website.'); }catch(err){ fail('hrMsg',err); } };
+  try{ await setDoc(doc(db,'site','hours'),h); hoursCfg=h; renderPlan(); flash('hrMsg','Saved — live on the website.'); }catch(err){ fail('hrMsg',err); } };
 
 /* ---------- my password ---------- */
 $('pwSave').onclick=async()=>{
@@ -898,32 +944,63 @@ $('pwSave').onclick=async()=>{
   finally{ $('pwSave').disabled=false; }
 };
 
-/* ---------- staff ---------- */
+/* ---------- offers ---------- */
+function renderOffers(){
+  const l=offers.slice().sort((a,b)=>(a.order||0)-(b.order||0)), t=today();
+  $('offerList').innerHTML = l.length ? l.map((o,i)=>{ const live=o.active!==false && (!o.from||o.from<=t) && (!o.to||o.to>=t);
+    return `<div class="offer-card ${live?'':'off'}" data-oid="${esc(o.id)}">
+      <div class="grid4"><div class="field"><label>Badge</label><input data-f="badge" value="${esc(o.badge||'')}" placeholder="20% OFF" maxlength="20"></div>
+        <div class="field"><label>Title</label><input data-f="title" value="${esc(o.title||'')}" placeholder="Curry Tuesday" maxlength="80"></div>
+        <div class="field"><label>When (shown to customers)</label><input data-f="when" value="${esc(o.when||'')}" placeholder="Every Tuesday 5–9pm" maxlength="80"></div></div>
+      <div class="field"><label>Details</label><textarea data-f="text" maxlength="300" style="min-height:56px">${esc(o.text||'')}</textarea></div>
+      <div class="row2"><div class="field"><label>Show from (optional)</label><input type="date" data-f="from" value="${esc(o.from||'')}"></div>
+        <div class="field"><label>Until (optional)</label><input type="date" data-f="to" value="${esc(o.to||'')}"></div>
+        <label class="switch"><input type="checkbox" data-f="active" ${o.active!==false?'checked':''}> On</label>
+        <div class="toolbar"><button class="btn small ghost" data-omove="-1" ${i===0?'disabled':''}>◀</button><button class="btn small ghost" data-omove="1" ${i===l.length-1?'disabled':''}>▶</button><button class="btn small danger" data-odel="1">Delete</button></div></div>
+      <p class="hint" style="margin:6px 0 0">${live?'🟢 Showing on the website now':'⚪ Not showing'}</p></div>`; }).join('')
+    : '<div class="card"><p class="hint" style="margin:0">No offers yet. Tap "+ New offer" — e.g. "2 for 1 cocktails", "10% off curries on Tuesdays".</p></div>';
+}
+$('addOffer').onclick=async()=>{ try{ await addDoc(collection(db,'offers'),{badge:'NEW',title:'New offer',text:'',when:'',from:'',to:'',active:false,order:offers.length,createdAt:serverTimestamp()}); flash('ofMsg','Offer added — fill it in and switch it On.'); }catch(err){ fail('ofMsg',err); } };
+$('offerList').addEventListener('change',async e=>{ const card=e.target.closest('[data-oid]'), f=e.target.dataset.f; if(!card||!f) return;
+  const v = f==='active' ? e.target.checked : e.target.value.trim();
+  try{ await updateDoc(doc(db,'offers',card.dataset.oid),{[f]:v}); flash('ofMsg','Saved — live on the website.'); }catch(err){ fail('ofMsg',err); } });
+$('offerList').addEventListener('click',async e=>{ const bt=e.target.closest('button'), card=e.target.closest('[data-oid]'); if(!bt||!card) return; const id=card.dataset.oid;
+  if(bt.dataset.odel){ if(!confirm('Delete this offer?')) return; try{ await deleteDoc(doc(db,'offers',id)); }catch(err){ fail('ofMsg',err); } return; }
+  if(bt.dataset.omove){ const l=offers.slice().sort((a,b)=>(a.order||0)-(b.order||0)); const i=l.findIndex(x=>x.id===id), j=i+Number(bt.dataset.omove); if(j<0||j>=l.length) return;
+    [l[i],l[j]]=[l[j],l[i]]; const b=writeBatch(db); l.forEach((x,n)=>{ if(x.order!==n) b.update(doc(db,'offers',x.id),{order:n}); }); try{ await b.commit(); }catch(err){ fail('ofMsg',err); } } });
+
+/* ---------- staff & permissions ---------- */
+const permBoxes=(cur,attr)=>PERMS.map(([k,n])=>`<label><input type="checkbox" ${attr}="${k}" ${cur[k]?'checked':''}> ${esc(n)}</label>`).join('');
+$('st-perms').innerHTML=permBoxes(LEGACY,'data-np'); $('st-perms').classList.add('perm-chips');
 function renderStaff(){
-  $('stBody').innerHTML=`<tr><td>${esc(OWNER)}</td><td>Owner</td><td>Full</td></tr>`+staff.map(s=>`<tr><td>${esc(s.id)}</td><td>${esc(s.name)}</td>
-    <td><button class="btn small danger" data-sdel="${esc(s.id)}">Remove access</button></td></tr>`).join('');
+  $('stBody').innerHTML=`<tr><td><b>${esc(OWNER)}</b><br><span class="hint">Main admin</span></td><td>Everything</td><td></td></tr>`+staff.map(s=>{ const p=s.perms||LEGACY;
+    return `<tr data-sid="${esc(s.id)}"><td><b>${esc(s.name||'')}</b><br><span class="hint">${esc(s.id)}</span></td><td class="chips perm-chips">${permBoxes(p,'data-sp')}</td>
+      <td><button class="btn small danger" data-sdel="${esc(s.id)}">Remove</button></td></tr>`; }).join('');
 }
 let staffApp=null;
 function staffAuth(){ if(!staffApp) staffApp=initializeApp(firebaseConfig,'staff-creator'); return getAuth(staffApp); }
 $('addStaff').onclick=async()=>{
   const em=$('st-email').value.trim().toLowerCase(), pw=$('st-pass').value, name=$('st-name').value.trim();
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return flash('stMsg','Enter a valid email.',true);
+  if(em===OWNER) return flash('stMsg','That is the main admin login.',true);
   if(pw.length<8) return flash('stMsg','Password must be at least 8 characters.',true);
-  $('addStaff').disabled=true;
-  let existed=false;
+  const p=Object.fromEntries(PERMS.map(([k])=>[k, !!$('st-perms').querySelector(`[data-np="${k}"]`)?.checked]));
+  $('addStaff').disabled=true; let existed=false;
   try{
     const a=staffAuth();
-    try{ await createUserWithEmailAndPassword(a, em, pw); }
-    catch(e){ if(e.code==='auth/email-already-in-use') existed=true; else throw e; }
+    try{ await createUserWithEmailAndPassword(a, em, pw); } catch(e){ if(e.code==='auth/email-already-in-use') existed=true; else throw e; }
     await signOut(a);
-    await setDoc(doc(db,'staff',em),{name,addedAt:serverTimestamp()});
+    await setDoc(doc(db,'staff',em),{name,perms:p,addedAt:serverTimestamp()});
     ['st-email','st-pass','st-name'].forEach(i=>$(i).value='');
-    flash('stMsg', existed ? 'That email already had a login — it now has admin access with its existing password.' : `Login created for ${em}. Share the password with them privately.`);
+    flash('stMsg', existed ? 'That email already had a login — it now has access with its existing password.' : `Login created for ${em}. Share the password with them privately.`);
   }catch(err){
     const m={'auth/invalid-email':'That email address is not valid.','auth/weak-password':'Please choose a stronger password.','auth/network-request-failed':'No internet connection — try again.'}[err.code];
     m ? flash('stMsg',m,true) : fail('stMsg',err);
   }finally{ $('addStaff').disabled=false; }
 };
+$('stBody').addEventListener('change',async e=>{ const k=e.target.dataset.sp, tr=e.target.closest('tr[data-sid]'); if(!k||!tr) return;
+  const s=staff.find(x=>x.id===tr.dataset.sid); const p={...(s.perms||LEGACY),[k]:e.target.checked};
+  try{ await setDoc(doc(db,'staff',s.id),{perms:p},{merge:true}); flash('stMsg',`Updated ${s.name||s.id} — takes effect next time they open admin.`); }catch(err){ fail('stMsg',err); } });
 $('stBody').onclick=async e=>{
   const id=e.target.dataset.sdel; if(!id||!confirm('Remove access for '+id+'? They will no longer be able to open the admin.')) return;
   try{ await deleteDoc(doc(db,'staff',id)); flash('stMsg','Access removed.'); }catch(err){ fail('stMsg',err); }

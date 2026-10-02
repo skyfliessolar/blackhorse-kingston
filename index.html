@@ -306,6 +306,36 @@
   .mm-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:26px 18px calc(20px + env(safe-area-inset-bottom,0px));scroll-behavior:smooth;}
   .mm-body .menu-cat{scroll-margin-top:12px;}
   body.menu-open{overflow:hidden;}
+  .sel{width:100%;border:1px solid var(--line-dark);border-radius:2px;padding:12px 14px;font-family:'Work Sans',sans-serif;font-size:15px;background:var(--black);color:var(--cream);appearance:auto;}
+  .avail{min-height:22px;margin:-4px 0 18px;font-size:14.5px;}
+  .avail .ok{color:#8FD19E;} .avail .no{color:#F0A496;}
+  .avail .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+  .avail .chips button{background:transparent;border:1px solid var(--gold);color:var(--gold-light);font-family:'Oswald',sans-serif;letter-spacing:.06em;padding:8px 14px;border-radius:999px;cursor:pointer;}
+  .avail .chips button:hover{background:var(--gold);color:var(--black);}
+  .form-aside{font-size:13.5px;color:rgba(241,232,214,.6);margin:14px 0 0;text-align:center;}
+  .form-aside a{color:var(--gold-light);text-decoration:underline;text-underline-offset:3px;}
+  .hire-modal{position:fixed;inset:0;z-index:160;background:rgba(6,5,4,.86);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:max(24px,env(safe-area-inset-top)) 14px 24px;}
+  .hire-modal[hidden]{display:none;}
+  .hire-card{background:var(--black-2);border:1px solid var(--line-dark);border-top:3px solid var(--gold);width:100%;max-width:620px;padding:26px 24px;border-radius:2px;}
+  .hm-head{display:flex;justify-content:space-between;align-items:center;}
+  .hm-head h3{color:var(--gold-light);font-size:24px;}
+  .hm-sub{color:rgba(241,232,214,.6);font-size:14px;margin:6px 0 20px;}
+  .note-ok{margin-top:14px;padding:12px 14px;border-left:3px solid var(--gold);background:rgba(201,169,97,.1);}
+  .note-err{margin-top:14px;padding:12px 14px;border-left:3px solid #C0584A;background:rgba(160,60,50,.15);}
+  .offer-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px;max-width:1000px;margin:0 auto;}
+  .offer{position:relative;text-align:left;background:linear-gradient(160deg,rgba(201,169,97,.13),rgba(21,19,16,.9) 55%);border:1px solid var(--gold-dark);border-radius:2px;padding:26px 22px 22px;overflow:hidden;}
+  .offer .badge{display:inline-block;font-family:'Cinzel',serif;font-size:26px;color:var(--black);background:var(--gold);padding:4px 14px;border-radius:2px;margin-bottom:12px;}
+  .offer h3{font-size:20px;color:var(--gold-light);margin-bottom:8px;}
+  .offer p{margin:0;color:rgba(241,232,214,.75);font-size:14.5px;}
+  .offer .when{margin-top:12px;font-family:'Oswald',sans-serif;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);}
+  .offer::after{content:'';position:absolute;top:-40%;right:-30%;width:60%;height:180%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.07),transparent);transform:rotate(18deg);animation:shine 5s ease-in-out infinite;}
+  @keyframes shine{0%,70%{right:120%}100%{right:-60%}}
+  .mat .art{width:84px;height:84px;margin-bottom:10px;display:block;overflow:visible;}
+  .mat{transition:transform .25s, box-shadow .25s;}
+  .mat:hover{transform:translateY(-4px);box-shadow:0 0 0 1px var(--gold-dark) inset, 0 14px 30px rgba(0,0,0,.35);}
+  .reveal{opacity:0;transform:translateY(22px);}
+  .no-motion .reveal, .reveal.in{opacity:1;transform:none;}
+  .hero-spark{position:absolute;width:4px;height:4px;border-radius:50%;background:var(--gold-light);box-shadow:0 0 8px 2px rgba(228,206,147,.6);pointer-events:none;opacity:0;}
   .menu-note{text-align:center;font-size:13.5px;color:rgba(241,232,214,0.55);margin-top:22px;}
   .gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-top:36px;}
   .gallery-grid img{width:100%;aspect-ratio:4/3;object-fit:cover;}
@@ -427,6 +457,15 @@
   <div class="media-slot" data-place="kitchen-after" hidden><div class="wrap"><div class="media-grid"></div></div></div>
 
 
+  <!-- OFFERS (managed in admin) -->
+  <section id="offers" hidden>
+    <div class="wrap" style="text-align:center;">
+      <span class="eyebrow">This week at The Black Horse</span>
+      <h2 style="font-size:clamp(28px,4vw,42px);margin:14px 0 26px;color:var(--gold-light);">Offers &amp; Deals</h2>
+      <div class="offer-grid" id="offerGrid"></div>
+    </div>
+  </section>
+
   <!-- MENU -->
   <section id="menu">
     <div class="wrap" style="text-align:center;">
@@ -501,7 +540,7 @@
         <h2 style="font-size:clamp(28px,3.6vw,38px);margin:14px 0 18px;">Private Hire &amp; Functions</h2>
         <p style="color:rgba(241,232,214,0.78);" data-content="hire">Planning a birthday, celebration, party or private event? The Black Horse offers spaces suitable for gatherings of different sizes, with a total venue capacity of approximately 250 guests.</p>
         <p style="color:rgba(241,232,214,0.78);">Our function spaces provide a relaxed setting for celebrations, get-togethers and special occasions — with Drunken Wok on hand for catering. Speak to our team about your requirements and we'll help you plan your event.</p>
-        <a class="btn btn-gold" href="#book" data-enquiry="hire" style="margin-top:8px;">Enquire About Private Hire</a>
+        <a class="btn btn-gold" href="#hire" data-enquiry="hire" style="margin-top:8px;">Enquire About Private Hire</a>
       </div>
     </div>
   </section>
@@ -514,32 +553,32 @@
       <h2 style="font-size:clamp(28px,3.6vw,38px);margin:14px 0 0;color:var(--gold-light);">Why The Black Horse?</h2>
       <div class="why-grid" style="text-align:left;">
         <div class="mat">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2v8M4 2v5a2 2 0 0 0 4 0V2M17 2c-2 2-2 5-2 8 0 1 .5 2 2 2v10"/></svg>
+          <svg class="art art-wok" viewBox="0 0 120 120" aria-hidden="true"><g class="steam" fill="none" stroke="#E4CE93" stroke-width="3" stroke-linecap="round" opacity=".8"><path d="M44 46c-6-8 6-12 0-20"/><path d="M60 44c-6-8 6-12 0-20"/><path d="M76 46c-6-8 6-12 0-20"/></g><path d="M24 62h72c0 18-16 30-36 30S24 80 24 62z" fill="#1d1a14" stroke="#C9A961" stroke-width="3"/><path d="M96 64l18-6" stroke="#C9A961" stroke-width="5" stroke-linecap="round"/><path class="noodle" d="M34 62c6-6 10 4 16-2s10 4 16-2 10 4 18-1" fill="none" stroke="#F3D58A" stroke-width="3" stroke-linecap="round"/><g class="flames"><path d="M42 104c-6-6 2-12 0-16 6 4 8 10 0 16z" fill="#E8632B"/><path d="M60 106c-8-8 3-15 0-20 8 5 10 13 0 20z" fill="#F2A33A"/><path d="M78 104c-6-6 2-12 0-16 6 4 8 10 0 16z" fill="#E8632B"/></g></svg>
           <h3>Drunken Wok</h3>
           <p>Our resident Thai kitchen — authentic cuisine, crafted with tradition.</p>
         </div>
         <div class="mat">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12l-1.5 14a2 2 0 0 1-2 1.8h-5a2 2 0 0 1-2-1.8L6 3Z"/><path d="M6.5 8h11"/></svg>
+          <svg class="art art-pint" viewBox="0 0 120 120" aria-hidden="true"><path d="M38 30h44l-6 74H44z" fill="#2a2216" stroke="#C9A961" stroke-width="3"/><path d="M41 44h38l-5 58H46z" fill="#D9932E"/><path d="M38 30c4-8 12-8 16-4 4-6 14-6 18 0 6-4 12 0 10 6v10H40z" fill="#F6EBD3"/><g class="bubbles" fill="#F6EBD3"><circle cx="52" cy="96" r="2.2"/><circle cx="62" cy="90" r="1.8"/><circle cx="70" cy="98" r="2"/><circle cx="58" cy="100" r="1.5"/></g></svg>
           <h3>Great drinks</h3>
-          <p>A selection of beers, cask ale and drinks for every occasion.</p>
+          <p>Beers, cask ale and drinks for every occasion.</p>
         </div>
         <div class="mat">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="1"/><path d="M9 20h6M12 16v4"/></svg>
+          <svg class="art art-tv" viewBox="0 0 120 120" aria-hidden="true"><rect x="14" y="24" width="92" height="60" rx="6" fill="#1d1a14" stroke="#C9A961" stroke-width="3"/><rect x="22" y="32" width="76" height="44" rx="2" fill="#24543B"/><path d="M60 32v44M22 54h76" stroke="#3F7A58" stroke-width="1.5"/><circle cx="60" cy="54" r="8" fill="none" stroke="#3F7A58" stroke-width="1.5"/><g class="ball"><circle cx="40" cy="62" r="6" fill="#F6EBD3"/><path d="M37 59l3 2 3-2-1 4h-4z" fill="#1d1a14"/></g><rect class="live" x="26" y="36" width="20" height="8" rx="2" fill="#C0392B"/><text x="36" y="42.5" font-size="6" font-family="Oswald,sans-serif" fill="#fff" text-anchor="middle">LIVE</text><path d="M46 96h28M60 84v12" stroke="#C9A961" stroke-width="3" stroke-linecap="round"/></svg>
           <h3>Live sport</h3>
           <p>Sky Sports and TNT Sports showing the biggest games.</p>
         </div>
         <div class="mat">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>
+          <svg class="art art-fire" viewBox="0 0 120 120" aria-hidden="true"><g class="glow"><circle cx="60" cy="74" r="34" fill="#F2A33A" opacity=".12"/></g><g class="fl"><path d="M60 30c14 16 20 28 12 44H48c-8-16 0-28 12-44z" fill="#E8632B"/><path d="M60 46c8 10 12 18 6 28H54c-6-10-2-18 6-28z" fill="#F2A33A"/><path d="M60 58c4 6 5 10 2 16h-4c-3-6-2-10 2-16z" fill="#FBE28F"/></g><g class="sparks" fill="#E4CE93"><circle cx="50" cy="34" r="1.6"/><circle cx="70" cy="30" r="1.4"/><circle cx="62" cy="22" r="1.2"/></g><path d="M26 78h68l-8 16H34z" fill="#3a3226" stroke="#C9A961" stroke-width="3"/><path d="M34 94l-6 10M86 94l6 10" stroke="#C9A961" stroke-width="3" stroke-linecap="round"/></svg>
           <h3>Outdoor terrace</h3>
           <p>A spacious terrace with booths and a fire pit.</p>
         </div>
         <div class="mat">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="7" r="3"/><circle cx="16" cy="7" r="3"/><path d="M8 10c-3 0-5 2-5 5v2h10v-2c0-3-2-5-5-5ZM16 10c3 0 5 2 5 5v2H14"/></svg>
+          <svg class="art art-party" viewBox="0 0 120 120" aria-hidden="true"><path d="M30 100L50 40l30 30z" fill="#C9A961"/><path d="M38 76l8 4M43 61l12 7M34 88l5 2" stroke="#1d1a14" stroke-width="3" stroke-linecap="round"/><g class="confetti"><rect x="70" y="30" width="6" height="10" rx="1" fill="#E8632B"/><rect x="86" y="44" width="6" height="10" rx="1" fill="#E4CE93"/><circle cx="80" cy="22" r="3.5" fill="#6FB1E0"/><rect x="94" y="26" width="5" height="9" rx="1" fill="#8FD19E"/><circle cx="98" cy="58" r="3" fill="#E8632B"/><path d="M60 22c4 4 0 8 4 12" stroke="#E4CE93" stroke-width="2.5" fill="none" stroke-linecap="round"/></g></svg>
           <h3>Private events</h3>
-          <p>Flexible spaces for parties and celebrations.</p>
+          <p>Flexible spaces for parties and celebrations — just ask.</p>
         </div>
         <div class="mat">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v9h14v-9"/></svg>
+          <svg class="art art-lantern" viewBox="0 0 120 120" aria-hidden="true"><path d="M60 10v12" stroke="#C9A961" stroke-width="3"/><path d="M48 22h24l4 8H44z" fill="#C9A961"/><g class="halo"><circle cx="60" cy="62" r="30" fill="#F2A33A" opacity=".15"/></g><rect x="44" y="30" width="32" height="56" rx="4" fill="#2a2216" stroke="#C9A961" stroke-width="3"/><path class="flame" d="M60 46c7 9 8 16 0 22-8-6-7-13 0-22z" fill="#F2A33A"/><path class="flame2" d="M60 54c3 5 3 8 0 11-3-3-3-6 0-11z" fill="#FBE28F"/><path d="M44 86h32l-4 8H48z" fill="#C9A961"/></svg>
           <h3>Relaxed atmosphere</h3>
           <p>A welcoming pub for friends, families and locals.</p>
         </div>
@@ -560,40 +599,28 @@
         <p style="margin-top:22px;">Prefer to call? Ring us on <a href="tel:02035182275" style="color:var(--gold-light);font-weight:500;">020 3518 2275</a>.</p>
       </div>
       <form class="book-form" id="bookingForm" novalidate>
-        <div class="type-switch" role="radiogroup" aria-label="What would you like to book?">
-          <label><input type="radio" name="kind" value="table" checked><span>Table booking</span></label>
-          <label><input type="radio" name="kind" value="hire"><span>Private hire / event</span></label>
+        <div class="form-row">
+          <div class="field"><label for="date">Date</label><input id="date" type="date" required></div>
+          <div class="field"><label for="guests">Guests</label><input id="guests" type="number" min="1" max="40" value="2" inputmode="numeric" required></div>
         </div>
         <div class="form-row">
-          <div class="field"><label for="date"><span class="table-only">Date</span><span class="hire-only">Preferred date</span></label><input id="date" type="date" required></div>
-          <div class="field"><label for="guests">Number of guests</label><input id="guests" type="number" min="1" max="500" value="2" required></div>
+          <div class="field"><label for="time">Time</label><select id="time" class="sel" required><option value="">Choose a date first</option></select></div>
+          <div class="field" id="areaField" hidden><label for="area">Seating</label><select id="area" class="sel"><option value="">No preference</option></select></div>
         </div>
-        <div id="areaSlot"></div>
-        <div class="field table-only">
-          <label>Choose a time</label>
-          <div class="slot-grid" id="slotGrid"></div>
-          <div class="slot-hint" id="slotHint">Pick a date to see available times.</div>
-        </div>
-        <div class="field table-only" id="areaField" hidden>
-          <label for="area">Seating preference</label>
-          <select id="area" style="width:100%;border:1px solid var(--line-dark);border-radius:2px;padding:12px 14px;font-family:'Work Sans',sans-serif;font-size:15px;background:var(--black);color:var(--cream);"><option value="">No preference</option></select>
-        </div>
-        <div class="field table-only" id="extrasField" hidden>
+        <div class="avail" id="avail" aria-live="polite"></div>
+        <div class="field" id="extrasField" hidden>
           <label>Make it special (optional)</label>
           <div id="extrasOpts"></div>
           <div class="extras-total" id="extrasTotal"></div>
         </div>
-        <div class="field hire-only"><label for="eventType">Type of event</label><input id="eventType" type="text" maxlength="100" placeholder="Birthday, work party, wake…"></div>
         <div class="form-row">
-          <div class="field"><label for="name">Name</label><input id="name" type="text" maxlength="100" placeholder="Your name" required></div>
-          <div class="field"><label for="phone">Phone</label><input id="phone" type="tel" maxlength="30" placeholder="Your phone number" required></div>
+          <div class="field"><label for="name">Name</label><input id="name" type="text" maxlength="100" autocomplete="name" placeholder="Your name" required></div>
+          <div class="field"><label for="phone">Phone</label><input id="phone" type="tel" maxlength="30" autocomplete="tel" placeholder="Your phone number" required></div>
         </div>
-        <div class="field"><label for="email">Email</label><input id="email" type="email" maxlength="150" placeholder="Your email address" required></div>
-        <div class="field">
-          <label for="notes"><span class="table-only">Special requirements</span><span class="hire-only">Tell us about your event</span></label>
-          <textarea id="notes" maxlength="1000" placeholder="Allergies, high chair, occasion…"></textarea>
-        </div>
+        <div class="field"><label for="email">Email</label><input id="email" type="email" maxlength="150" autocomplete="email" placeholder="Your email address" required></div>
+        <div class="field"><label for="notes">Special requests (optional)</label><textarea id="notes" maxlength="1000" placeholder="Allergies, high chair, birthday…"></textarea></div>
         <button type="submit" class="btn btn-gold" id="bookBtn">Book now</button>
+        <p class="form-aside">Planning a party or event? <a href="#hire" data-enquiry="hire">Private hire is optional — enquire here</a>.</p>
         <div id="book-confirm" role="status"></div>
         <div id="book-error" role="alert"></div>
       </form>
@@ -609,8 +636,8 @@
         <div class="hours-row" data-day="2"><span class="day">Tuesday</span><span>12:00 PM &ndash; 11:00 PM</span></div>
         <div class="hours-row" data-day="3"><span class="day">Wednesday</span><span>12:00 PM &ndash; 11:00 PM</span></div>
         <div class="hours-row" data-day="4"><span class="day">Thursday</span><span>12:00 PM &ndash; 11:00 PM</span></div>
-        <div class="hours-row" data-day="5"><span class="day">Friday</span><span>12:00 PM &ndash; 11:00 PM</span></div>
-        <div class="hours-row" data-day="6"><span class="day">Saturday</span><span>12:00 PM &ndash; 11:00 PM</span></div>
+        <div class="hours-row" data-day="5"><span class="day">Friday</span><span>12:00 PM &ndash; Midnight</span></div>
+        <div class="hours-row" data-day="6"><span class="day">Saturday</span><span>12:00 PM &ndash; Midnight</span></div>
         <div class="hours-row" data-day="0"><span class="day">Sunday</span><span>12:00 PM &ndash; 10:00 PM</span></div>
       </div>
     </div>
@@ -697,6 +724,26 @@
     <p class="menu-note">Please tell our staff about any allergies before ordering. Full allergen information is available on request.</p>
     <div style="text-align:center;margin:10px 0 30px"><a class="btn btn-gold" href="#book" id="mmBook">Book a table</a></div>
   </div>
+</div>
+<div class="hire-modal" id="hireModal" hidden role="dialog" aria-modal="true" aria-labelledby="hireTitle">
+  <form class="hire-card" id="hireForm" novalidate>
+    <div class="hm-head"><h3 id="hireTitle">Private hire enquiry</h3><button type="button" class="mm-close" id="hireClose" aria-label="Close">&times;</button></div>
+    <p class="hm-sub">Up to 250 guests · Drunken Wok catering available · No obligation</p>
+    <div class="form-row">
+      <div class="field"><label for="h-name">Name</label><input id="h-name" maxlength="100" autocomplete="name" required></div>
+      <div class="field"><label for="h-phone">Phone</label><input id="h-phone" type="tel" maxlength="30" autocomplete="tel" required></div>
+    </div>
+    <div class="field"><label for="h-email">Email</label><input id="h-email" type="email" maxlength="150" autocomplete="email" required></div>
+    <div class="form-row">
+      <div class="field"><label for="h-date">Preferred date</label><input id="h-date" type="date"></div>
+      <div class="field"><label for="h-guests">Guests (approx.)</label><input id="h-guests" type="number" min="1" max="500" value="30" inputmode="numeric"></div>
+    </div>
+    <div class="field"><label for="h-type">Type of event</label><input id="h-type" maxlength="100" placeholder="Birthday, work party, wake…"></div>
+    <div class="field"><label for="h-msg">Anything else? (optional)</label><textarea id="h-msg" maxlength="1500"></textarea></div>
+    <button class="btn btn-gold" id="h-btn" type="submit" style="width:100%;justify-content:center;">Send enquiry</button>
+    <div id="h-ok" class="note-ok" hidden>Thanks — we've received your enquiry and will be in touch shortly.</div>
+    <div id="h-err" class="note-err" hidden></div>
+  </form>
 </div>
 <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer">
   <button class="lb-close" aria-label="Close">&times;</button>
@@ -871,7 +918,7 @@ function emailAlert(kind, subject, fields, replyTo){
 
 /* ================= HOURS + CONTENT ================= */
 let hours = null;
-function fmt12(t){ if(!t) return ''; let [h,m]=t.split(':').map(Number); const ap=h>=12?'PM':'AM'; h=h%12||12; return `${h}:${String(m).padStart(2,'0')} ${ap}`; }
+function fmt12(t){ if(!t) return ''; if(t==='00:00'||t==='24:00') return 'Midnight'; let [h,m]=t.split(':').map(Number); const ap=h>=12?'PM':'AM'; h=h%12||12; return `${h}:${String(m).padStart(2,'0')} ${ap}`; }
 async function loadHours(){
   try{
     const s = await getDoc(doc(db,'site','hours'));
@@ -892,129 +939,150 @@ async function loadContent(){
 
 /* ================= BOOKING ================= */
 const form = $('bookingForm');
-const DEFAULT_SETTINGS = {
-  tables: Array.from({length:10},(_,i)=>({id:'T'+(i+1),name:'Table '+(i+1),seats:4})),
-  slots: ['12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00'],
-  maxGuests: 12, extras: []
-};
-let settings = DEFAULT_SETTINGS, freeTable = {};
+const DEFAULT_SETTINGS = { tables: Array.from({length:10},(_,i)=>({id:'T'+(i+1),name:'Table '+(i+1),seats:4})), maxGuests:12, extras:[], duration:120, lastBefore:60 };
+const DEFAULT_HOURS = { Monday:{open:'12:00',close:'23:00'}, Tuesday:{open:'12:00',close:'23:00'}, Wednesday:{open:'12:00',close:'23:00'}, Thursday:{open:'12:00',close:'23:00'},
+  Friday:{open:'12:00',close:'00:00'}, Saturday:{open:'12:00',close:'00:00'}, Sunday:{open:'12:00',close:'22:00'} };
+let settings = DEFAULT_SETTINGS;
+const toMin = t => { const [h,m]=t.split(':').map(Number); return h*60+m; };
+const fromMin = m => String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+function dayWindow(date){
+  const h=(hours||DEFAULT_HOURS)[DAYS[new Date(date+'T00:00').getDay()]] || DEFAULT_HOURS.Monday;
+  if(h.closed || !h.open || !h.close) return null;
+  let o=toMin(h.open), c=toMin(h.close); if(c<=o) c+=1440; return {o,c};
+}
+function timesFor(date){
+  const w=dayWindow(date); if(!w) return null;
+  const last=w.c-(Number(settings.lastBefore)||60); let start=w.o;
+  if(date===todayISO()){ const n=new Date(); start=Math.max(start, Math.ceil((n.getHours()*60+n.getMinutes()+30)/15)*15); }
+  const out=[]; for(let m=start; m<=last && m<1440; m+=15) out.push(fromMin(m)); return out;
+}
+function blocksFor(date,time,dur){
+  const w=dayWindow(date)||{c:1440}; const t=toMin(time); const end=Math.min(t+dur, w.c, 1440);
+  const out=[]; for(let b=Math.floor(t/30)*30; b<Math.max(end, Math.floor(t/30)*30+30); b+=30) out.push(fromMin(b)); return out;
+}
+let taken=new Set(), takenFor='';
+async function loadTaken(date, force){
+  if(!force && takenFor===date) return;
+  try{ taken=new Set((await getDocs(query(collection(db,'tableLocks'), where('date','==',date)))).docs.map(d=>{ const x=d.data(); return x.time+'_'+x.tableId; })); takenFor=date; }
+  catch(e){ console.warn(e); taken=new Set(); takenFor=''; }
+}
+function fitsFor(guests){ const want=$('area').value; return settings.tables.filter(t=>t.seats>=guests && (!want||(t.area||'')===want)).sort((a,b)=>a.seats-b.seats); }
+function freeTableAt(date,time,guests){ const bl=blocksFor(date,time,Number(settings.duration)||120); return fitsFor(guests).find(t=>bl.every(b=>!taken.has(b+'_'+t.id))) || null; }
 async function loadSettings(){
   try{ const s=await getDoc(doc(db,'site','booking')); if(s.exists()) settings={...DEFAULT_SETTINGS,...s.data()}; }catch(e){ console.warn(e); }
   $('extrasField').hidden = !settings.extras.length;
   const areas=[...new Set(settings.tables.map(t=>(t.area||'').trim()).filter(Boolean))];
-  $('areaSlot').appendChild($('areaField'));
   $('areaField').hidden = areas.length<2;
   $('area').innerHTML = '<option value="">No preference</option>'+areas.map(a=>`<option>${esc(a)}</option>`).join('');
   $('extrasOpts').innerHTML = settings.extras.map(x=>`<label class="extra-opt"><input type="checkbox" value="${esc(x.id)}">
     <span><b>${esc(x.name)}</b>${x.desc?`<small>${esc(x.desc)}</small>`:''}</span><span class="price">+ ${money(x.price)}</span></label>`).join('');
-  updateExtras(); refreshSlots();
+  $('guests').max = settings.maxGuests;
+  updateExtras(); refreshTimes();
 }
 function chosenExtras(){ return [...$('extrasOpts').querySelectorAll('input:checked')].map(i=>settings.extras.find(x=>x.id===i.value)).filter(Boolean); }
-function updateExtras(){ const t=chosenExtras().reduce((s,x)=>s+Number(x.price||0),0);
-  $('extrasTotal').textContent = t ? `Extras: ${money(t)} — payable at the venue` : ''; }
+function updateExtras(){ const t=chosenExtras().reduce((s,x)=>s+Number(x.price||0),0); $('extrasTotal').textContent = t ? `Extras: ${money(t)} — payable at the venue` : ''; }
 $('extrasOpts').addEventListener('change', updateExtras);
-
-function slotsForDay(dateStr){
-  const d=new Date(dateStr+'T00:00'); const h=hours && hours[DAYS[d.getDay()]];
-  if(h && h.closed) return null;
-  let list = settings.slots.slice();
-  if(h && h.open && h.close){ const close = h.close <= h.open ? '24:00' : h.close;
-    list = list.filter(s => s >= h.open && addMin(s,60) <= close); }
-  if(dateStr===todayISO()){ const now=new Date(); const cur=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-    list = list.filter(s => s > addMin(cur,30)); }
-  return list;
+function validDate(iso){ if(!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false; const t=todayISO(); const max=new Date(); max.setFullYear(max.getFullYear()+1); return iso>=t && iso<=max.toISOString().slice(0,10); }
+const pretty = t => { const m=toMin(t); const h=Math.floor(m/60), mm=m%60; return (h%12||12)+(mm?':'+String(mm).padStart(2,'0'):'')+(h<12?'am':'pm'); };
+let req=0;
+async function refreshTimes(){
+  const date=$('date').value, sel=$('time'), keep=sel.value, av=$('avail');
+  if(!date){ sel.innerHTML='<option value="">Choose a date first</option>'; av.innerHTML=''; return; }
+  if(!validDate(date)){ sel.innerHTML='<option value="">—</option>'; av.innerHTML='<span class="no">Please choose a date from today onwards (up to a year ahead).</span>'; return; }
+  const list=timesFor(date);
+  if(list===null){ sel.innerHTML='<option value="">Closed</option>'; av.innerHTML="<span class=\"no\">Sorry, we're closed that day.</span>"; return; }
+  if(!list.length){ sel.innerHTML='<option value="">—</option>'; av.innerHTML='<span class="no">No more booking times today — please choose another date.</span>'; return; }
+  const def = list.includes(keep) ? keep : (list.find(t=>t>='19:00') || list[0]);
+  sel.innerHTML = list.map(t=>`<option value="${t}" ${t===def?'selected':''}>${pretty(t)}</option>`).join('');
+  const my=++req; av.innerHTML='Checking availability…'; await loadTaken(date); if(my!==req) return; checkAvail();
 }
-function addMin(t,m){ let [h,mm]=t.split(':').map(Number); mm+=m; h+=Math.floor(mm/60); mm%=60; return String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0'); }
-
-let slotReq=0, lastSlotKey='';
-async function refreshSlots(){
-  if(form.classList.contains('is-hire')) return;
-  const date=$('date').value, guests=Number($('guests').value)||0, grid=$('slotGrid'), hint=$('slotHint');
-  const keep=(grid.querySelector('input[name=slot]:checked')||{}).value;
-  const key=[date,guests,$('area').value].join('|');
-  if(key===lastSlotKey && grid.children.length) return;      // nothing changed — don't wipe the customer's choice
-  lastSlotKey=key; grid.innerHTML=''; freeTable={};
-  if(!date){ hint.textContent='Pick a date to see available times.'; return; }
-  if(!validDate(date)){ hint.textContent='Please choose a date from today onwards (up to a year ahead).'; return; }
-  if(guests > settings.maxGuests){ hint.innerHTML=`For groups over ${settings.maxGuests}, please choose <b>Private hire / event</b> above or call 020 3518 2275.`; return; }
-  const slots=slotsForDay(date);
-  if(slots===null){ hint.textContent="Sorry, we're closed that day."; return; }
-  if(!slots.length){ hint.textContent='No more booking times left that day — please try another date.'; return; }
-  hint.textContent='Checking availability…';
-  const my=++slotReq;
-  let taken=[];
-  try{ taken=(await getDocs(query(collection(db,'tableLocks'), where('date','==',date)))).docs.map(d=>d.data()); }
-  catch(e){ console.warn(e); }
-  if(my!==slotReq) return;
-  const want=$('area').value;
-  const fits = settings.tables.filter(t=>t.seats>=guests && (!want || (t.area||'')===want)).sort((a,b)=>a.seats-b.seats);
-  let any=false;
-  grid.innerHTML = slots.map(s=>{
-    const busy=new Set(taken.filter(l=>l.time===s).map(l=>l.tableId));
-    const t=fits.find(x=>!busy.has(x.id)); if(t){ freeTable[s]=t; any=true; }
-    return `<label class="${t?'':'full'}"><input type="radio" name="slot" value="${s}" ${t?'':'disabled'} ${t&&s===keep?'checked':''}><span>${s}</span></label>`;
-  }).join('');
-  hint.textContent = !fits.length ? (want ? `No ${want} table fits ${guests} — try "No preference".` : `We don't have a single table for ${guests} — please choose Private hire / event or call us.`)
-                   : any ? 'Greyed-out times are fully booked.' : 'Fully booked that day — please try another date.';
+function checkAvail(){
+  const date=$('date').value, time=$('time').value, guests=Number($('guests').value)||0, av=$('avail');
+  if(!date||!time) return;
+  if(guests > (settings.maxGuests||12)) return av.innerHTML=`<span class="no">For groups over ${settings.maxGuests}, please <a href="#hire" data-enquiry="hire" style="color:var(--gold-light)">send a private hire enquiry</a> or call 020 3518 2275.</span>`;
+  if(!fitsFor(guests).length) return av.innerHTML = $('area').value ? `<span class="no">No ${esc($('area').value)} table fits ${guests} — try "No preference".</span>` : `<span class="no">We don't have one table for ${guests} — please call 020 3518 2275.</span>`;
+  const t=freeTableAt(date,time,guests);
+  if(t){ av.innerHTML=`<span class="ok">✓ Available — ${pretty(time)} for ${guests}${t.area?' · '+esc(t.area):''}</span>`; return; }
+  const all=timesFor(date)||[], tm=toMin(time);
+  const alts=all.filter(x=>x!==time && freeTableAt(date,x,guests)).sort((a,b)=>Math.abs(toMin(a)-tm)-Math.abs(toMin(b)-tm)).slice(0,5).sort();
+  av.innerHTML = `<span class="no">✗ Fully booked at ${pretty(time)}.</span>` + (alts.length ? `<div class="chips">${alts.map(x=>`<button type="button" data-t="${x}">${pretty(x)}</button>`).join('')}</div>` : ' Please try another date.');
 }
-$('date').addEventListener('change',refreshSlots);
-$('area').addEventListener('change',refreshSlots);
-function validDate(iso){ if(!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false; const t=todayISO(); const max=new Date(); max.setFullYear(max.getFullYear()+1);
-  return iso>=t && iso<=max.toISOString().slice(0,10); }
-let gTimer; $('guests').addEventListener('input',()=>{ clearTimeout(gTimer); gTimer=setTimeout(refreshSlots,350); });
-$('guests').addEventListener('change',refreshSlots);
-
-function setKind(kind){
-  form.classList.toggle('is-hire', kind==='hire');
-  form.querySelector(`input[name=kind][value=${kind}]`).checked=true;
-  $('bookBtn').textContent = kind==='hire' ? 'Send enquiry' : 'Book now';
-  if(kind==='table') refreshSlots();
-}
-form.querySelectorAll('input[name=kind]').forEach(r=>r.addEventListener('change',()=>setKind(r.value)));
-document.querySelectorAll('[data-enquiry="hire"]').forEach(a=>a.addEventListener('click',()=>setKind('hire')));
-document.querySelectorAll('a[href="#book"]:not([data-enquiry])').forEach(a=>a.addEventListener('click',()=>setKind('table')));
+$('avail').addEventListener('click',e=>{ const b=e.target.closest('button[data-t]'); if(b){ $('time').value=b.dataset.t; checkAvail(); } });
+$('date').addEventListener('change',refreshTimes);
+$('time').addEventListener('change',checkAvail);
+$('area').addEventListener('change',checkAvail);
+let gTimer; $('guests').addEventListener('input',()=>{ clearTimeout(gTimer); gTimer=setTimeout(checkAvail,250); });
 $('date').min=todayISO();
+{ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); $('date').value=d.toISOString().slice(0,10); }
 
 function showOk(html){ $('book-confirm').innerHTML=html; $('book-confirm').style.display='block'; }
 function showErr(html){ $('book-error').innerHTML=html; $('book-error').style.display='block'; }
 form.addEventListener('submit', async e=>{
   e.preventDefault(); $('book-confirm').style.display='none'; $('book-error').style.display='none';
-  const isHire=form.classList.contains('is-hire');
-  const name=$('name').value.trim(), phone=$('phone').value.trim(), email=$('email').value.trim(), date=$('date').value, guests=Number($('guests').value);
-  if(!name||!phone||!email||!date||!guests) return showErr('Please fill in your name, phone, email, date and number of guests.');
+  const name=$('name').value.trim(), phone=$('phone').value.trim(), email=$('email').value.trim(), date=$('date').value, guests=Number($('guests').value), time=$('time').value;
+  if(!name||!phone||!email||!date||!guests||!time) return showErr('Please fill in the date, time, guests, your name, phone and email.');
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return showErr('Please check your email address.');
   if(!validDate(date)) return showErr('Please choose a date from today onwards.');
   if(!/^[0-9 +()-]{7,20}$/.test(phone)) return showErr('Please check your phone number.');
   $('bookBtn').disabled=true;
   try{
-    if(isHire){
-      await addDoc(collection(db,'hireEnquiries'),{name,email,phone,guests,date,type:$('eventType').value.trim(),message:$('notes').value.trim(),
-        status:'new',source:'website',seen:false,createdAt:serverTimestamp()});
-      showOk("Thanks — we've received your private hire enquiry and will be in touch shortly.");
-      emailAlert('hire', `New private hire enquiry — ${name} (${guests} guests)`, {Name:name, Phone:phone, Email:email, 'Event type':$('eventType').value.trim()||'-', Guests:guests, 'Preferred date':date, Message:$('notes').value.trim()||'-'}, email);
-    }else{
-      const slot=form.querySelector('input[name=slot]:checked');
-      if(!slot){ $('bookBtn').disabled=false; return showErr('Please choose a time.'); }
-      const time=slot.value, table=freeTable[time];
-      if(!table){ $('bookBtn').disabled=false; return showErr('That time is no longer available — please pick another.'); }
-      const ex=chosenExtras(), total=ex.reduce((s,x)=>s+Number(x.price||0),0);
-      const ref=doc(collection(db,'bookings')), b=writeBatch(db);
-      b.set(ref,{name,email,phone,guests,date,time,tableId:table.id,tableName:table.name,area:table.area||'',
-        extras:ex.map(x=>({id:x.id,name:x.name,price:Number(x.price)})),extrasTotal:total,
-        notes:$('notes').value.trim(),status:'pending',source:'website',seen:false,createdAt:serverTimestamp()});
-      b.set(doc(db,'tableLocks',`${date}_${time}_${table.id}`),{date,time,tableId:table.id,bookingId:ref.id});
-      await b.commit();
-      const nice=new Date(date+'T00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
-      emailAlert('bookings', `New table booking — ${name}, ${date} ${time} (${guests})`, {Name:name, Phone:phone, Email:email, Date:date, Time:time, Guests:guests, Table:table.name+(table.area?' · '+table.area:''), Extras:ex.map(x=>x.name+' £'+x.price).join(', ')||'-', 'Extras total':'£'+total, Notes:$('notes').value.trim()||'-'}, email);
-      showOk(`<b>Your table is reserved</b> — ${esc(nice)} at ${esc(time)} for ${guests}.${total?` Extras: ${money(total)}, payable at the venue.`:''}<br>We'll contact you to confirm. Need to change it? Call 020 3518 2275.`);
-    }
-    form.reset(); $('guests').value=2; lastSlotKey=''; setKind(isHire?'hire':'table'); updateExtras();
+    await loadTaken(date, true);
+    const table=freeTableAt(date,time,guests);
+    if(!table){ checkAvail(); return showErr('Sorry, that time has just been taken — please pick one of the suggested times.'); }
+    const dur=Number(settings.duration)||120, locks=blocksFor(date,time,dur).map(b=>`${date}_${b}_${table.id}`);
+    const ex=chosenExtras(), total=ex.reduce((s,x)=>s+Number(x.price||0),0);
+    const ref=doc(collection(db,'bookings')), b=writeBatch(db);
+    b.set(ref,{name,email,phone,guests,date,time,duration:dur,locks,tableId:table.id,tableName:table.name,area:table.area||'',
+      extras:ex.map(x=>({id:x.id,name:x.name,price:Number(x.price)})),extrasTotal:total,notes:$('notes').value.trim(),status:'pending',source:'website',seen:false,createdAt:serverTimestamp()});
+    locks.forEach(k=>{ const [, bt]=k.split('_'); b.set(doc(db,'tableLocks',k),{date,time:bt,tableId:table.id,bookingId:ref.id}); });
+    await b.commit();
+    const nice=new Date(date+'T00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+    emailAlert('bookings', `New table booking — ${name}, ${date} ${time} (${guests})`, {Name:name, Phone:phone, Email:email, Date:date, Time:time, Guests:guests, Table:table.name+(table.area?' · '+table.area:''), Extras:ex.map(x=>x.name+' £'+x.price).join(', ')||'-', 'Extras total':'£'+total, Notes:$('notes').value.trim()||'-'}, email);
+    showOk(`<b>Your table is reserved</b> — ${esc(nice)} at ${pretty(time)} for ${guests}.${total?` Extras: ${money(total)}, payable at the venue.`:''}<br>We'll contact you to confirm. Need to change it? Call 020 3518 2275.`);
+    ['name','phone','email','notes'].forEach(i=>$(i).value=''); $('extrasOpts').querySelectorAll('input').forEach(i=>i.checked=false); updateExtras();
+    taken.clear(); takenFor=''; refreshTimes();
   }catch(err){
     console.error(err);
-    if(!isHire && err.code==='permission-denied'){ showErr('Sorry, someone has just booked that time. Please choose another.'); lastSlotKey=''; refreshSlots(); }
+    if(err.code==='permission-denied'){ showErr('Sorry, someone has just booked that table. Please choose another time.'); takenFor=''; refreshTimes(); }
     else showErr('Sorry, we couldn\'t send your request just now. Please call us on <a href="tel:02035182275" style="color:var(--gold-light);">020 3518 2275</a>.');
   }finally{ $('bookBtn').disabled=false; }
 });
+
+/* ================= PRIVATE HIRE (optional enquiry) ================= */
+let hireReturn=null;
+function openHire(){ hireReturn=document.activeElement; $('h-ok').hidden=true; $('h-err').hidden=true; $('hireModal').hidden=false; document.body.classList.add('menu-open'); $('h-name').focus(); }
+function closeHire(){ $('hireModal').hidden=true; document.body.classList.remove('menu-open'); if(hireReturn) hireReturn.focus(); }
+document.addEventListener('click',e=>{ const a=e.target.closest('[data-enquiry="hire"]'); if(a){ e.preventDefault(); openHire(); } });
+$('hireClose').onclick=closeHire;
+$('hireModal').addEventListener('click',e=>{ if(e.target.id==='hireModal') closeHire(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape' && !$('hireModal').hidden) closeHire(); });
+$('h-date').min=todayISO();
+$('hireForm').addEventListener('submit', async e=>{
+  e.preventDefault(); $('h-ok').hidden=true; $('h-err').hidden=true;
+  const name=$('h-name').value.trim(), phone=$('h-phone').value.trim(), email=$('h-email').value.trim();
+  if(!name||!phone||!email){ $('h-err').textContent='Please add your name, phone and email.'; $('h-err').hidden=false; return; }
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ $('h-err').textContent='Please check your email address.'; $('h-err').hidden=false; return; }
+  const guests=Math.max(1,Math.min(500,Number($('h-guests').value)||1)), date=$('h-date').value||'', type=$('h-type').value.trim(), message=$('h-msg').value.trim();
+  $('h-btn').disabled=true;
+  try{
+    await addDoc(collection(db,'hireEnquiries'),{name,email,phone,guests,date,type,message,status:'new',source:'website',seen:false,createdAt:serverTimestamp()});
+    emailAlert('hire', `New private hire enquiry — ${name} (${guests} guests)`, {Name:name, Phone:phone, Email:email, 'Event type':type||'-', Guests:guests, 'Preferred date':date||'-', Message:message||'-'}, email);
+    $('hireForm').reset(); $('h-guests').value=30; $('h-ok').hidden=false;
+  }catch(err){ console.error(err); $('h-err').innerHTML='Sorry, that didn\'t send. Please call <a href="tel:02035182275" style="color:var(--gold-light)">020 3518 2275</a>.'; $('h-err').hidden=false; }
+  finally{ $('h-btn').disabled=false; }
+});
+
+/* ================= OFFERS ================= */
+async function loadOffers(){
+  try{
+    const t=todayISO();
+    const list=(await getDocs(collection(db,'offers'))).docs.map(d=>d.data())
+      .filter(o=>o.active!==false && (!o.from||o.from<=t) && (!o.to||o.to>=t)).sort((a,b)=>(a.order||0)-(b.order||0));
+    if(!list.length) return;
+    $('offerGrid').innerHTML=list.map(o=>`<article class="offer reveal">${o.badge?`<span class="badge">${esc(o.badge)}</span>`:''}<h3>${esc(o.title)}</h3>${o.text?`<p>${esc(o.text)}</p>`:''}${o.when?`<div class="when">${esc(o.when)}</div>`:''}</article>`).join('');
+    $('offers').hidden=false; window.dispatchEvent(new Event('content-added'));
+  }catch(e){ console.warn('Offers',e); }
+}
 
 /* ================= CONTACT ================= */
 $('contactForm').addEventListener('submit', async e=>{
@@ -1030,11 +1098,51 @@ $('contactForm').addEventListener('submit', async e=>{
 });
 
 /* ================= START ================= */
-loadContent(); loadGallery();
+loadContent(); loadGallery(); loadOffers();
 loadHours().then(loadSettings);
-setKind('table');
 </script>
 
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js" defer></script>
+<script>
+/* ================= MOTION (anime.js) ================= */
+window.addEventListener('DOMContentLoaded',()=>{ setTimeout(startMotion, 50); });
+function startMotion(){
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce || typeof anime==='undefined'){ document.documentElement.classList.add('no-motion'); return; }
+  // hero entrance
+  anime.timeline({easing:'easeOutExpo'})
+    .add({targets:'.hero-medallion', scale:[.6,1], opacity:[0,1], rotate:[-12,0], duration:1100})
+    .add({targets:'.hero h1', translateY:[30,0], opacity:[0,1], duration:900}, '-=700')
+    .add({targets:'.hero .tagline, .hero .ornate-rule, .kitchen-line, .hero-ctas .btn', translateY:[18,0], opacity:[0,1], delay:anime.stagger(90), duration:800}, '-=600');
+  // floating sparks around the medallion
+  const med=document.querySelector('.hero-medallion');
+  if(med){ for(let i=0;i<10;i++){ const d=document.createElement('span'); d.className='hero-spark'; med.appendChild(d); }
+    anime({targets:'.hero-spark', loop:true, easing:'easeOutSine', duration:()=>anime.random(2600,4200), delay:anime.stagger(380),
+      translateX:()=>[anime.random(40,110), anime.random(-20,130)], translateY:()=>[anime.random(70,130), anime.random(-40,10)],
+      opacity:[{value:.9,duration:400},{value:0,duration:1600,delay:600}], scale:[.4,1.1]}); }
+  // illustrated badges
+  anime({targets:'.art-wok .steam path', translateY:[0,-8], opacity:[.85,0], duration:1800, delay:anime.stagger(300), loop:true, easing:'easeOutSine'});
+  anime({targets:'.art-wok .flames path, .art-fire .fl path', scaleY:[1,1.18], scaleX:[1,.92], transformOrigin:['50% 100%','50% 100%'], direction:'alternate', loop:true, duration:420, delay:anime.stagger(120), easing:'easeInOutSine'});
+  anime({targets:'.art-wok .noodle', strokeDashoffset:[anime.setDashoffset,0], duration:1600, direction:'alternate', loop:true, easing:'easeInOutSine'});
+  anime({targets:'.art-pint .bubbles circle', translateY:[0,-48], opacity:[1,0], duration:2200, delay:anime.stagger(450), loop:true, easing:'easeInQuad'});
+  anime({targets:'.art-tv .ball', translateX:[0,38], translateY:[{value:-14,duration:400},{value:0,duration:400}], rotate:360, duration:1600, direction:'alternate', loop:true, easing:'easeInOutQuad'});
+  anime({targets:'.art-tv .live', opacity:[1,.25], duration:700, direction:'alternate', loop:true, easing:'linear'});
+  anime({targets:'.art-fire .glow circle, .art-lantern .halo circle', scale:[1,1.15], opacity:[.12,.24], transformOrigin:'50% 50%', direction:'alternate', loop:true, duration:900, easing:'easeInOutSine'});
+  anime({targets:'.art-fire .sparks circle', translateY:[0,-26], opacity:[1,0], duration:1400, delay:anime.stagger(350), loop:true, easing:'easeOutQuad'});
+  anime({targets:'.art-party .confetti > *', translateY:[0,10], translateX:()=>anime.random(-6,6), rotate:()=>anime.random(-40,40), direction:'alternate', loop:true, duration:900, delay:anime.stagger(110), easing:'easeInOutSine'});
+  anime({targets:'.art-lantern .flame, .art-lantern .flame2', scaleY:[1,1.12], transformOrigin:'50% 100%', direction:'alternate', loop:true, duration:500, easing:'easeInOutSine'});
+  // scroll reveals
+  document.querySelectorAll('section h2, .mat, .menu-card, .highlight-card, .capacity-stat, .firepit, .addr-card, .book-form, .hours-list, .find-grid, .contact-card').forEach(el=>el.classList.add('reveal'));
+  const io=new IntersectionObserver(entries=>entries.forEach(en=>{ if(!en.isIntersecting) return; io.unobserve(en.target); en.target.classList.add('in');
+      anime({targets:en.target, opacity:[0,1], translateY:[22,0], duration:800, easing:'easeOutCubic'}); }), {rootMargin:'0px 0px -8% 0px'});
+  const watch=()=>document.querySelectorAll('.reveal:not(.in)').forEach(el=>io.observe(el));
+  watch(); window.addEventListener('content-added', watch);
+  // gentle count-up on the capacity number
+  const cap=document.querySelector('.capacity-stat .num');
+  if(cap){ const io2=new IntersectionObserver(es=>{ if(!es[0].isIntersecting) return; io2.disconnect(); const target=parseInt(cap.textContent)||250, o={v:0};
+    anime({targets:o, v:target, round:1, duration:1600, easing:'easeOutExpo', update:()=>cap.textContent=o.v}); }); io2.observe(cap); }
+}
+</script>
 </body>
 </html>
