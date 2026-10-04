@@ -911,7 +911,13 @@ async function loadGallery(){
 let notify = {email:'contact@drunkenwok.co.uk', bookings:true, hire:true, messages:true};
 getDoc(doc(db,'site','notify')).then(s=>{ if(s.exists()) notify={...notify,...s.data()}; }).catch(()=>{});
 function emailAlert(kind, subject, fields, replyTo){
-  if(!notify.email || notify[kind]===false) return;
+  if(notify[kind]===false) return;
+  // WhatsApp / automation (n8n): simple form post, no preflight needed
+  if(notify.webhook && /^https:\/\//.test(notify.webhook)){
+    const f=new URLSearchParams({type:kind, title:subject, site:'The Black Horse', ...Object.fromEntries(Object.entries(fields).map(([k,v])=>[k,String(v)]))});
+    fetch(notify.webhook,{method:'POST',mode:'no-cors',body:f,keepalive:true}).catch(()=>{});
+  }
+  if(!notify.email) return;
   const body = {_subject:subject, _template:'table', _captcha:'false', ...(replyTo?{_replyto:replyTo}:{}), ...fields};
   fetch('https://formsubmit.co/ajax/'+encodeURIComponent(notify.email), {method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify(body)}).catch(()=>{});
 }
