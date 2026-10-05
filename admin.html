@@ -440,11 +440,10 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, doc, addDoc, setDoc, getDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, serverTimestamp, query, where }
+import { getFirestore, collection, doc, addDoc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, onSnapshot, writeBatch, serverTimestamp, query, where }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 
-const OWNER = 'arumugamcrazie@gmail.com';
 const app = initializeApp(firebaseConfig), auth = getAuth(app), db = getFirestore(app);
 const $ = id => document.getElementById(id);
 const esc = s => s==null ? '' : String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -514,12 +513,14 @@ onAuthStateChanged(auth, user=>{
   if(!user){ $('appView').hidden=true; $('loginView').hidden=false; return; }
   $('loginView').hidden=true; $('appView').hidden=false;
   $('who').textContent=user.email;
-  isOwner = user.email.toLowerCase()===OWNER;
   $('dashDate').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
   $('planDate').value = today();
   if('Notification' in window && Notification.permission==='granted') $('notifBtn').textContent='🔔 Alerts on';
-  loadPerms(user).then(start);
+  checkOwner().then(o=>{ isOwner=o; return loadPerms(user); }).then(start);
 });
+// The main admin is recognised by the database itself: only the main admin is allowed to list
+// the staff collection. No email address is stored in this page.
+async function checkOwner(){ try{ await getDocs(collection(db,'staff')); return true; }catch(e){ return false; } }
 const PERMS=[['bookings','Bookings & table plan'],['hire','Private hire'],['messages','Messages'],['calls','Call log'],['offers','Offers & discounts'],
   ['photos','Photos & videos'],['settings','Tables & charges'],['content','Site text'],['hours','Opening hours']];
 const LEGACY={bookings:true,hire:true,messages:true,calls:true};
@@ -988,7 +989,7 @@ $('offerList').addEventListener('click',async e=>{ const bt=e.target.closest('bu
 const permBoxes=(cur,attr)=>PERMS.map(([k,n])=>`<label><input type="checkbox" ${attr}="${k}" ${cur[k]?'checked':''}> ${esc(n)}</label>`).join('');
 $('st-perms').innerHTML=permBoxes(LEGACY,'data-np'); $('st-perms').classList.add('perm-chips');
 function renderStaff(){
-  $('stBody').innerHTML=`<tr><td><b>${esc(OWNER)}</b><br><span class="hint">Main admin</span></td><td>Everything</td><td></td></tr>`+staff.map(s=>{ const p=s.perms||LEGACY;
+  $('stBody').innerHTML=`<tr><td><b>${esc(auth.currentUser?.email||'')}</b><br><span class="hint">You · main admin (only you can see this)</span></td><td>Everything</td><td></td></tr>`+staff.map(s=>{ const p=s.perms||LEGACY;
     return `<tr data-sid="${esc(s.id)}"><td><b>${esc(s.name||'')}</b><br><span class="hint">${esc(s.id)}</span></td><td class="chips perm-chips">${permBoxes(p,'data-sp')}</td>
       <td><button class="btn small danger" data-sdel="${esc(s.id)}">Remove</button></td></tr>`; }).join('');
 }
@@ -997,7 +998,7 @@ function staffAuth(){ if(!staffApp) staffApp=initializeApp(firebaseConfig,'staff
 $('addStaff').onclick=async()=>{
   const em=$('st-email').value.trim().toLowerCase(), pw=$('st-pass').value, name=$('st-name').value.trim();
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return flash('stMsg','Enter a valid email.',true);
-  if(em===OWNER) return flash('stMsg','That is the main admin login.',true);
+  if(em===(auth.currentUser?.email||'').toLowerCase()) return flash('stMsg','That is your own main admin login.',true);
   if(pw.length<8) return flash('stMsg','Password must be at least 8 characters.',true);
   const p=Object.fromEntries(PERMS.map(([k])=>[k, !!$('st-perms').querySelector(`[data-np="${k}"]`)?.checked]));
   $('addStaff').disabled=true; let existed=false;
