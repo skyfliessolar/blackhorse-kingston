@@ -183,6 +183,14 @@
   .book-copy p{color:rgba(241,232,214,0.72);max-width:38ch;}
   form.book-form{background:var(--black-2);border:1px solid var(--line-dark);border-radius:2px;padding:36px;}
   .form-row{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .stepper{display:flex;align-items:stretch;}
+  .stepper input{text-align:center;font-weight:600;font-size:18px !important;border-radius:0 !important;-moz-appearance:textfield;min-width:0;}
+  .stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+  .st-btn{flex:0 0 48px;border:1px solid var(--line-dark);background:rgba(201,169,97,.1);color:var(--gold-light);font-size:22px;line-height:1;cursor:pointer;touch-action:manipulation;user-select:none;}
+  .st-btn:first-child{border-radius:2px 0 0 2px;border-right:none;} .st-btn:last-child{border-radius:0 2px 2px 0;border-left:none;}
+  .st-btn:hover{background:rgba(201,169,97,.22);} .st-btn:active{background:var(--gold);color:var(--black);}
+  .g-hint{text-transform:none;letter-spacing:0;font-weight:400;opacity:.7;font-size:12px;}
+  .join-note{font-size:13.5px;color:rgba(241,232,214,.75);margin-top:4px;}
   @media(max-width:520px){.form-row{grid-template-columns:1fr;}}
   .field{margin-bottom:18px;}
   .field label{display:block;font-family:'Oswald',sans-serif;font-size:11.5px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(241,232,214,0.55);margin-bottom:7px;}
@@ -712,7 +720,8 @@
       <form class="book-form" id="bookingForm" novalidate>
         <div class="form-row">
           <div class="field"><label for="date">Date</label><input id="date" type="date" required></div>
-          <div class="field"><label for="guests">Guests</label><input id="guests" type="number" min="1" max="40" value="2" inputmode="numeric" required></div>
+          <div class="field"><label for="guests">Guests <span class="g-hint">(up to <span id="gMax">40</span> online)</span></label>
+            <div class="stepper"><button type="button" class="st-btn" data-step="-1" aria-label="Fewer guests">−</button><input id="guests" type="number" min="1" max="40" value="2" inputmode="numeric" required><button type="button" class="st-btn" data-step="1" aria-label="More guests">+</button></div></div>
         </div>
         <div class="form-row">
           <div class="field"><label for="time">Time</label><select id="time" class="sel" required><option value="">Choose a date first</option></select></div>
@@ -1056,7 +1065,7 @@ async function loadContent(){
 
 /* ================= BOOKING ================= */
 const form = $('bookingForm');
-const DEFAULT_SETTINGS = { tables: Array.from({length:10},(_,i)=>({id:'T'+(i+1),name:'Table '+(i+1),seats:4})), maxGuests:12, extras:[], duration:120, lastBefore:60 };
+const DEFAULT_SETTINGS = { tables: Array.from({length:10},(_,i)=>({id:'T'+(i+1),name:'Table '+(i+1),seats:4})), maxGuests:40, extras:[], duration:120, lastBefore:60 };
 const DEFAULT_HOURS = { Monday:{open:'12:00',close:'23:00'}, Tuesday:{open:'12:00',close:'23:00'}, Wednesday:{open:'12:00',close:'23:00'}, Thursday:{open:'12:00',close:'23:00'},
   Friday:{open:'12:00',close:'00:00'}, Saturday:{open:'12:00',close:'00:00'}, Sunday:{open:'12:00',close:'22:00'} };
 let settings = DEFAULT_SETTINGS;
@@ -1083,8 +1092,32 @@ async function loadTaken(date, force){
   try{ taken=new Set((await getDocs(query(collection(db,'tableLocks'), where('date','==',date)))).docs.map(d=>{ const x=d.data(); return x.time+'_'+x.tableId; })); takenFor=date; }
   catch(e){ console.warn(e); taken=new Set(); takenFor=''; }
 }
-function fitsFor(guests){ const want=$('area').value; return settings.tables.filter(t=>t.seats>=guests && (!want||(t.area||'')===want)).sort((a,b)=>a.seats-b.seats); }
-function freeTableAt(date,time,guests){ const bl=blocksFor(date,time,Number(settings.duration)||120); return fitsFor(guests).find(t=>bl.every(b=>!taken.has(b+'_'+t.id))) || null; }
+
+/* Pick tables for a group: one table if it fits, otherwise join the fewest tables (same seating area first). */
+function pickTables(free, g, maxTables){
+  const seats=l=>l.reduce((a,t)=>a+(Number(t.seats)||0),0);
+  const one=free.filter(t=>t.seats>=g).sort((a,b)=>a.seats-b.seats)[0]; if(one) return [one];
+  const build=list=>{ const s=[...list].sort((a,b)=>b.seats-a.seats), pick=[]; let sum=0;
+    for(const t of s){ if(sum>=g) break; pick.push(t); sum+=t.seats; } if(sum<g || pick.length>maxTables) return null;
+    const last=pick.pop(), need=g-seats(pick), swap=s.filter(t=>!pick.includes(t) && t.seats>=need).sort((a,b)=>a.seats-b.seats)[0];
+    pick.push(swap||last); return pick; };
+  const groups={}; free.forEach(t=>(groups[t.area||'']||=[]).push(t));
+  let best=null;
+  Object.values(groups).forEach(l=>{ const p=build(l); if(p && (!best || p.length<best.length || (p.length===best.length && seats(p)<seats(best)))) best=p; });
+  return best || build(free);
+}
+const MAX_LOCKS=96;
+function inArea(){ const want=$('area').value; return settings.tables.filter(t=>!want||(t.area||'')===want); }
+function seatsTotal(){ return inArea().reduce((a,t)=>a+(Number(t.seats)||0),0); }
+function fitsFor(guests){ return seatsTotal()>=guests ? [true] : []; }
+/* Returns {id,name,area,tables:[...]} for one table or a set of joined tables, or null. */
+function freeTableAt(date,time,guests){
+  const bl=blocksFor(date,time,Number(settings.duration)||120);
+  const free=inArea().filter(t=>bl.every(b=>!taken.has(b+'_'+t.id)));
+  const list=pickTables(free, guests, Math.max(1,Math.floor(MAX_LOCKS/Math.max(1,bl.length)))); if(!list) return null;
+  const areas=[...new Set(list.map(t=>t.area||''))].filter(Boolean);
+  return {id:list.map(t=>t.id).join('+'), name:list.map(t=>t.name).join(' + '), area:areas.join(' & '), tables:list};
+}
 async function loadSettings(){
   try{ const s=await getDoc(doc(db,'site','booking')); if(s.exists()) settings={...DEFAULT_SETTINGS,...s.data()}; }catch(e){ console.warn(e); }
   $('extrasField').hidden = !settings.extras.length;
@@ -1093,7 +1126,7 @@ async function loadSettings(){
   $('area').innerHTML = '<option value="">No preference</option>'+areas.map(a=>`<option>${esc(a)}</option>`).join('');
   $('extrasOpts').innerHTML = settings.extras.map(x=>`<label class="extra-opt"><input type="checkbox" value="${esc(x.id)}">
     <span><b>${esc(x.name)}</b>${x.desc?`<small>${esc(x.desc)}</small>`:''}</span><span class="price">+ ${money(x.price)}</span></label>`).join('');
-  $('guests').max = settings.maxGuests;
+  $('guests').max = settings.maxGuests; $('gMax').textContent = settings.maxGuests;
   updateExtras(); refreshTimes();
 }
 function chosenExtras(){ return [...$('extrasOpts').querySelectorAll('input:checked')].map(i=>settings.extras.find(x=>x.id===i.value)).filter(Boolean); }
@@ -1116,10 +1149,11 @@ async function refreshTimes(){
 function checkAvail(){
   const date=$('date').value, time=$('time').value, guests=Number($('guests').value)||0, av=$('avail');
   if(!date||!time) return;
-  if(guests > (settings.maxGuests||12)) return av.innerHTML=`<span class="no">For groups over ${settings.maxGuests}, please <a href="#hire" data-enquiry="hire" style="color:var(--gold-light)">send a private hire enquiry</a> or call 020 3518 2275.</span>`;
-  if(!fitsFor(guests).length) return av.innerHTML = $('area').value ? `<span class="no">No ${esc($('area').value)} table fits ${guests} — try "No preference".</span>` : `<span class="no">We don't have one table for ${guests} — please call 020 3518 2275.</span>`;
+  if(guests < 1) return av.innerHTML='<span class="no">How many guests? Choose at least 1.</span>';
+  if(guests > (settings.maxGuests||40)) return av.innerHTML=`<span class="no">For groups over ${settings.maxGuests}, please <a href="#hire" data-enquiry="hire" style="color:var(--gold-light)">send a private hire enquiry</a> or call 020 3518 2275.</span>`;
+  if(!fitsFor(guests).length) return av.innerHTML = $('area').value ? `<span class="no">No ${esc($('area').value)} table fits ${guests} — try "No preference".</span>` : `<span class="no">That's bigger than all our tables together — please <a href="#hire" data-enquiry="hire" style="color:var(--gold-light)">send a private hire enquiry</a> or call 020 3518 2275.</span>`;
   const t=freeTableAt(date,time,guests);
-  if(t){ av.innerHTML=`<span class="ok">✓ Available — ${pretty(time)} for ${guests}${t.area?' · '+esc(t.area):''}</span>`; return; }
+  if(t){ av.innerHTML=`<span class="ok">✓ Available — ${pretty(time)} for ${guests}${t.area?' · '+esc(t.area):''}</span>`+(t.tables.length>1?`<div class="join-note">We'll join ${t.tables.length} tables together for your group.</div>`:''); return; }
   const all=timesFor(date)||[], tm=toMin(time);
   const alts=all.filter(x=>x!==time && freeTableAt(date,x,guests)).sort((a,b)=>Math.abs(toMin(a)-tm)-Math.abs(toMin(b)-tm)).slice(0,5).sort();
   av.innerHTML = `<span class="no">✗ Fully booked at ${pretty(time)}.</span>` + (alts.length ? `<div class="chips">${alts.map(x=>`<button type="button" data-t="${x}">${pretty(x)}</button>`).join('')}</div>` : ' Please try another date.');
@@ -1129,6 +1163,13 @@ $('date').addEventListener('change',refreshTimes);
 $('time').addEventListener('change',checkAvail);
 $('area').addEventListener('change',checkAvail);
 let gTimer; $('guests').addEventListener('input',()=>{ clearTimeout(gTimer); gTimer=setTimeout(checkAvail,250); });
+$('guests').addEventListener('change',()=>{ const g=$('guests'); let n=Math.round(Number(g.value)||1); g.value=Math.max(1,n); checkAvail(); });
+document.querySelectorAll('.st-btn').forEach(b=>{ let hold, rep;
+  const step=()=>{ const g=$('guests'); g.value=Math.max(1,Math.min(Number(g.max)||999,(Math.round(Number(g.value))||0)+Number(b.dataset.step))); clearTimeout(gTimer); gTimer=setTimeout(checkAvail,200); };
+  b.addEventListener('click',step);
+  b.addEventListener('pointerdown',()=>{ hold=setTimeout(()=>{ rep=setInterval(step,90); },450); });
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>{ clearTimeout(hold); clearInterval(rep); }));
+});
 $('date').min=todayISO();
 { const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); $('date').value=d.toISOString().slice(0,10); }
 
@@ -1146,12 +1187,12 @@ form.addEventListener('submit', async e=>{
     await loadTaken(date, true);
     const table=freeTableAt(date,time,guests);
     if(!table){ checkAvail(); return showErr('Sorry, that time has just been taken — please pick one of the suggested times.'); }
-    const dur=Number(settings.duration)||120, locks=blocksFor(date,time,dur).map(b=>`${date}_${b}_${table.id}`);
+    const dur=Number(settings.duration)||120, locks=table.tables.flatMap(tb=>blocksFor(date,time,dur).map(b=>`${date}_${b}_${tb.id}`));
     const ex=chosenExtras(), total=ex.reduce((s,x)=>s+Number(x.price||0),0);
     const ref=doc(collection(db,'bookings')), b=writeBatch(db);
     b.set(ref,{name,email,phone,guests,date,time,duration:dur,locks,tableId:table.id,tableName:table.name,area:table.area||'',
       extras:ex.map(x=>({id:x.id,name:x.name,price:Number(x.price)})),extrasTotal:total,notes:$('notes').value.trim(),status:'pending',source:'website',seen:false,createdAt:serverTimestamp()});
-    locks.forEach(k=>{ const [, bt]=k.split('_'); b.set(doc(db,'tableLocks',k),{date,time:bt,tableId:table.id,bookingId:ref.id}); });
+    locks.forEach(k=>{ const [, bt, tid]=k.split('_'); b.set(doc(db,'tableLocks',k),{date,time:bt,tableId:tid,bookingId:ref.id}); });
     await b.commit();
     const nice=new Date(date+'T00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
     emailAlert('bookings', `New table booking — ${name}, ${date} ${time} (${guests})`, {Name:name, Phone:phone, Email:email, Date:date, Time:time, Guests:guests, Table:table.name+(table.area?' · '+table.area:''), Extras:ex.map(x=>x.name+' £'+x.price).join(', ')||'-', 'Extras total':'£'+total, Notes:$('notes').value.trim()||'-'}, email);
