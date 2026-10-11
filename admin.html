@@ -154,6 +154,24 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
 @media(max-width:700px){.offer-card .grid4{grid-template-columns:1fr;}}
 .offer-card .row2{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end;}
 @media(max-width:700px){.offer-card .row2{grid-template-columns:1fr 1fr;}}
+.vgrid{display:grid;grid-template-columns:1.1fr 1fr;gap:20px;align-items:start;}
+@media(max-width:900px){.vgrid{grid-template-columns:1fr;}}
+.scan-box{position:relative;background:#000;aspect-ratio:1;max-width:360px;overflow:hidden;border-radius:4px;margin-bottom:12px;}
+.scan-box video{width:100%;height:100%;object-fit:cover;display:block;}
+.scan-frame{position:absolute;inset:16%;border:3px solid var(--brass-light);border-radius:10px;box-shadow:0 0 0 999px rgba(0,0,0,.35);}
+.v-res{border:2px solid var(--line);border-radius:3px;padding:16px 18px;margin-top:16px;}
+.v-res.ok{border-color:var(--ok);background:#EEF4ED;}
+.v-res.bad{border-color:var(--cancel);background:#FBF1EF;}
+.v-res .st{font-family:'Oswald',sans-serif;font-size:22px;letter-spacing:.08em;text-transform:uppercase;}
+.v-res.ok .st{color:var(--ok);} .v-res.bad .st{color:var(--cancel);}
+.v-res .code{font-family:'Oswald',sans-serif;letter-spacing:.16em;font-size:18px;}
+.v-res dl{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:12px 0;font-size:13.5px;}
+.v-res dt{color:var(--muted);}
+.v-res dd{margin:0;}
+.v-calc{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin:6px 0 12px;}
+.v-calc .field{margin:0;flex:1;min-width:150px;}
+.v-calc .out{font-family:'Fraunces',serif;font-size:20px;}
+.vc-in{text-transform:uppercase;letter-spacing:.14em;font-family:'Oswald',sans-serif;font-size:16px !important;}
 .switch{display:inline-flex;align-items:center;gap:8px;font-size:13px;}
 .perm-chips label{font-size:13px;margin:2px 10px 2px 0;}
 .plan td.taken{white-space:nowrap;}
@@ -187,6 +205,7 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
     <button class="tab-btn" data-tab="messages" data-perm="messages">Messages <span class="count" id="c-messages" hidden></span></button>
     <button class="tab-btn" data-tab="calls" data-perm="calls">Call log</button>
     <button class="tab-btn" data-tab="offers" data-perm="offers">Offers &amp; discounts</button>
+    <button class="tab-btn" data-tab="vouchers" data-perm="vouchers">Game &amp; discount codes</button>
     <button class="tab-btn" data-tab="photos" data-perm="photos">Photos &amp; videos</button>
     <button class="tab-btn" data-tab="settings" data-perm="settings">Tables &amp; charges</button>
     <button class="tab-btn" data-tab="content" data-perm="content">Site text</button>
@@ -327,6 +346,41 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
       <div class="msg" id="ofMsg"></div>
     </section>
 
+    <!-- GAME & DISCOUNT CODES -->
+    <section class="panel" id="p-vouchers">
+      <div class="head"><div><span class="eyebrow">Wok Toss game</span><h2>Game &amp; discount codes</h2></div></div>
+      <div class="cards" id="vStats"></div>
+      <div class="vgrid">
+        <div class="card">
+          <h3>Check a customer's code</h3>
+          <div class="scan-box" id="scanBox" hidden><video id="scanVid" playsinline muted></video><div class="scan-frame"></div></div>
+          <button class="btn" id="scanBtn" type="button">📷 Scan QR code</button>
+          <div class="field" style="margin-top:16px"><label>Or type the code</label>
+            <div style="display:flex;gap:8px"><input id="vcInput" class="vc-in" maxlength="8" placeholder="K7MX4P2Q" autocomplete="off"><button class="btn ghost" id="vcCheck" type="button">Check</button></div></div>
+          <div id="vcResult"></div>
+          <div class="msg" id="vcMsg"></div>
+        </div>
+        <div class="card" data-perm="owner">
+          <h3>Game settings</h3>
+          <label class="hint" style="display:block;margin:4px 0 14px;font-size:13.5px;color:var(--text-dark)"><input type="checkbox" id="pr-enabled"> Show the Wok Toss game on the website</label>
+          <div class="field"><label>Discount for every player (%)</label><input id="pr-percent" type="number" min="5" max="50" step="1" value="25"></div>
+          <div class="field"><label>The discount applies to</label>
+            <select id="pr-applies"><option value="food">Food only</option><option value="bill">Whole bill (food &amp; drinks)</option></select></div>
+          <label class="hint" style="display:block;margin:4px 0 16px;font-size:13.5px;color:var(--text-dark)"><input type="checkbox" id="pr-details"> Ask players for their name + phone or email before they get a code</label>
+          <button class="btn" id="savePromo" type="button">Save settings</button>
+          <div class="msg" id="prMsg"></div>
+          <p class="hint">The game is <b>off</b> until you tick the first box and save — until then the website looks exactly as normal. Changes apply to new codes straight away; codes already given out keep the terms printed on them. Every code is valid for 30 days and works once.</p>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Recent codes</h3>
+        <div style="overflow-x:auto"><table>
+          <thead><tr><th>Code</th><th>Given</th><th>Score</th><th>Customer</th><th>Discount</th><th>Status</th><th></th></tr></thead>
+          <tbody id="vcBody"><tr class="empty-row"><td colspan="7">No codes yet — they appear here as soon as someone plays.</td></tr></tbody>
+        </table></div>
+      </div>
+    </section>
+
     <!-- SETTINGS -->
     <section class="panel" id="p-settings">
       <div class="head"><div><span class="eyebrow">Online booking</span><h2>Tables &amp; charges</h2></div><button class="btn" id="saveSettings">Save</button></div>
@@ -440,7 +494,7 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, doc, addDoc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, onSnapshot, writeBatch, serverTimestamp, query, where }
+import { getFirestore, collection, doc, addDoc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, onSnapshot, writeBatch, serverTimestamp, query, where, orderBy, limit }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 
@@ -466,6 +520,7 @@ function openTab(t){
   if(t==='hire') markSeen('hireEnquiries', hires);
   if(t==='bookings') markSeen('bookings', bookings);
   if(t==='plan') renderPlan();
+  if(t!=='vouchers') stopScan();
 }
 document.querySelectorAll('.tab-btn').forEach(b=>b.onclick=()=>openTab(b.dataset.tab));
 document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>openTab(b.dataset.go));
@@ -522,7 +577,7 @@ onAuthStateChanged(auth, user=>{
 // the staff collection. No email address is stored in this page.
 async function checkOwner(){ try{ await getDocs(collection(db,'staff')); return true; }catch(e){ return false; } }
 const PERMS=[['bookings','Bookings & table plan'],['hire','Private hire'],['messages','Messages'],['calls','Call log'],['offers','Offers & discounts'],
-  ['photos','Photos & videos'],['settings','Tables & charges'],['content','Site text'],['hours','Opening hours']];
+  ['vouchers','Game & discount codes'],['photos','Photos & videos'],['settings','Tables & charges'],['content','Site text'],['hours','Opening hours']];
 const LEGACY={bookings:true,hire:true,messages:true,calls:true};
 let perms={};
 const can=p=> isOwner || (p!=='owner' && perms[p]===true);
@@ -578,6 +633,9 @@ async function start(){
   if(can('content')) loadContent();
   if(can('hours')) loadHours();
   if(isOwner) loadNotify();
+  if(can('vouchers')) unsubs.push(onSnapshot(query(collection(db,'vouchers'),orderBy('createdAt','desc'),limit(300)), s=>{vouchers=s.docs.map(d=>({id:d.id,...d.data()})); renderVouchers();}, e=>console.warn('vouchers',e)));
+  if(isOwner) loadPromo();
+  openFromHash();
   renderDash();
 }
 
@@ -1021,6 +1079,110 @@ $('stBody').onclick=async e=>{
   const id=e.target.dataset.sdel; if(!id||!confirm('Remove access for '+id+'? They will no longer be able to open the admin.')) return;
   try{ await deleteDoc(doc(db,'staff',id)); flash('stMsg','Access removed.'); }catch(err){ fail('stMsg',err); }
 };
+
+/* ---------- Wok Toss game & discount codes ---------- */
+let vouchers=[], current=null, scanStream=null, scanTimer=0, detector=null;
+const tsMs=t=> t&&t.toMillis ? t.toMillis() : (t&&t.seconds ? t.seconds*1000 : 0);
+const dShort=ms=> ms ? new Date(ms).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '';
+const dLong=ms=> ms ? new Date(ms).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+const appliesTxt=(a,n)=> (n||25)+'% off '+(a==='bill' ? 'whole bill' : 'food');
+function vStatus(v){ if(v.used) return 'used'; if(tsMs(v.expiresAt) && tsMs(v.expiresAt)<Date.now()) return 'expired'; return 'valid'; }
+function renderVouchers(){
+  const used=vouchers.filter(v=>v.used), saved=used.reduce((a,v)=>a+(Number(v.saved)||0),0);
+  const today=new Date(); today.setHours(0,0,0,0);
+  $('vStats').innerHTML=[
+    [vouchers.filter(v=>tsMs(v.createdAt)>=today.getTime()).length,'Codes given today'],
+    [vouchers.length,'Codes given (recent)'],
+    [used.length,'Redeemed'],
+    [money(saved),'Discount given']].map(([n,l])=>`<div class="stat"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
+  const body=$('vcBody');
+  if(!vouchers.length){ body.innerHTML='<tr class="empty-row"><td colspan="7">No codes yet — they appear here as soon as someone plays.</td></tr>'; return; }
+  body.innerHTML=vouchers.slice(0,150).map(v=>{ const s=vStatus(v);
+    const st= s==='used' ? `<span class="badge cancelled">Used ${dShort(tsMs(v.usedAt))}</span>` : s==='expired' ? '<span class="badge pending">Expired</span>' : `<span class="badge confirmed">Valid · ${dShort(tsMs(v.expiresAt))}</span>`;
+    const who=[v.name,v.phone,v.email].filter(Boolean).map(esc).join('<br>')||'<span class="hint">—</span>';
+    return `<tr><td><b style="letter-spacing:.1em">${esc(v.id)}</b></td><td>${dLong(tsMs(v.createdAt))}</td><td>${esc(v.score)}</td><td>${who}</td><td>${appliesTxt(v.appliesTo,v.percent)}</td><td>${st}</td><td><button class="btn ghost small" data-vchk="${esc(v.id)}">Open</button></td></tr>`; }).join('');
+}
+$('vcBody').onclick=e=>{ const c=e.target.dataset.vchk; if(c){ $('vcInput').value=c; lookup(c); $('p-vouchers').scrollIntoView({behavior:'smooth'}); } };
+function parseCode(t){ t=String(t||'').trim(); const m=t.match(/[#?&]v=([A-Za-z0-9]{8})/i) || t.match(/^([A-Za-z0-9]{8})$/); return m ? m[1].toUpperCase() : null; }
+function resultBox(cls, title, html){ $('vcResult').innerHTML=`<div class="v-res ${cls}"><div class="st">${title}</div>${html||''}</div>`; }
+async function lookup(raw){
+  stopScan(); current=null;
+  const code=parseCode(raw);
+  if(!code || !/^[A-HJ-NP-Z2-9]{8}$/.test(code)) return resultBox('bad','✕ Not a valid code','<p class="hint">Codes are 8 letters and numbers, e.g. K7MX4P2Q. Check it and try again.</p>');
+  resultBox('', 'Checking…');
+  try{
+    const s=await getDoc(doc(db,'vouchers',code));
+    if(!s.exists()) return resultBox('bad','✕ Code not found',`<p class="code">${code}</p><p class="hint">This code was not issued by the website. Do not apply the discount.</p>`);
+    current={id:s.id,...s.data()}; renderResult();
+  }catch(e){ resultBox('',''); fail('vcMsg',e); }
+}
+function renderResult(){
+  const v=current; if(!v) return; const s=vStatus(v);
+  const info=`<p class="code">${esc(v.id)}</p><dl>
+    <dt>Discount</dt><dd><b>${appliesTxt(v.appliesTo,v.percent)}</b></dd>
+    <dt>Game score</dt><dd>${esc(v.score)}</dd>
+    ${v.name?`<dt>Name</dt><dd>${esc(v.name)}</dd>`:''}${v.phone?`<dt>Phone</dt><dd>${esc(v.phone)}</dd>`:''}${v.email?`<dt>Email</dt><dd>${esc(v.email)}</dd>`:''}
+    <dt>Given</dt><dd>${dLong(tsMs(v.createdAt))}</dd><dt>Expires</dt><dd>${dLong(tsMs(v.expiresAt))}</dd>
+    ${v.used?`<dt>Used</dt><dd>${dLong(tsMs(v.usedAt))}${v.usedBy?' · '+esc(v.usedBy):''}${v.saved?' · '+money(v.saved)+' off':''}</dd>`:''}</dl>`;
+  if(s==='used') return resultBox('bad','✕ Already used',info+'<p class="hint">Each code works once. Do not apply the discount again.</p>');
+  if(s==='expired') return resultBox('bad','✕ Expired',info+'<p class="hint">This code is more than 30 days old.</p>');
+  const lbl = v.appliesTo==='bill' ? 'Bill total (£)' : 'Food total on the bill (£)';
+  resultBox('ok',`✓ Valid — apply ${v.percent||25}% off`, info+`
+    <div class="v-calc"><div class="field"><label>${lbl}</label><input id="vcSpend" type="number" min="0" step="0.01" inputmode="decimal" placeholder="optional"></div>
+    <div><div class="hint">Take off</div><div class="out" id="vcOff">—</div></div></div>
+    <button class="btn" id="vcRedeem" type="button">Mark as used</button>`);
+  $('vcSpend').oninput=()=>{ const n=parseFloat($('vcSpend').value); $('vcOff').textContent = n>0 ? money(Math.round(n*(v.percent||25))/100) : '—'; };
+  $('vcRedeem').onclick=redeem;
+}
+async function redeem(){
+  const v=current; if(!v) return;
+  const n=parseFloat(($('vcSpend')||{}).value);
+  const upd={used:true, usedAt:serverTimestamp(), usedBy: isOwner ? 'Main admin' : (auth.currentUser?.email||'Staff')};
+  if(n>0){ upd.spend=Math.round(n*100)/100; upd.saved=Math.round(n*(v.percent||25))/100; }
+  $('vcRedeem').disabled=true;
+  try{ await updateDoc(doc(db,'vouchers',v.id), upd); flash('vcMsg',`Code ${v.id} marked as used${upd.saved?' — '+money(upd.saved)+' off':''}.`); await lookup(v.id); }
+  catch(e){ if(e.code==='permission-denied'){ await lookup(v.id); flash('vcMsg','This code could not be redeemed — it may already have been used.',true); } else { fail('vcMsg',e); $('vcRedeem').disabled=false; } }
+}
+$('vcCheck').onclick=()=>lookup($('vcInput').value);
+$('vcInput').onkeydown=e=>{ if(e.key==='Enter') lookup($('vcInput').value); };
+function loadJsQR(){ return window.jsQR ? Promise.resolve() : new Promise((ok,no)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js'; s.onload=ok; s.onerror=no; document.head.appendChild(s); }); }
+async function startScan(){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return flash('vcMsg','The camera is not available here — type the code instead.',true);
+  try{ scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false}); }
+  catch(e){ scanStream=null; return flash('vcMsg','Camera access was blocked. Allow the camera for this page in your browser settings, or type the code.',true); }
+  const v=$('scanVid'); v.srcObject=scanStream; $('scanBox').hidden=false; $('scanBtn').textContent='Stop camera'; $('vcResult').innerHTML='';
+  try{ await v.play(); }catch(e){}
+  if(!detector && 'BarcodeDetector' in window){ try{ const f=await BarcodeDetector.getSupportedFormats(); if(f.includes('qr_code')) detector=new BarcodeDetector({formats:['qr_code']}); }catch(e){} }
+  if(!detector){ try{ await loadJsQR(); }catch(e){ stopScan(); return flash('vcMsg','Could not start the scanner — type the code instead.',true); } }
+  const c=document.createElement('canvas'), x=c.getContext('2d',{willReadFrequently:true});
+  const tick=async()=>{
+    if(!scanStream) return; let txt=null;
+    try{ if(v.readyState>=2){
+      if(detector){ const r=await detector.detect(v); if(r.length) txt=r[0].rawValue; }
+      else{ const w=v.videoWidth, h=v.videoHeight, k=Math.min(1,720/Math.max(w,h)); c.width=w*k; c.height=h*k; x.drawImage(v,0,0,c.width,c.height);
+        const r=window.jsQR(x.getImageData(0,0,c.width,c.height).data,c.width,c.height,{inversionAttempts:'attemptBoth'}); if(r) txt=r.data; } } }catch(e){}
+    if(txt && parseCode(txt)){ beep(); $('vcInput').value=parseCode(txt); return lookup(txt); }
+    scanTimer=setTimeout(tick,160);
+  };
+  tick();
+}
+function stopScan(){ clearTimeout(scanTimer); if(scanStream) scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; $('scanBox').hidden=true; $('scanBtn').textContent='📷 Scan QR code'; }
+$('scanBtn').onclick=()=> scanStream ? stopScan() : startScan();
+async function loadPromo(){
+  try{ const s=await getDoc(doc(db,'site','promo')); const p={enabled:false,appliesTo:'food',requireDetails:false,percent:25,...(s.exists()?s.data():{})};
+    $('pr-enabled').checked=p.enabled===true; $('pr-percent').value=p.percent||25; $('pr-applies').value=p.appliesTo==='bill'?'bill':'food'; $('pr-details').checked=!!p.requireDetails; }catch(e){ console.warn(e); }
+}
+$('savePromo').onclick=async()=>{
+  const percent=Math.round(Number($('pr-percent').value));
+  if(!(percent>=5&&percent<=50)) return flash('prMsg','Choose a discount between 5% and 50%.',true);
+  $('savePromo').disabled=true;
+  try{ await setDoc(doc(db,'site','promo'),{enabled:$('pr-enabled').checked, appliesTo:$('pr-applies').value, requireDetails:$('pr-details').checked, percent});
+    flash('prMsg', $('pr-enabled').checked ? 'Saved — the game is now live on the website.' : 'Saved — the game is hidden; the website looks normal.'); }
+  catch(e){ fail('prMsg',e); } finally{ $('savePromo').disabled=false; }
+};
+function hashCode(){ const m=location.hash.match(/^#v=([A-Za-z0-9]{8})$/); return m ? m[1].toUpperCase() : null; }
+function openFromHash(){ const c=hashCode(); if(c && can('vouchers')){ openTab('vouchers'); $('vcInput').value=c; lookup(c); history.replaceState(null,'',location.pathname); } }
+window.addEventListener('hashchange',()=>{ if(auth.currentUser) openFromHash(); });
 </script>
 </body>
 </html>
