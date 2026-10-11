@@ -395,9 +395,9 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
         <div class="grid3">
           <div class="field"><label>Table held for (minutes)</label><select id="set-dur"></select></div>
           <div class="field"><label>Last booking before closing</label><select id="set-last"></select></div>
-          <div class="field"><label>Largest group bookable online</label><input id="set-max" type="number" min="1"></div>
+          <div class="field"><label>Largest group customers can book online</label><input id="set-max" type="number" min="1" max="250"></div>
         </div>
-        <p class="hint">Customers can choose any time in 15-minute steps within your opening hours. A table is held for the time above, so bookings can never overlap.</p>
+        <p class="hint">Customers can choose any time in 15-minute steps within your opening hours. A table is held for the time above, so bookings can never overlap. Big groups automatically get several tables joined together (same seating area first).</p>
       </div>
       <div class="card">
         <h3>Special bookings &amp; extra charges</h3>
@@ -600,8 +600,8 @@ $('logout').onclick=()=>signOut(auth);
 
 /* ---------- data ---------- */
 let bookings=[], hires=[], messages=[], calls=[], gallery=[], staff=[], offers=[];
-let settings={tables:[],maxGuests:12,extras:[],duration:120,lastBefore:60};
-const DEFAULT_SETTINGS={ tables:Array.from({length:10},(_,i)=>({id:'T'+(i+1),name:'Table '+(i+1),seats:4})), maxGuests:12, extras:[], duration:120, lastBefore:60 };
+let settings={tables:[],maxGuests:40,extras:[],duration:120,lastBefore:60};
+const DEFAULT_SETTINGS={ tables:Array.from({length:10},(_,i)=>({id:'T'+(i+1),name:'Table '+(i+1),seats:4})), maxGuests:40, extras:[], duration:120, lastBefore:60 };
 /* time helpers — bookings hold a table in half-hour blocks */
 const toMin=t=>{ const [h,m]=String(t).split(':').map(Number); return h*60+m; };
 const fromMin=m=>String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
@@ -721,11 +721,31 @@ function openBooking(b, preset){
   if(b && b.seen===false) updateDoc(doc(db,'bookings',b.id),{seen:true}).catch(()=>{});
 }
 function freeTables(date,time,dur,exceptId){ const occ=occupancy(date,exceptId), bl=blocksFor(date,time,dur); return settings.tables.filter(t=>bl.every(x=>!occ.has(x+'_'+t.id))); }
+
+/* Pick tables for a group: one table if it fits, otherwise join the fewest tables (same seating area first). */
+function pickTables(free, g, maxTables){
+  const seats=l=>l.reduce((a,t)=>a+(Number(t.seats)||0),0);
+  const one=free.filter(t=>t.seats>=g).sort((a,b)=>a.seats-b.seats)[0]; if(one) return [one];
+  const build=list=>{ const s=[...list].sort((a,b)=>b.seats-a.seats), pick=[]; let sum=0;
+    for(const t of s){ if(sum>=g) break; pick.push(t); sum+=t.seats; } if(sum<g || pick.length>maxTables) return null;
+    const last=pick.pop(), need=g-seats(pick), swap=s.filter(t=>!pick.includes(t) && t.seats>=need).sort((a,b)=>a.seats-b.seats)[0];
+    pick.push(swap||last); return pick; };
+  const groups={}; free.forEach(t=>(groups[t.area||'']||=[]).push(t));
+  let best=null;
+  Object.values(groups).forEach(l=>{ const p=build(l); if(p && (!best || p.length<best.length || (p.length===best.length && seats(p)<seats(best)))) best=p; });
+  return best || build(free);
+}
+const tablesOf=id=>String(id||'').split('+').filter(Boolean);
 function fillTables(sel){
   const date=$('bk-date').value, time=$('bk-time').value, dur=Number($('bk-dur').value)||120, g=Number($('bk-guests').value)||1;
   let opts=freeTables(date,time,dur,editing?.id).sort((a,b)=>a.seats-b.seats);
   const occ=occupancy(date,editing?.id), blocked=sel && blocksFor(date,time,dur).some(x=>occ.has(x+'_'+sel));
-  if(sel && !opts.find(t=>t.id===sel) && !blocked){ const t=settings.tables.find(x=>x.id===sel) || {id:sel,name:editing?.tableName||sel,seats:0}; opts.unshift(t); }
+  if(sel && !sel.includes('+') && !opts.find(t=>t.id===sel) && !blocked){ const t=settings.tables.find(x=>x.id===sel) || {id:sel,name:editing?.tableName||sel,seats:0}; opts.unshift(t); }
+  // joined tables: keep an existing joined booking, and offer a join for groups bigger than any free table
+  const joinOpt=list=>({id:list.map(t=>t.id).join('+'), name:'Joined: '+list.map(t=>t.name).join(' + '), area:[...new Set(list.map(t=>t.area||''))].filter(Boolean).join(' & '), seats:list.reduce((a,t)=>a+(Number(t.seats)||0),0)});
+  const freeIds=new Set(opts.map(t=>t.id));
+  if(sel && sel.includes('+') && tablesOf(sel).every(id=>freeIds.has(id))) opts.unshift(joinOpt(tablesOf(sel).map(id=>settings.tables.find(t=>t.id===id)||{id,name:id,seats:0})));
+  if(!opts.some(t=>t.seats>=g)){ const c=pickTables(opts.filter(t=>!t.id.includes('+')), g, 24); if(c && c.length>1 && !opts.find(t=>t.id===c.map(x=>x.id).join('+'))) opts.unshift(joinOpt(c)); }
   $('bk-table').innerHTML = opts.length ? opts.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}${t.area?' · '+esc(t.area):''} (${t.seats} seats)${t.seats&&t.seats<g?' — small':''}</option>`).join('') : '<option value="">No free tables at this time</option>';
   const want = sel && opts.find(t=>t.id===sel) ? sel : (opts.find(t=>t.seats>=g)||opts[0]||{}).id;
   if(want) $('bk-table').value=want;
@@ -741,11 +761,11 @@ $('bkSave').onclick=async()=>{
   if(!name) return flash('bkMsg','Please add the guest name.',true);
   if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return flash('bkMsg','Please choose a date.',true);
   if(!time || !tableId) return flash('bkMsg','Please choose a time and a free table.',true);
-  const t=settings.tables.find(x=>x.id===tableId);
+  const ids=tablesOf(tableId), tl=ids.map(id=>settings.tables.find(x=>x.id===id)), t=ids.length===1?tl[0]:null;
   const ex=[...$('bk-extras').querySelectorAll('input:checked')].map(i=>settings.extras.find(x=>x.id===i.value)).filter(Boolean);
-  const newKeys=blocksFor(date,time,dur).map(b=>`${date}_${b}_${tableId}`);
+  const newKeys=ids.flatMap(id=>blocksFor(date,time,dur).map(b=>`${date}_${b}_${id}`));
   const data={name,phone:$('bk-phone').value.trim(),email:$('bk-email').value.trim(),guests:Math.max(1,Number($('bk-guests').value)||1),date,time,duration:dur,locks:newKeys,
-    tableId,tableName:t?t.name:(editing?.tableName||tableId),area:t?.area||'',extras:ex.map(x=>({id:x.id,name:x.name,price:Number(x.price)})),
+    tableId,tableName: ids.length>1 ? tl.map((x,i)=>x?x.name:ids[i]).join(' + ') : (t?t.name:(editing?.tableName||tableId)), area: ids.length>1 ? [...new Set(tl.map(x=>x?.area||''))].filter(Boolean).join(' & ') : (t?.area||''),extras:ex.map(x=>({id:x.id,name:x.name,price:Number(x.price)})),
     extrasTotal:ex.reduce((s,x)=>s+Number(x.price),0),notes:$('bk-notes').value.trim(),status,seen:true};
   const batch=writeBatch(db), ref = editing ? doc(db,'bookings',editing.id) : doc(collection(db,'bookings'));
   const newActive=status!=='cancelled', oldActive=editing && editing.status!=='cancelled', oldKeys=editing?keysOf(editing):[];
@@ -783,7 +803,7 @@ function renderPlan(){
         h+=`<td class="taken ${b.status}" colspan="${span}" data-bid="${esc(b.id)}" title="${esc(b.phone)} · ${esc(b.guests)} guests">${esc(b.name)}<br><span class="hint">${esc(b.time)} · ${esc(b.guests)}p</span></td>`; i+=span-1; }
       else h+=`<td class="free" data-t="${esc(t.id)}" data-s="${cols[i]}">+</td>`; }
     return h+'</tr>'; };
-  const orphan=bookings.filter(b=>b.date===date && b.status!=='cancelled' && !settings.tables.find(t=>t.id===b.tableId));
+  const orphan=bookings.filter(b=>b.date===date && b.status!=='cancelled' && !tablesOf(b.tableId).some(id=>settings.tables.find(t=>t.id===id)));
   $('planWrap').innerHTML = (dayWindow(date)?'':'<p class="hint">Closed this day.</p>')+`<table class="plan"><thead><tr><th class="tname">${esc(fmtD(date))}</th>${cols.map(c=>`<th>${c.endsWith(':00')?c:'<span class="hint">'+c.slice(3)+'</span>'}</th>`).join('')}</tr></thead><tbody>`+
     areas.map(a=>(areas.length>1?`<tr class="area"><th colspan="${cols.length+1}">${esc(a||'Other')}</th></tr>`:'')+settings.tables.filter(t=>(t.area||'')===a).map(row).join('')).join('')+
     '</tbody></table>'+(orphan.length?`<p class="hint" style="margin-top:10px">Bookings on removed tables: ${orphan.map(b=>`<a href="#" data-bid="${esc(b.id)}">${esc(b.name)} ${esc(b.time)}</a>`).join(', ')}</p>`:'');
@@ -970,7 +990,7 @@ function readSettings(){
     const old=settings.tables[Number(r.dataset.i)]; return {id: old?.id || ('T'+Date.now().toString(36)+i), name:r.querySelector('.t-name').value.trim()||('Table '+(i+1)), area:r.querySelector('.t-area').value.trim().slice(0,40), seats:Math.max(1,Number(r.querySelector('.t-seats').value)||2)}; });
   const extras=[...document.querySelectorAll('#extrasList .rowed[data-i]')].map((r,i)=>{
     const old=settings.extras[Number(r.dataset.i)]; return {id: old?.id || ('x'+Date.now().toString(36)+i), name:r.querySelector('.x-name').value.trim(), price:Math.max(0,Number(r.querySelector('.x-price').value)||0), desc:r.querySelector('.x-desc').value.trim()}; }).filter(x=>x.name);
-  return {tables, extras, maxGuests:Math.max(1,Number($('set-max').value)||12), duration:Number($('set-dur').value)||120, lastBefore:Number($('set-last').value)};
+  return {tables, extras, maxGuests:Math.max(1,Math.min(250,Number($('set-max').value)||40)), duration:Number($('set-dur').value)||120, lastBefore:Number($('set-last').value)};
 }
 $('addTable').onclick=()=>{ settings={...settings,...readSettings()}; settings.tables.push({id:'T'+Date.now().toString(36),name:'Table '+(settings.tables.length+1),area:'',seats:4}); renderSettings(); };
 $('addExtra').onclick=()=>{ settings={...settings,...readSettings()}; settings.extras.push({id:'x'+Date.now().toString(36),name:'',price:0,desc:''}); renderSettings(); };
