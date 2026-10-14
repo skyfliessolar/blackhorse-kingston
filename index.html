@@ -720,8 +720,8 @@
       <form class="book-form" id="bookingForm" novalidate>
         <div class="form-row">
           <div class="field"><label for="date">Date</label><input id="date" type="date" required></div>
-          <div class="field"><label for="guests">Guests <span class="g-hint">(up to <span id="gMax">40</span> online)</span></label>
-            <div class="stepper"><button type="button" class="st-btn" data-step="-1" aria-label="Fewer guests">−</button><input id="guests" type="number" min="1" max="40" value="2" inputmode="numeric" required><button type="button" class="st-btn" data-step="1" aria-label="More guests">+</button></div></div>
+          <div class="field"><label for="guests">Guests <span class="g-hint">(any group size)</span></label>
+            <div class="stepper"><button type="button" class="st-btn" data-step="-1" aria-label="Fewer guests">−</button><input id="guests" type="number" min="1" max="999" value="2" inputmode="numeric" required><button type="button" class="st-btn" data-step="1" aria-label="More guests">+</button></div></div>
         </div>
         <div class="form-row">
           <div class="field"><label for="time">Time</label><select id="time" class="sel" required><option value="">Choose a date first</option></select></div>
@@ -1114,7 +1114,9 @@ function pickTables(free, g, maxTables){
   return best || build(free);
 }
 const MAX_LOCKS=96;
-function maxOnline(){ const seats=settings.tables.reduce((a,t)=>a+(Number(t.seats)||0),0); return Math.max(1, Math.min(Number(settings.maxGuests)||40, seats||1)); }
+const MAX_GROUP=999;
+/* Groups up to this size get tables automatically; bigger groups are still welcome and are sent as a large-group request. */
+function autoLimit(){ const seats=settings.tables.reduce((a,t)=>a+(Number(t.seats)||0),0); return Math.max(1, Math.min(Number(settings.maxGuests)||40, seats||1)); }
 function inArea(){ const want=$('area').value; return settings.tables.filter(t=>!want||(t.area||'')===want); }
 function seatsTotal(){ return inArea().reduce((a,t)=>a+(Number(t.seats)||0),0); }
 function fitsFor(guests){ return seatsTotal()>=guests ? [true] : []; }
@@ -1134,7 +1136,7 @@ async function loadSettings(){
   $('area').innerHTML = '<option value="">No preference</option>'+areas.map(a=>`<option>${esc(a)}</option>`).join('');
   $('extrasOpts').innerHTML = settings.extras.map(x=>`<label class="extra-opt"><input type="checkbox" value="${esc(x.id)}">
     <span><b>${esc(x.name)}</b>${x.desc?`<small>${esc(x.desc)}</small>`:''}</span><span class="price">+ ${money(x.price)}</span></label>`).join('');
-  $('guests').max = maxOnline(); $('gMax').textContent = maxOnline();
+  $('guests').max = MAX_GROUP;
   updateExtras(); refreshTimes();
 }
 function chosenExtras(){ return [...$('extrasOpts').querySelectorAll('input:checked')].map(i=>settings.extras.find(x=>x.id===i.value)).filter(Boolean); }
@@ -1158,8 +1160,8 @@ function checkAvail(){
   const date=$('date').value, time=$('time').value, guests=Number($('guests').value)||0, av=$('avail');
   if(!date||!time) return;
   if(!Number.isInteger(guests) || guests < 1) return av.innerHTML='<span class="no">How many guests? Choose at least 1.</span>';
-  if(guests > maxOnline()) return av.innerHTML=`<span class="no">For groups over ${maxOnline()}, please <a href="#hire" data-enquiry="hire" style="color:var(--gold-light)">send a private hire enquiry</a> or call 020 3518 2275.</span>`;
-  if(!fitsFor(guests).length) return av.innerHTML = $('area').value ? `<span class="no">No ${esc($('area').value)} table fits ${guests} — try "No preference".</span>` : `<span class="no">That's bigger than all our tables together — please <a href="#hire" data-enquiry="hire" style="color:var(--gold-light)">send a private hire enquiry</a> or call 020 3518 2275.</span>`;
+  if(guests > autoLimit()) return av.innerHTML=`<span class="ok">✓ Large group of ${guests} — we'll arrange the seating and call you to confirm.</span><div class="join-note">Book below and we'll be in touch. Planning a private event? <a href="#hire" data-enquiry="hire" style="color:var(--gold-light)">Private hire</a> is also available.</div>`;
+  if(!fitsFor(guests).length) return av.innerHTML = $('area').value ? `<span class="no">No ${esc($('area').value)} table fits ${guests} — try "No preference".</span>` : `<span class="ok">✓ Large group of ${guests} — we'll arrange the seating and call you to confirm.</span>`;
   const t=freeTableAt(date,time,guests);
   if(t){ av.innerHTML=`<span class="ok">✓ Available — ${pretty(time)} for ${guests}${t.area?' · '+esc(t.area):''}</span>`+(t.tables.length>1?`<div class="join-note">We'll join ${t.tables.length} tables together for your group.</div>`:''); return; }
   const all=timesFor(date)||[], tm=toMin(time);
@@ -1172,8 +1174,8 @@ $('time').addEventListener('change',checkAvail);
 $('area').addEventListener('change',checkAvail);
 let gTimer; $('guests').addEventListener('input',()=>{ clearTimeout(gTimer); gTimer=setTimeout(checkAvail,250); });
 $('guests').addEventListener('keydown',e=>{ if(['.',',','e','E','-','+'].includes(e.key)) e.preventDefault(); });
-$('guests').addEventListener('input',()=>{ const g=$('guests'), v=g.value.replace(/\D/g,'').slice(0,3); if(v!==g.value) g.value=v; });
-$('guests').addEventListener('change',()=>{ const g=$('guests'); g.value=Math.max(1,Math.min(maxOnline(),Math.round(Number(g.value))||1)); checkAvail(); });
+$('guests').addEventListener('input',()=>{ const g=$('guests'), v=g.value.replace(/\D/g,'').slice(0,4); if(v!==g.value) g.value=v; });
+$('guests').addEventListener('change',()=>{ const g=$('guests'); g.value=Math.max(1,Math.min(MAX_GROUP,Math.round(Number(g.value))||1)); checkAvail(); });
 /* The Book button only works when the chosen date, time and group size are actually available. */
 function syncBook(){ const ok=!!$('avail').querySelector('.ok'), b=$('bookBtn'); if(b.dataset.busy) return; b.disabled=!ok; b.textContent= ok ? 'Book now' : 'Choose an available date & time'; }
 new MutationObserver(syncBook).observe($('avail'),{childList:true,subtree:true,characterData:true}); syncBook();
@@ -1198,14 +1200,15 @@ form.addEventListener('submit', async e=>{
   if(!validDate(date)) return showErr('Please choose a date from today onwards.');
   if(!/^[0-9 +()-]{7,20}$/.test(phone)) return showErr('Please check your phone number.');
   if(!/^\d+$/.test($('guests').value) || !Number.isInteger(guests) || guests<1) return showErr('Please choose how many guests.');
-  if(guests>maxOnline()) return showErr(`For groups over ${maxOnline()}, please <a href="#hire" data-enquiry="hire" style="color:inherit">send a private hire enquiry</a> or call 020 3518 2275.`);
+  if(guests>MAX_GROUP) return showErr('For groups this large, please call 020 3518 2275.');
   const slots=timesFor(date);
   if(slots===null) return showErr("Sorry, we're closed that day — please choose another date.");
   if(!slots.includes(time)) return showErr('Please choose one of the times in the list.');
   $('bookBtn').dataset.busy='1'; $('bookBtn').disabled=true;
   try{
     await loadTaken(date, true);
-    const table=freeTableAt(date,time,guests);
+    const big = guests>autoLimit() || !fitsFor(guests).length;
+    const table = big ? {id:'request', name:'Large group — to arrange', area:'', tables:[]} : freeTableAt(date,time,guests);
     if(!table){ checkAvail(); return showErr('Sorry, that time has just been taken — please pick one of the suggested times.'); }
     const dur=Number(settings.duration)||120, locks=table.tables.flatMap(tb=>blocksFor(date,time,dur).map(b=>`${date}_${b}_${tb.id}`));
     const ex=chosenExtras(), total=ex.reduce((s,x)=>s+Number(x.price||0),0);
@@ -1216,7 +1219,7 @@ form.addEventListener('submit', async e=>{
     await b.commit();
     const nice=new Date(date+'T00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
     emailAlert('bookings', `New table booking — ${name}, ${date} ${time} (${guests})`, {Name:name, Phone:phone, Email:email, Date:date, Time:time, Guests:guests, Table:table.name+(table.area?' · '+table.area:''), Extras:ex.map(x=>x.name+' £'+x.price).join(', ')||'-', 'Extras total':'£'+total, Notes:$('notes').value.trim()||'-'}, email);
-    showOk(`<b>Your table is reserved</b> — ${esc(nice)} at ${pretty(time)} for ${guests}.${total?` Extras: ${money(total)}, payable at the venue.`:''}<br>We'll contact you to confirm. Need to change it? Call 020 3518 2275.`);
+    showOk(table.id==='request' ? `<b>Request received</b> — ${esc(nice)} at ${pretty(time)} for ${guests} guests. We'll call you on ${esc(phone)} to arrange the seating and confirm.` : `<b>Your table is reserved</b> — ${esc(nice)} at ${pretty(time)} for ${guests}.${total?` Extras: ${money(total)}, payable at the venue.`:''}<br>We'll contact you to confirm. Need to change it? Call 020 3518 2275.`);
     ['name','phone','email','notes'].forEach(i=>$(i).value=''); $('extrasOpts').querySelectorAll('input').forEach(i=>i.checked=false); updateExtras();
     taken.clear(); takenFor=''; refreshTimes();
   }catch(err){
