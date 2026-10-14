@@ -191,6 +191,31 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
 .log-filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
 .log-filters select,.log-filters input{border:1px solid var(--line);border-radius:2px;padding:8px 10px;background:#fff;}
 .area-pill{display:inline-block;font-family:'Oswald',sans-serif;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:var(--paper);}
+
+.site-pill{display:flex;align-items:center;gap:8px;width:100%;border:1px solid rgba(243,234,219,.18);background:rgba(243,234,219,.05);color:var(--paper);padding:9px 12px;border-radius:2px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;margin:-14px 0 16px;}
+.site-pill .dot{width:9px;height:9px;border-radius:50%;background:#5BC27A;box-shadow:0 0 0 3px rgba(91,194,122,.2);}
+.site-pill.off .dot{background:#E2574C;box-shadow:0 0 0 3px rgba(226,87,76,.25);}
+.bell{display:flex;justify-content:space-between;align-items:center;}
+.bell .count{background:#C0584A;}
+.onoff{display:flex;gap:18px;align-items:center;flex-wrap:wrap;padding:18px 20px;border-radius:3px;margin-bottom:18px;border:2px solid #5BC27A;background:#EEF7F0;}
+.onoff.off{border-color:#E2574C;background:#FBEDEB;}
+.onoff .big{font-family:'Fraunces',serif;font-size:24px;}
+.presets{display:flex;gap:8px;flex-wrap:wrap;margin:-4px 0 14px;}
+.preview-off{background:#0C0B09;color:#F1E8D6;text-align:center;padding:28px;border-radius:3px;}
+.preview-off h4{font-family:'Fraunces',serif;color:#E4CE93;font-size:24px;margin:0 0 8px;}
+.preview-off p{white-space:pre-line;margin:0;opacity:.85;}
+.pp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;}
+.pp-grid figure{margin:0;background:#fff;border:1px solid var(--line);padding:6px;}
+.pp-grid img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;}
+.pp-grid input{width:100%;border:1px solid var(--line);padding:5px 6px;font-size:12.5px;margin-top:6px;}
+.pp-grid .row{display:flex;gap:6px;margin-top:6px;}
+.drop{border:2px dashed var(--line);border-radius:3px;padding:26px;text-align:center;background:#fff;cursor:pointer;}
+.drop.over{border-color:var(--brass);background:#FBF6EC;}
+.notif{display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:center;background:#fff;border:1px solid var(--line);border-left:4px solid var(--brass);padding:12px 14px;margin-bottom:10px;}
+.notif.urgent{border-left-color:#C0584A;background:#FDF5F3;}
+.notif .ic{font-size:20px;text-align:center;}
+.notif b{display:block;}
+.notif .when{font-size:12px;color:var(--muted);}
 .switch{display:inline-flex;align-items:center;gap:8px;font-size:13px;}
 .perm-chips label{font-size:13px;margin:2px 10px 2px 0;}
 .plan td.taken{white-space:nowrap;}
@@ -217,7 +242,9 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
   <aside class="sidebar" id="sidebar">
     <div class="brand"><img src="logo.jpg" alt="">The Black Horse</div>
     <span class="sub">Admin dashboard</span>
+    <button class="site-pill" id="sitePill" data-perm="owner" type="button"><span class="dot"></span><span id="sitePillTxt">Website live</span></button>
     <button class="tab-btn active" data-tab="dash">Dashboard</button>
+    <button class="tab-btn bell" data-tab="alerts">🔔 Notifications <span class="count" id="c-alerts" hidden></span></button>
     <button class="tab-btn" data-tab="bookings" data-perm="bookings">Table bookings <span class="count" id="c-bookings" hidden></span></button>
     <button class="tab-btn" data-tab="plan" data-perm="bookings">Table plan</button>
     <button class="tab-btn" data-tab="hire" data-perm="hire">Private hire <span class="count" id="c-hire" hidden></span></button>
@@ -225,12 +252,14 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
     <button class="tab-btn" data-tab="calls" data-perm="calls">Call log</button>
     <button class="tab-btn" data-tab="offers" data-perm="offers">Offers &amp; discounts</button>
     <button class="tab-btn" data-tab="menu" data-perm="menu">Menu &amp; prices</button>
+    <button class="tab-btn" data-tab="pubphotos" data-perm="pubphotos">Pub photos</button>
     <button class="tab-btn" data-tab="vouchers" data-perm="vouchers">Game &amp; discount codes</button>
     <button class="tab-btn" data-tab="photos" data-perm="photos">Photos &amp; videos</button>
     <button class="tab-btn" data-tab="settings" data-perm="settings">Tables &amp; charges</button>
     <button class="tab-btn" data-tab="content" data-perm="content">Site text</button>
     <button class="tab-btn" data-tab="hours" data-perm="hours">Opening hours</button>
     <button class="tab-btn" data-tab="logs" data-perm="logs">Activity log</button>
+    <button class="tab-btn" data-tab="siteonoff" data-perm="owner">Website on / off</button>
     <button class="tab-btn" data-tab="notify" data-perm="owner">Email &amp; WhatsApp alerts</button>
     <button class="tab-btn" data-tab="staff" data-perm="owner">Staff &amp; permissions</button>
     <button class="tab-btn" data-tab="account" id="accountTab">My password</button>
@@ -251,6 +280,7 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
       <div class="cards">
         <div class="stat" data-go="bookings" data-perm="bookings"><div class="n" id="s-today">0</div><div class="l">Bookings today</div></div>
         <div class="stat" data-go="bookings" data-perm="bookings"><div class="n" id="s-guests">0</div><div class="l">Guests today</div></div>
+        <div class="stat" data-go="alerts" data-perm="bookings" id="st-needs"><div class="n" id="s-needs">0</div><div class="l">Need a table</div></div>
         <div class="stat" data-go="bookings" data-perm="bookings" id="st-pending"><div class="n" id="s-pending">0</div><div class="l">To confirm</div></div>
         <div class="stat" data-go="hire" data-perm="hire" id="st-hire"><div class="n" id="s-hire">0</div><div class="l">New hire enquiries</div></div>
         <div class="stat" data-go="messages" data-perm="messages" id="st-msg"><div class="n" id="s-msg">0</div><div class="l">New messages</div></div>
@@ -424,6 +454,40 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
       <div class="log-filters"><select id="logArea"><option value="">All areas</option></select><select id="logWho"><option value="">Everyone</option></select><input id="logFind" placeholder="Search…"></div>
       <div style="overflow-x:auto"><table><thead><tr><th>When</th><th>Who</th><th>Area</th><th>What changed</th></tr></thead><tbody id="logBody"><tr class="empty-row"><td colspan="4">No activity yet.</td></tr></tbody></table></div>
       <p class="hint">Every change made in this admin portal is recorded here with the login that made it. The last 500 changes are shown.</p>
+    </section>
+
+
+    <!-- NOTIFICATIONS -->
+    <section class="panel" id="p-alerts">
+      <div class="head"><div><span class="eyebrow">Needs attention</span><h2>Notifications</h2></div></div>
+      <div id="notifList"></div>
+      <p class="hint">Bookings marked <b>Needs a table</b> came in at a busy time or for a big group. Open one, choose tables and set it to Confirmed — it then leaves this list.</p>
+    </section>
+
+    <!-- WEBSITE ON / OFF -->
+    <section class="panel" id="p-siteonoff">
+      <div class="head"><div><span class="eyebrow">Main admin only</span><h2>Website on / off</h2></div></div>
+      <div class="onoff" id="onoffBox"><div><div class="big" id="onoffState">Website is LIVE</div><div class="hint" id="onoffSub">Customers can see the website and book.</div></div>
+        <button class="btn" id="onoffBtn" style="margin-left:auto">Switch website OFF</button></div>
+      <div class="card" style="max-width:720px">
+        <h3>Message customers see while it's off</h3>
+        <div class="presets"><button class="btn small ghost" data-pre="test">Testing — back in a minute</button><button class="btn small ghost" data-pre="hour">Back in an hour</button><button class="btn small ghost" data-pre="update">Updating our website</button><button class="btn small ghost" data-pre="closed">Closed today</button></div>
+        <div class="field"><label>Heading</label><input id="off-title" maxlength="80"></div>
+        <div class="field"><label>Message</label><textarea id="off-msg" maxlength="400"></textarea></div>
+        <button class="btn ghost" id="saveOffText">Save message</button>
+        <div class="msg" id="offMsgBox"></div>
+        <h3 style="margin-top:18px">Preview</h3>
+        <div class="preview-off"><h4 id="pv-title"></h4><p id="pv-msg"></p><p style="margin-top:12px;color:#E4CE93">020 3518 2275</p></div>
+        <p class="hint">While the website is off, you can still check it yourself at <b>blackhorsedrunkenwok.co.uk/?preview</b>. This admin portal keeps working as normal.</p>
+      </div>
+    </section>
+
+    <!-- PUB PHOTOS -->
+    <section class="panel" id="p-pubphotos">
+      <div class="head"><div><span class="eyebrow">End of the website</span><h2>Pub photos</h2></div></div>
+      <label class="drop" id="ppDrop"><input type="file" id="ppFile" accept="image/*" multiple hidden>📷 <b>Tap to add photos</b> or drag them here<br><span class="hint">They appear straight away in the "Our Pub" section after Get Directions.</span></label>
+      <div class="msg" id="ppMsg"></div>
+      <div class="pp-grid" id="ppGrid" style="margin-top:14px"></div>
     </section>
 
     <!-- SETTINGS -->
@@ -645,6 +709,7 @@ function openTab(t){
   if(t==='plan') renderPlan();
   if(t!=='vouchers') stopScan();
   if(t==='logs') renderLogs();
+  if(t==='alerts') renderNotifs();
 }
 document.querySelectorAll('.tab-btn').forEach(b=>b.onclick=()=>openTab(b.dataset.tab));
 document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>openTab(b.dataset.go));
@@ -667,7 +732,7 @@ $('notifBtn').onclick=async()=>{
   $('notifBtn').textContent = p==='granted' ? '🔔 Alerts on' : '🔕 Alerts blocked';
 };
 function updateTitle(){
-  const n = bookings.filter(b=>b.seen===false).length + hires.filter(h=>h.seen===false).length + messages.filter(m=>m.seen===false).length;
+  const n = bookings.filter(b=>b.seen===false || needsTable(b)).length + hires.filter(h=>h.seen===false).length + messages.filter(m=>m.seen===false).length;
   document.title = (n?`(${n}) `:'') + 'Admin — The Black Horse';
   $('mobCount').textContent = n ? `🔴 ${n} new` : '';
 }
@@ -681,7 +746,7 @@ function watch(col, onData, label, describe){
   let first=true;
   return onSnapshot(typeof col==='string' ? collection(db,col) : col, snap=>{
     const list=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(!first) snap.docChanges().forEach(ch=>{ if(ch.type==='added' && !ch.doc.metadata.hasPendingWrites) alertNew(label, describe(ch.doc.data())); });
+    if(!first) snap.docChanges().forEach(ch=>{ if(ch.type==='added' && !ch.doc.metadata.hasPendingWrites) alertNew(typeof label==='function'?label(ch.doc.data()):label, describe(ch.doc.data())); });
     first=false; onData(list);
   }, e=>{ console.error(col,e); showConnErr(e); });
 }
@@ -710,7 +775,7 @@ onAuthStateChanged(auth, user=>{
 // The main admin is recognised by the database itself: only the main admin is allowed to list
 // the staff collection. No email address is stored in this page.
 async function checkOwner(){ try{ await getDocs(collection(db,'staff')); return true; }catch(e){ return false; } }
-const PERMS=[['bookings','Bookings & table plan'],['hire','Private hire'],['messages','Messages'],['calls','Call log'],['offers','Offers & discounts'],['menu','Menu & prices'],
+const PERMS=[['bookings','Bookings & table plan'],['hire','Private hire'],['messages','Messages'],['calls','Call log'],['offers','Offers & discounts'],['menu','Menu & prices'],['pubphotos','Pub photos (add photos)'],
   ['vouchers','Game & discount codes'],['logs','Activity log'],['photos','Photos & videos'],['settings','Tables & charges'],['content','Site text'],['hours','Opening hours']];
 const LEGACY={bookings:true,hire:true,messages:true,calls:true};
 let perms={};
@@ -756,13 +821,14 @@ async function start(){
   try{ const h=await getDoc(doc(db,'site','hours')); if(h.exists()) hoursCfg={...DH,...h.data()}; }catch(e){}
   renderSettings();
   if(can('bookings')) unsubs.push(watch(query(collection(db,'bookings'),where('date','>=',daysAgo(60))), l=>{bookings=l; renderBookings(); renderDash(); renderPlan(); refreshModal(); updateTitle(); },
-    '🍽 New table booking', d=>`${d.name} · ${d.guests} guests · ${fmtD(d.date)} ${d.time}`));
+    d=>d.tableId==='request'?'⚠️ Booking needs a table':'🍽 New table booking', d=>`${d.name} · ${d.guests} guests · ${fmtD(d.date)} ${d.time}`));
   if(can('hire')) unsubs.push(watch('hireEnquiries', l=>{hires=l; renderHires(); renderDash(); updateTitle(); },
     '🎉 New private hire enquiry', d=>`${d.name} · ${d.type||'Event'} · ${d.guests} guests`));
   if(can('messages')) unsubs.push(watch('messages', l=>{messages=l; renderMessages(); renderDash(); updateTitle(); },
     '✉️ New message', d=>`${d.name}: ${(d.message||'').slice(0,80)}`));
   if(can('calls')) unsubs.push(onSnapshot(collection(db,'calls'), s=>{calls=s.docs.map(d=>({id:d.id,...d.data()})); renderCalls();}));
-  if(can('photos')) unsubs.push(onSnapshot(collection(db,'gallery'), s=>{gallery=s.docs.map(d=>({id:d.id,...d.data()})); renderGallery();}));
+  if(can('photos')||can('pubphotos')) unsubs.push(onSnapshot(collection(db,'gallery'), s=>{gallery=s.docs.map(d=>({id:d.id,...d.data()})); if(can('photos')) renderGallery(); renderPubPhotos();}));
+  if(isOwner) loadStatusAdmin();
   if(can('offers')) unsubs.push(onSnapshot(collection(db,'offers'), s=>{offers=s.docs.map(d=>({id:d.id,...d.data()})); renderOffers();}));
   if(isOwner) unsubs.push(onSnapshot(collection(db,'staff'), s=>{staff=s.docs.map(d=>({id:d.id,...d.data()})); renderStaff();}));
   if(can('content')) loadContent();
@@ -792,6 +858,7 @@ function renderDash(){
   const nm=messages.filter(m=>m.seen===false).length; $('s-msg').textContent=nm; $('st-msg').classList.toggle('alert',nm>0);
   const set=(id,n)=>{ $(id).textContent=n; $(id).hidden=!n; };
   set('c-bookings', pend); set('c-hire', nh); set('c-messages', nm);
+  renderNotifs();
   $('todayBody').innerHTML = tb.length ? tb.map(b=>`<tr class="rowlink" data-edit="${esc(b.id)}"><td><b>${esc(b.time)}</b></td><td>${esc(b.tableName)}</td><td>${esc(b.name)}</td>
     <td><a class="tel" href="tel:${esc(b.phone)}">${esc(b.phone)}</a></td><td>${esc(b.guests)}</td><td>${extrasPills(b)}</td><td>${esc(b.status)}</td></tr>`).join('')
     : '<tr class="empty"><td colspan="7">No bookings today yet.</td></tr>';
@@ -1002,7 +1069,7 @@ $('clBody').onclick=async e=>{
 const PLACES=[
   ['hero-after','Below the top banner'],['welcome-after','After "Welcome"'],['kitchen-after','After Drunken Wok & Drinks'],
   ['menu-after','After the Menu'],['sport-after','After Live Sport'],['terrace-after','After the Terrace'],['gallery','Gallery section'],
-  ['hire-after','After Private Hire'],['book-before','Before "Book a Table"'],['contact-after','After Contact'],['menupages','Menu → "Printed menu" tab']];
+  ['hire-after','After Private Hire'],['book-before','Before "Book a Table"'],['contact-after','After Contact'],['pub','"Our Pub" (end of website)'],['menupages','Menu → "Printed menu" tab']];
 const placeName=p=>(PLACES.find(x=>x[0]===p)||[p,p])[1];
 const placeOf=g=>g.place || (g.kind==='menu'?'menupages':'gallery');
 $('addPlace').innerHTML=PLACES.map(([v,n])=>`<option value="${v}">${esc(n)}</option>`).join('');
@@ -1428,7 +1495,7 @@ $('saveMenu').onclick=async()=>{
 /* ---------- activity log ---------- */
 let logs=[];
 const AREA_NAMES={bookings:'Bookings',hireEnquiries:'Private hire',messages:'Messages',calls:'Call log',offers:'Offers',gallery:'Photos & videos',
-  'site/booking':'Tables & charges','site/menu':'Menu & prices','site/content':'Site text','site/hours':'Opening hours','site/notify':'Alerts','site/promo':'Game settings',staff:'Staff',vouchers:'Discount codes'};
+  'site/booking':'Tables & charges','site/menu':'Menu & prices','site/content':'Site text','site/hours':'Opening hours','site/notify':'Alerts','site/promo':'Game settings','site/status':'Website on/off',staff:'Staff',vouchers:'Discount codes'};
 function renderLogs(){
   const area=$('logArea').value, who=$('logWho').value, q=$('logFind').value.trim().toLowerCase();
   const names=Object.fromEntries((staff||[]).map(s=>[s.id,s.name]));
@@ -1448,6 +1515,82 @@ function renderLogs(){
 $('logCsv').onclick=()=>{ const list=renderLogs(), q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
   const csv='When,Who,Area,What changed\n'+list.map(l=>[new Date(tsMs(l.at)).toLocaleString('en-GB'),l._who,l.area,l.text].map(q).join(',')).join('\n');
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='activity-log-'+today()+'.csv'; a.click(); };
+
+
+/* ---------- notifications ---------- */
+const needsTable=b=> b.tableId==='request' && b.status!=='cancelled' && b.status!=='confirmed' && (b.date||'')>=today();
+function notifications(){
+  const out=[];
+  if(can('bookings')){
+    bookings.filter(needsTable).forEach(b=>out.push({urgent:true, ic:'⚠️', t:`Needs a table — ${b.name}, ${b.guests} guests`, s:`${fmtD(b.date)} ${b.time} · ${b.tableName||''} · ${b.phone||''}`, at:tsMs(b.createdAt), open:()=>openBooking(b)}));
+    bookings.filter(b=>b.seen===false && !needsTable(b) && b.status!=='cancelled').forEach(b=>out.push({ic:'🍽', t:`New booking — ${b.name}, ${b.guests} guests`, s:`${fmtD(b.date)} ${b.time} · ${b.tableName||''}`, at:tsMs(b.createdAt), open:()=>openBooking(b)}));
+  }
+  if(can('hire')) hires.filter(h=>h.status==='new').forEach(h=>out.push({ic:'🎉', t:`Private hire enquiry — ${h.name}`, s:`${h.type||'Event'} · ${h.guests||'?'} guests · ${h.date?fmtD(h.date):'date tbc'}`, at:tsMs(h.createdAt), open:()=>openTab('hire')}));
+  if(can('messages')) messages.filter(m=>m.seen===false).forEach(m=>out.push({ic:'✉️', t:`Message from ${m.name}`, s:String(m.message||'').slice(0,90), at:tsMs(m.createdAt), open:()=>openTab('messages')}));
+  return out.sort((a,b)=>(b.urgent-a.urgent)||(b.at-a.at));
+}
+let notifCache=[];
+function renderNotifs(){
+  notifCache=notifications();
+  const n=notifCache.length, urgent=notifCache.filter(x=>x.urgent).length;
+  $('c-alerts').textContent=n; $('c-alerts').hidden=!n;
+  if($('s-needs')){ $('s-needs').textContent=urgent; $('st-needs').classList.toggle('alert',urgent>0); }
+  $('notifList').innerHTML = n ? notifCache.map((x,i)=>`<div class="notif ${x.urgent?'urgent':''}"><div class="ic">${x.ic}</div><div><b>${esc(x.t)}</b><span class="hint">${esc(x.s)}</span>${x.at?`<div class="when">${dLong(x.at)}</div>`:''}</div><button class="btn small" data-ni="${i}">Open</button></div>`).join('')
+    : '<div class="card"><p class="hint" style="margin:0">✓ All caught up — nothing needs attention.</p></div>';
+}
+$('notifList').onclick=e=>{ const b=e.target.closest('[data-ni]'); if(b) notifCache[Number(b.dataset.ni)]?.open(); };
+
+/* ---------- website on / off ---------- */
+const OFF_PRESETS={test:["We'll be right back","We're testing a few things on our website — back in a minute. You can still call us to book."],
+  hour:["Back in an hour","Our website is having a quick update and will be back within the hour. Call us any time to book a table."],
+  update:["Updating our website","We're making our website even better. Please check back soon, or call us to book."],
+  closed:["Closed today","The Black Horse is closed today. We look forward to seeing you again soon."]};
+let siteStatus={offline:false,title:OFF_PRESETS.update[0],message:OFF_PRESETS.update[1]};
+function renderOnOff(){
+  const off=!!siteStatus.offline;
+  $('onoffBox').classList.toggle('off',off); $('onoffState').textContent= off ? 'Website is OFF' : 'Website is LIVE';
+  $('onoffSub').textContent= off ? 'Customers only see your message below.' : 'Customers can see the website and book.';
+  $('onoffBtn').textContent= off ? 'Switch website ON' : 'Switch website OFF';
+  $('sitePill').classList.toggle('off',off); $('sitePillTxt').textContent= off ? 'Website OFF' : 'Website live';
+  if(document.activeElement!==$('off-title')) $('off-title').value=siteStatus.title||''; if(document.activeElement!==$('off-msg')) $('off-msg').value=siteStatus.message||'';
+  previewOff();
+}
+function previewOff(){ $('pv-title').textContent=$('off-title').value||"We'll be back soon"; $('pv-msg').textContent=$('off-msg').value||''; }
+['off-title','off-msg'].forEach(id=>$(id).addEventListener('input',previewOff));
+document.querySelector('.presets').onclick=e=>{ const k=e.target.dataset.pre; if(!k) return; $('off-title').value=OFF_PRESETS[k][0]; $('off-msg').value=OFF_PRESETS[k][1]; previewOff(); };
+async function saveStatus(offline, msgId){
+  const d={offline, title:$('off-title').value.trim().slice(0,80)||"We'll be back soon", message:$('off-msg').value.trim().slice(0,400)};
+  logNote = offline===siteStatus.offline ? `Off-message edited: "${d.title}"` : (offline ? `Website switched OFF — "${d.title}"` : 'Website switched ON');
+  try{ await setDoc(doc(db,'site','status'),d); siteStatus=d; renderOnOff(); flash(msgId, offline ? 'The website is now OFF for customers.' : (msgId==='offMsgBox'?'Message saved.':'The website is LIVE again.')); }
+  catch(e){ fail(msgId,e); } finally{ logNote=''; }
+}
+$('onoffBtn').onclick=()=>{ const goingOff=!siteStatus.offline; if(goingOff && !confirm('Switch the website OFF? Customers will only see your message until you switch it back on.')) return; saveStatus(goingOff,'offMsgBox'); };
+$('saveOffText').onclick=()=>saveStatus(!!siteStatus.offline,'offMsgBox');
+$('sitePill').onclick=()=>openTab('siteonoff');
+async function loadStatusAdmin(){ try{ const s=await getDoc(doc(db,'site','status')); if(s.exists()) siteStatus={...siteStatus,...s.data()}; }catch(e){} renderOnOff(); }
+
+/* ---------- pub photos (staff) ---------- */
+function renderPubPhotos(){
+  const l=itemsAt('pub');
+  $('ppGrid').innerHTML = l.length ? l.map(g=>`<figure data-pp="${esc(g.id)}"><img src="${g.img}" alt=""><input data-ppcap value="${esc(g.caption||'')}" placeholder="Caption (optional)" maxlength="120"><div class="row"><button class="btn small danger" data-ppdel style="flex:1">Remove</button></div></figure>`).join('')
+    : '<p class="hint">No pub photos yet — add your first ones above.</p>';
+}
+async function addPubPhotos(files){
+  files=[...files].filter(f=>f.type.startsWith('image/')); if(!files.length) return flash('ppMsg','Please choose photos (JPG or PNG).',true);
+  const base=itemsAt('pub').length;
+  for(let i=0;i<files.length;i++){ flash('ppMsg',`Uploading ${i+1} of ${files.length}…`);
+    try{ await addDoc(collection(db,'gallery'),{kind:'photo',place:'pub',img:await toData(files[i],'pub'),caption:'',order:base+i,createdAt:serverTimestamp()}); }
+    catch(err){ return fail('ppMsg',err); } }
+  flash('ppMsg', files.length>1 ? `${files.length} photos added — live on the website.` : 'Photo added — live on the website.'); $('ppFile').value='';
+}
+$('ppFile').onchange=e=>addPubPhotos(e.target.files);
+['dragover','dragenter'].forEach(ev=>$('ppDrop').addEventListener(ev,e=>{ e.preventDefault(); $('ppDrop').classList.add('over'); }));
+['dragleave','drop'].forEach(ev=>$('ppDrop').addEventListener(ev,e=>{ e.preventDefault(); $('ppDrop').classList.remove('over'); }));
+$('ppDrop').addEventListener('drop',e=>addPubPhotos(e.dataTransfer.files));
+$('ppGrid').addEventListener('change',async e=>{ if(!e.target.matches('[data-ppcap]')) return; const id=e.target.closest('[data-pp]').dataset.pp;
+  try{ await updateDoc(doc(db,'gallery',id),{caption:e.target.value.trim().slice(0,120)}); flash('ppMsg','Caption saved.'); }catch(err){ fail('ppMsg',err); } });
+$('ppGrid').addEventListener('click',async e=>{ if(!e.target.matches('[data-ppdel]')) return; if(!confirm('Remove this photo from the website?')) return; const id=e.target.closest('[data-pp]').dataset.pp;
+  try{ await deleteDoc(doc(db,'gallery',id)); flash('ppMsg','Photo removed.'); }catch(err){ fail('ppMsg',err); } });
 </script>
 </body>
 </html>
