@@ -846,7 +846,7 @@
       <a href="#find">Find Us</a>
     </nav>
     <div class="fine">&copy; <span id="yr">2026</span> The Black Horse &nbsp;&middot;&nbsp; 204 London Road, Kingston upon Thames, KT2 6QP &nbsp;&middot;&nbsp; 020 3518 2275</div>
-    <div class="credit">Website by <a href="https://stashlo.com" target="_blank" rel="noopener">Stashlo</a> &nbsp;&middot;&nbsp; <a href="admin" rel="nofollow">Staff login</a></div>
+    <div class="credit">Website by <a href="https://stashlo.com" target="_blank" rel="noopener">Stashlo</a> &nbsp;&middot;&nbsp; <a href="#staff" id="staffLink" rel="nofollow">Staff login</a></div>
     <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
   </div>
 </footer>
@@ -969,6 +969,9 @@ const dealHtml=d=>`<div class="deal-box"><div class="deal-time">${esc(d.time)}</
   <div class="deal-grid"><div><b>${esc(d.main)}</b><span>Main</span></div><div><b>${esc(d.two)}</b><span>Starter + main</span></div><div><b>${esc(d.three)}</b><span>Starter + main + drink</span></div></div>
   ${d.drink?`<div class="mi-desc" style="margin-top:12px">${esc(d.drink)}</div>`:''}</div>`;
 let DEAL=dealHtml(DEAL_DEF);
+/* The built-in menu, for staff tools when no edited menu has been saved yet. */
+window.bhMenuDefault=(()=>{ const conv=l=>l.map(c=>({t:c.t,sub:c.sub||'',items:c.items.map(i=>({n:i[0],p:i[1]||'',d:i[2]||'',hot:!!i[3],off:false}))}));
+  const snap=JSON.stringify({food:conv(FOOD),lunch:conv(LUNCH),deal:DEAL_DEF}); return ()=>JSON.parse(snap); })();
 /* Menu edited in the admin portal replaces the built-in one (items hidden there are left out). */
 window.bhSetMenu=m=>{ if(!m) return;
   const conv=l=>Array.isArray(l)&&l.length ? l.map(c=>({t:String(c.t||''),sub:String(c.sub||''),items:(c.items||[]).filter(i=>i&&i.n&&!i.off).map(i=>[String(i.n),String(i.p||''),String(i.d||''),i.hot?1:0])})).filter(c=>c.t&&c.items.length) : null;
@@ -1051,9 +1054,10 @@ async function loadGallery(){
     if(by.menupages){ window.MENU_PAGES = by.menupages.filter(g=>g.img).map((m,i)=>({src:m.img, cap:m.caption||('Page '+(i+1))})); $('pagesTab').hidden = !window.MENU_PAGES.length; }
     if(by.gallery){ renderGrid($('galleryGrid'), by.gallery); $('gallery').hidden=false; document.querySelectorAll('[data-gallery-link]').forEach(a=>a.hidden=false); }
     document.querySelectorAll('.media-slot[data-place]').forEach(sl=>{
-      const items = by[sl.dataset.place]; if(!items || !items.length) return;
+      const items = by[sl.dataset.place]; if(!items || !items.length){ sl.hidden=true; sl.querySelector('.media-grid').innerHTML=''; return; }
       renderGrid(sl.querySelector('.media-grid'), items); sl.hidden=false;
     });
+    window.dispatchEvent(new Event('bh-gallery'));
   }catch(e){ console.warn('Gallery', e); }
 }
 
@@ -1282,7 +1286,7 @@ async function loadOffers(){
     const t=todayISO();
     const list=(await getDocs(collection(db,'offers'))).docs.map(d=>d.data())
       .filter(o=>o.active!==false && (!o.from||o.from<=t) && (!o.to||o.to>=t)).sort((a,b)=>(a.order||0)-(b.order||0));
-    if(!list.length) return;
+    if(!list.length){ $('offers').hidden=true; $('offerGrid').innerHTML=''; return; }
     $('offerGrid').innerHTML=list.map(o=>`<article class="offer reveal">${o.badge?`<span class="badge">${esc(o.badge)}</span>`:''}<h3>${esc(o.title)}</h3>${o.text?`<p>${esc(o.text)}</p>`:''}${o.when?`<div class="when">${esc(o.when)}</div>`:''}</article>`).join('');
     $('offers').hidden=false; window.dispatchEvent(new Event('content-added'));
   }catch(e){ console.warn('Offers',e); }
@@ -1344,6 +1348,12 @@ window.bhCreateVoucher=async(score, det={})=>{
 
 /* ================= START ================= */
 loadStatus(); loadContent(); loadGallery(); loadOffers(); loadPromo(); loadMenu();
+window.bhReloadGallery=()=>loadGallery(); window.bhReloadOffers=()=>loadOffers();
+
+/* ================= STAFF LOGIN (staff tools open inside the website) ================= */
+let staffMod=null; const loadStaff=()=> staffMod ||= import('./staff.js');
+$('staffLink').addEventListener('click',e=>{ e.preventDefault(); loadStaff().then(m=>m.openLogin()).catch(err=>{ console.error(err); alert('Staff login could not load — please check your connection.'); }); });
+try{ if(localStorage.getItem('bh_staff')==='1') loadStaff(); else if(location.hash==='#staff') loadStaff().then(m=>m.openLogin()); }catch(e){}
 loadHours().then(loadSettings);
 </script>
 
