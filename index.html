@@ -209,7 +209,7 @@
   .type-switch input:focus-visible + span{outline:2px solid var(--gold);}
   .hire-only{display:none !important;} form.is-hire .hire-only{display:block !important;} form.is-hire span.hire-only{display:inline !important;} form.is-hire .field.table-only,form.is-hire div.table-only{display:none !important;} form.is-hire .table-only{display:none;}
   #book-error{display:none;margin-top:16px;padding:14px 16px;background:rgba(160,60,50,0.15);border-left:3px solid #C0584A;font-size:14.5px;color:var(--cream);}
-  form.book-form .btn:disabled{opacity:.6;cursor:wait;}
+  form.book-form .btn:disabled{opacity:.55;cursor:not-allowed;}
   #book-confirm{display:none;margin-top:16px;padding:14px 16px;background:rgba(201,169,97,0.1);border-left:3px solid var(--gold);font-size:14.5px;color:var(--cream);}
 
   .hours-list{max-width:520px;margin:44px auto 0;}
@@ -823,7 +823,7 @@
       <a href="#find">Find Us</a>
     </nav>
     <div class="fine">&copy; <span id="yr">2026</span> The Black Horse &nbsp;&middot;&nbsp; 204 London Road, Kingston upon Thames, KT2 6QP &nbsp;&middot;&nbsp; 020 3518 2275</div>
-    <div class="credit">Website by <a href="https://stashlo.com" target="_blank" rel="noopener">Stashlo</a></div>
+    <div class="credit">Website by <a href="https://stashlo.com" target="_blank" rel="noopener">Stashlo</a> &nbsp;&middot;&nbsp; <a href="admin" rel="nofollow">Staff login</a></div>
     <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
   </div>
 </footer>
@@ -893,7 +893,7 @@ lb.addEventListener('touchend',e=>{ const dx=e.changedTouches[0].clientX-tx; if(
 
 /* ================= MENU ================= */
 const V='Veg & Tofu / Chicken / Beef / Prawn';
-const FOOD=[
+let FOOD=[
  {t:'Starters', items:[
   ['Chicken Satay','£8.50','Succulent chicken marinated in Thai spices with a rich peanut sauce'],
   ['Fish Cake','£7.99','Spicy fish cake with Thai spices, served with sweet chilli sauce'],
@@ -932,7 +932,7 @@ const FOOD=[
   ['Kids Egg Noodle','£6.99','Stir-fried noodles with egg, chicken and spring onion'],
   ['Chicken Nuggets & Fries','£6.99','']]}
 ];
-const LUNCH=[
+let LUNCH=[
  {t:'Starters', items:[['Chicken Wing','','Crispy chicken wings in hot & honey sauce with spring onion'],['Fish Cake','','Spicy Thai fish cake with sweet chilli sauce'],
    ['Veg Spring Roll','','Mixed vegetable spring roll with sweet chilli sauce'],['Edamame Beans','','Steamed with rock salt'],['Prawn Crackers','','Light and crispy']]},
  {t:'Mains', sub:V+' · served with jasmine rice', items:[['Green Curry','','Pea aubergine, Thai aubergine, bamboo shoot and sweet basil',1],['Panang Curry','','Rich, creamy red curry with sweet basil and kaffir lime'],
@@ -941,9 +941,16 @@ const LUNCH=[
 ];
 const item=it=>`<div class="mi"><div class="mi-top"><span class="mi-name">${esc(it[0])}${it[3]?'<span class="mi-hot" title="Spicy">🌶</span>':''}</span>${it[1]?'<span class="mi-dots"></span><span class="mi-price">'+esc(it[1])+'</span>':''}</div>${it[2]?'<div class="mi-desc">'+esc(it[2])+'</div>':''}</div>`;
 const cats=list=>list.map(c=>`<div class="menu-cat"><h3>${esc(c.t)}</h3>${c.sub?'<div class="sub">'+esc(c.sub)+'</div>':'<div class="rule"></div>'}<div class="menu-items">${c.items.map(item).join('')}</div></div>`).join('');
-const DEAL=`<div class="deal-box"><div class="deal-time">Lunch deal · 12pm – 3pm</div>
-  <div class="deal-grid"><div><b>£10.99</b><span>Main</span></div><div><b>£15.00</b><span>Starter + main</span></div><div><b>£20.00</b><span>Starter + main + drink</span></div></div>
-  <div class="mi-desc" style="margin-top:12px">Drink: glass of house red or white (125ml), a pint of beer, or a soft drink / juice</div></div>`;
+const DEAL_DEF={time:'Lunch deal · 12pm – 3pm', main:'£10.99', two:'£15.00', three:'£20.00', drink:'Drink: glass of house red or white (125ml), a pint of beer, or a soft drink / juice'};
+const dealHtml=d=>`<div class="deal-box"><div class="deal-time">${esc(d.time)}</div>
+  <div class="deal-grid"><div><b>${esc(d.main)}</b><span>Main</span></div><div><b>${esc(d.two)}</b><span>Starter + main</span></div><div><b>${esc(d.three)}</b><span>Starter + main + drink</span></div></div>
+  ${d.drink?`<div class="mi-desc" style="margin-top:12px">${esc(d.drink)}</div>`:''}</div>`;
+let DEAL=dealHtml(DEAL_DEF);
+/* Menu edited in the admin portal replaces the built-in one (items hidden there are left out). */
+window.bhSetMenu=m=>{ if(!m) return;
+  const conv=l=>Array.isArray(l)&&l.length ? l.map(c=>({t:String(c.t||''),sub:String(c.sub||''),items:(c.items||[]).filter(i=>i&&i.n&&!i.off).map(i=>[String(i.n),String(i.p||''),String(i.d||''),i.hot?1:0])})).filter(c=>c.t&&c.items.length) : null;
+  FOOD=conv(m.food)||FOOD; LUNCH=conv(m.lunch)||LUNCH; if(m.deal) DEAL=dealHtml({...DEAL_DEF,...m.deal});
+  if(!document.getElementById('menuModal').hidden) renderMenu(); };
 window.MENU_PAGES=[]; window.currentMenu='food';
 function renderMenu(){
   const t=$('menuText'), p=$('menuPages'), cb=$('catBtns'), m=window.currentMenu;
@@ -1107,6 +1114,7 @@ function pickTables(free, g, maxTables){
   return best || build(free);
 }
 const MAX_LOCKS=96;
+function maxOnline(){ const seats=settings.tables.reduce((a,t)=>a+(Number(t.seats)||0),0); return Math.max(1, Math.min(Number(settings.maxGuests)||40, seats||1)); }
 function inArea(){ const want=$('area').value; return settings.tables.filter(t=>!want||(t.area||'')===want); }
 function seatsTotal(){ return inArea().reduce((a,t)=>a+(Number(t.seats)||0),0); }
 function fitsFor(guests){ return seatsTotal()>=guests ? [true] : []; }
@@ -1126,7 +1134,7 @@ async function loadSettings(){
   $('area').innerHTML = '<option value="">No preference</option>'+areas.map(a=>`<option>${esc(a)}</option>`).join('');
   $('extrasOpts').innerHTML = settings.extras.map(x=>`<label class="extra-opt"><input type="checkbox" value="${esc(x.id)}">
     <span><b>${esc(x.name)}</b>${x.desc?`<small>${esc(x.desc)}</small>`:''}</span><span class="price">+ ${money(x.price)}</span></label>`).join('');
-  $('guests').max = settings.maxGuests; $('gMax').textContent = settings.maxGuests;
+  $('guests').max = maxOnline(); $('gMax').textContent = maxOnline();
   updateExtras(); refreshTimes();
 }
 function chosenExtras(){ return [...$('extrasOpts').querySelectorAll('input:checked')].map(i=>settings.extras.find(x=>x.id===i.value)).filter(Boolean); }
@@ -1149,8 +1157,8 @@ async function refreshTimes(){
 function checkAvail(){
   const date=$('date').value, time=$('time').value, guests=Number($('guests').value)||0, av=$('avail');
   if(!date||!time) return;
-  if(guests < 1) return av.innerHTML='<span class="no">How many guests? Choose at least 1.</span>';
-  if(guests > (settings.maxGuests||40)) return av.innerHTML=`<span class="no">For groups over ${settings.maxGuests}, please <a href="#hire" data-enquiry="hire" style="color:var(--gold-light)">send a private hire enquiry</a> or call 020 3518 2275.</span>`;
+  if(!Number.isInteger(guests) || guests < 1) return av.innerHTML='<span class="no">How many guests? Choose at least 1.</span>';
+  if(guests > maxOnline()) return av.innerHTML=`<span class="no">For groups over ${maxOnline()}, please <a href="#hire" data-enquiry="hire" style="color:var(--gold-light)">send a private hire enquiry</a> or call 020 3518 2275.</span>`;
   if(!fitsFor(guests).length) return av.innerHTML = $('area').value ? `<span class="no">No ${esc($('area').value)} table fits ${guests} — try "No preference".</span>` : `<span class="no">That's bigger than all our tables together — please <a href="#hire" data-enquiry="hire" style="color:var(--gold-light)">send a private hire enquiry</a> or call 020 3518 2275.</span>`;
   const t=freeTableAt(date,time,guests);
   if(t){ av.innerHTML=`<span class="ok">✓ Available — ${pretty(time)} for ${guests}${t.area?' · '+esc(t.area):''}</span>`+(t.tables.length>1?`<div class="join-note">We'll join ${t.tables.length} tables together for your group.</div>`:''); return; }
@@ -1163,7 +1171,14 @@ $('date').addEventListener('change',refreshTimes);
 $('time').addEventListener('change',checkAvail);
 $('area').addEventListener('change',checkAvail);
 let gTimer; $('guests').addEventListener('input',()=>{ clearTimeout(gTimer); gTimer=setTimeout(checkAvail,250); });
-$('guests').addEventListener('change',()=>{ const g=$('guests'); let n=Math.round(Number(g.value)||1); g.value=Math.max(1,n); checkAvail(); });
+$('guests').addEventListener('keydown',e=>{ if(['.',',','e','E','-','+'].includes(e.key)) e.preventDefault(); });
+$('guests').addEventListener('input',()=>{ const g=$('guests'), v=g.value.replace(/\D/g,'').slice(0,3); if(v!==g.value) g.value=v; });
+$('guests').addEventListener('change',()=>{ const g=$('guests'); g.value=Math.max(1,Math.min(maxOnline(),Math.round(Number(g.value))||1)); checkAvail(); });
+/* The Book button only works when the chosen date, time and group size are actually available. */
+function syncBook(){ const ok=!!$('avail').querySelector('.ok'), b=$('bookBtn'); if(b.dataset.busy) return; b.disabled=!ok; b.textContent= ok ? 'Book now' : 'Choose an available date & time'; }
+new MutationObserver(syncBook).observe($('avail'),{childList:true,subtree:true,characterData:true}); syncBook();
+function dateBounds(){ const d=$('date'); d.min=todayISO(); const mx=new Date(); mx.setFullYear(mx.getFullYear()+1); d.max=mx.toISOString().slice(0,10); }
+dateBounds(); $('date').addEventListener('focus',dateBounds);
 document.querySelectorAll('.st-btn').forEach(b=>{ let hold, rep;
   const step=()=>{ const g=$('guests'); g.value=Math.max(1,Math.min(Number(g.max)||999,(Math.round(Number(g.value))||0)+Number(b.dataset.step))); clearTimeout(gTimer); gTimer=setTimeout(checkAvail,200); };
   b.addEventListener('click',step);
@@ -1182,7 +1197,12 @@ form.addEventListener('submit', async e=>{
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return showErr('Please check your email address.');
   if(!validDate(date)) return showErr('Please choose a date from today onwards.');
   if(!/^[0-9 +()-]{7,20}$/.test(phone)) return showErr('Please check your phone number.');
-  $('bookBtn').disabled=true;
+  if(!/^\d+$/.test($('guests').value) || !Number.isInteger(guests) || guests<1) return showErr('Please choose how many guests.');
+  if(guests>maxOnline()) return showErr(`For groups over ${maxOnline()}, please <a href="#hire" data-enquiry="hire" style="color:inherit">send a private hire enquiry</a> or call 020 3518 2275.`);
+  const slots=timesFor(date);
+  if(slots===null) return showErr("Sorry, we're closed that day — please choose another date.");
+  if(!slots.includes(time)) return showErr('Please choose one of the times in the list.');
+  $('bookBtn').dataset.busy='1'; $('bookBtn').disabled=true;
   try{
     await loadTaken(date, true);
     const table=freeTableAt(date,time,guests);
@@ -1203,7 +1223,7 @@ form.addEventListener('submit', async e=>{
     console.error(err);
     if(err.code==='permission-denied'){ showErr('Sorry, someone has just booked that table. Please choose another time.'); takenFor=''; refreshTimes(); }
     else showErr('Sorry, we couldn\'t send your request just now. Please call us on <a href="tel:02035182275" style="color:var(--gold-light);">020 3518 2275</a>.');
-  }finally{ $('bookBtn').disabled=false; }
+  }finally{ delete $('bookBtn').dataset.busy; syncBook(); }
 });
 
 /* ================= PRIVATE HIRE (optional enquiry) ================= */
@@ -1255,6 +1275,9 @@ $('contactForm').addEventListener('submit', async e=>{
   finally{ $('m-btn').disabled=false; }
 });
 
+/* ================= MENU (edited in admin) ================= */
+async function loadMenu(){ try{ const s=await getDoc(doc(db,'site','menu')); if(s.exists() && window.bhSetMenu) window.bhSetMenu(s.data()); }catch(e){ console.warn('Menu',e); } }
+
 /* ================= WOK TOSS — discount codes ================= */
 const PROMO_DEF={enabled:false, appliesTo:'food', requireDetails:false, percent:25};
 async function loadPromo(){
@@ -1284,7 +1307,7 @@ window.bhCreateVoucher=async(score, det={})=>{
 };
 
 /* ================= START ================= */
-loadContent(); loadGallery(); loadOffers(); loadPromo();
+loadContent(); loadGallery(); loadOffers(); loadPromo(); loadMenu();
 loadHours().then(loadSettings);
 </script>
 
