@@ -204,7 +204,7 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
     <img src="logo.jpg" alt="">
     <h1>The Black Horse</h1>
     <p>Staff admin — please sign in.</p>
-    <div class="field"><label for="le">Email</label><input id="le" type="email" autocomplete="username" required></div>
+    <div class="field"><label for="le">Email or username</label><input id="le" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required></div>
     <div class="field"><label for="lp">Password</label><input id="lp" type="password" autocomplete="current-password" required></div>
     <button class="btn" id="loginBtn">Sign in</button>
     <div class="err" id="loginErr"></div>
@@ -233,7 +233,7 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
     <button class="tab-btn" data-tab="logs" data-perm="logs">Activity log</button>
     <button class="tab-btn" data-tab="notify" data-perm="owner">Email &amp; WhatsApp alerts</button>
     <button class="tab-btn" data-tab="staff" data-perm="owner">Staff &amp; permissions</button>
-    <button class="tab-btn" data-tab="account">My password</button>
+    <button class="tab-btn" data-tab="account" id="accountTab">My password</button>
     <div class="side-foot">
       <button id="notifBtn">🔔 Turn on alerts</button>
       Signed in as <span id="who"></span>
@@ -492,7 +492,17 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
     <section class="panel" id="p-staff">
       <div class="head"><div><span class="eyebrow">Main admin only</span><h2>Staff &amp; permissions</h2></div></div>
       <div class="card">
-        <h3>Add a staff login</h3>
+        <h3>Shared staff login — one login for all employees</h3>
+        <p class="hint" style="margin-top:-6px">Give every employee the same username and password. Any number of people can be signed in at the same time on their own phones, tablets or tills. Each person types their first name when they sign in, so the Activity log still shows who changed what.</p>
+        <div class="grid3"><div class="field"><label>Username</label><input id="sh-user" value="staff" autocomplete="off"></div>
+          <div class="field"><label>Password (min 8 characters)</label><input id="sh-pass" type="text" autocomplete="new-password"></div>
+          <div class="field"><label>&nbsp;</label><button class="btn" id="addShared" style="width:100%">Create shared login</button></div></div>
+        <div class="field"><label>What can employees use?</label><div class="chips" id="sh-perms"></div></div>
+        <div class="msg" id="shMsg"></div>
+        <p class="hint">Employees sign in at <b>blackhorsedrunkenwok.co.uk/admin</b> (or the "Staff login" link at the bottom of the website) with the username and password. To change the shared password later, use "Change password" next to it in the list below — everyone then uses the new one.</p>
+      </div>
+      <div class="card">
+        <h3>Add a personal staff login (optional)</h3>
         <div class="grid3"><div class="field"><label>Name</label><input id="st-name" autocomplete="off"></div>
           <div class="field"><label>Staff email</label><input id="st-email" type="email" autocomplete="off"></div>
           <div class="field"><label>Password (min 8 characters)</label><input id="st-pass" type="text" autocomplete="new-password"></div></div>
@@ -506,6 +516,14 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
 
   </main>
 </div>
+</div>
+<div class="modal-bg" id="nameModal" hidden>
+  <form class="modal" id="nameForm" style="max-width:380px" role="dialog" aria-modal="true" aria-labelledby="nmTitle">
+    <h3 id="nmTitle" style="margin-bottom:8px">Who's working?</h3>
+    <p class="hint" style="margin-top:0">This is a shared staff login. Type your first name so changes you make are recorded under your name.</p>
+    <div class="field"><label>Your name</label><input id="nm-in" maxlength="40" autocomplete="off" required></div>
+    <button class="btn" style="width:100%">Continue</button>
+  </form>
 </div>
 <div class="modal-bg" id="bkModal" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="bkTitle">
@@ -590,7 +608,9 @@ function describe(op, path, data){
 }
 async function logAct(op, path, data){
   try{ const e=describe(op, path, data); if(!e) return;
-    await fsAdd(collection(db,'logs'),{at:serverTimestamp(), by: isOwner ? 'Main admin' : (auth.currentUser?.email||'').toLowerCase(), area:short(e.area,40), text:short(e.text,300)}); }
+    const entry={at:serverTimestamp(), by: isOwner ? 'Main admin' : (auth.currentUser?.email||'').toLowerCase(), area:short(e.area,40), text:short(e.text,300)};
+    if(isShared && staffName) entry.name=short(staffName,40);
+    await fsAdd(collection(db,'logs'),entry); }
   catch(err){ console.warn('log',err); }
 }
 const addDoc=async(c,d)=>{ const r=await fsAdd(c,d); logAct('add', pathOf(c)+'/'+r.id, d); return r; };
@@ -656,9 +676,10 @@ async function markSeen(col, list){
   const b=writeBatch(db); unseen.forEach(x=>b.update(doc(db,col,x.id),{seen:true}));
   try{ await b.commit(); }catch(e){ console.warn(e); }
 }
+const daysAgo=n=>{ const d=new Date(); d.setDate(d.getDate()-n); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
 function watch(col, onData, label, describe){
   let first=true;
-  return onSnapshot(collection(db,col), snap=>{
+  return onSnapshot(typeof col==='string' ? collection(db,col) : col, snap=>{
     const list=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(!first) snap.docChanges().forEach(ch=>{ if(ch.type==='added' && !ch.doc.metadata.hasPendingWrites) alertNew(label, describe(ch.doc.data())); });
     first=false; onData(list);
@@ -666,7 +687,16 @@ function watch(col, onData, label, describe){
 }
 
 /* ---------- auth ---------- */
-let unsubs=[], isOwner=false;
+let unsubs=[], isOwner=false, isShared=false, staffName='';
+const STAFF_DOMAIN='blackhorsedrunkenwok.co.uk';
+const loginId=v=>{ v=String(v||'').trim(); return v.includes('@') ? v : v.toLowerCase().replace(/[^a-z0-9._-]/g,'')+'@'+STAFF_DOMAIN; };
+function askName(){ return new Promise(res=>{
+  let saved=''; try{ saved=sessionStorage.getItem('bh_staffname')||''; }catch(e){}
+  const done=n=>{ staffName=n; try{ sessionStorage.setItem('bh_staffname',n); }catch(e){} $('nameModal').hidden=true; $('who').textContent=`${n} (shared staff login)`; res(); };
+  if(saved) return done(saved);
+  $('nameModal').hidden=false; setTimeout(()=>$('nm-in').focus(),50);
+  $('nameForm').onsubmit=e=>{ e.preventDefault(); const n=$('nm-in').value.trim().replace(/\s+/g,' ').slice(0,40); if(n.length<2) return $('nm-in').focus(); done(n); };
+}); }
 onAuthStateChanged(auth, user=>{
   unsubs.forEach(u=>u()); unsubs=[];
   if(!user){ $('appView').hidden=true; $('loginView').hidden=false; return; }
@@ -675,7 +705,7 @@ onAuthStateChanged(auth, user=>{
   $('dashDate').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
   $('planDate').value = today();
   if('Notification' in window && Notification.permission==='granted') $('notifBtn').textContent='🔔 Alerts on';
-  checkOwner().then(o=>{ isOwner=o; return loadPerms(user); }).then(start);
+  isShared=false; checkOwner().then(o=>{ isOwner=o; return loadPerms(user); }).then(()=> isShared ? askName() : null).then(start);
 });
 // The main admin is recognised by the database itself: only the main admin is allowed to list
 // the staff collection. No email address is stored in this page.
@@ -687,7 +717,8 @@ let perms={};
 const can=p=> isOwner || (p!=='owner' && perms[p]===true);
 async function loadPerms(user){
   if(isOwner){ perms=Object.fromEntries(PERMS.map(([k])=>[k,true])); }
-  else{ try{ const s=await getDoc(doc(db,'staff',user.email.toLowerCase())); perms = s.exists() ? (s.data().perms||LEGACY) : {}; }catch(e){ perms={}; } }
+  else{ try{ const s=await getDoc(doc(db,'staff',user.email.toLowerCase())); perms = s.exists() ? (s.data().perms||LEGACY) : {}; isShared = s.exists() && s.data().shared===true; }catch(e){ perms={}; } }
+  $('accountTab').hidden = isShared;
   document.querySelectorAll('[data-perm]').forEach(el=>el.hidden=!can(el.dataset.perm));
   const anyAccess = isOwner || PERMS.some(([k])=>perms[k]);
   $('connErr').hidden = anyAccess;
@@ -696,7 +727,7 @@ async function loadPerms(user){
 }
 $('loginForm').onsubmit=async e=>{
   e.preventDefault(); $('loginErr').textContent=''; $('loginBtn').disabled=true;
-  try{ await signInWithEmailAndPassword(auth,$('le').value.trim(),$('lp').value); $('lp').value=''; }
+  try{ await signInWithEmailAndPassword(auth,loginId($('le').value),$('lp').value); $('lp').value=''; }
   catch(err){ $('loginErr').textContent = err.code==='auth/too-many-requests' ? 'Too many attempts — please wait a few minutes.' : err.code==='auth/network-request-failed' ? 'No internet connection.' : 'Sign-in failed — check the email and password.'; }
   finally{ $('loginBtn').disabled=false; }
 };
@@ -724,7 +755,7 @@ async function start(){
   catch(e){ settings={...DEFAULT_SETTINGS}; }
   try{ const h=await getDoc(doc(db,'site','hours')); if(h.exists()) hoursCfg={...DH,...h.data()}; }catch(e){}
   renderSettings();
-  if(can('bookings')) unsubs.push(watch('bookings', l=>{bookings=l; renderBookings(); renderDash(); renderPlan(); refreshModal(); updateTitle(); },
+  if(can('bookings')) unsubs.push(watch(query(collection(db,'bookings'),where('date','>=',daysAgo(60))), l=>{bookings=l; renderBookings(); renderDash(); renderPlan(); refreshModal(); updateTitle(); },
     '🍽 New table booking', d=>`${d.name} · ${d.guests} guests · ${fmtD(d.date)} ${d.time}`));
   if(can('hire')) unsubs.push(watch('hireEnquiries', l=>{hires=l; renderHires(); renderDash(); updateTitle(); },
     '🎉 New private hire enquiry', d=>`${d.name} · ${d.type||'Event'} · ${d.guests} guests`));
@@ -869,9 +900,9 @@ $('bkSave').onclick=async()=>{
   if(!time || !tableId) return flash('bkMsg','Please choose a time and a free table.',true);
   const ids=tablesOf(tableId), tl=ids.map(id=>settings.tables.find(x=>x.id===id)), t=ids.length===1?tl[0]:null;
   const ex=[...$('bk-extras').querySelectorAll('input:checked')].map(i=>settings.extras.find(x=>x.id===i.value)).filter(Boolean);
-  const newKeys=ids.flatMap(id=>blocksFor(date,time,dur).map(b=>`${date}_${b}_${id}`));
+  const newKeys=ids.filter(id=>id!=='request').flatMap(id=>blocksFor(date,time,dur).map(b=>`${date}_${b}_${id}`));
   const data={name,phone:$('bk-phone').value.trim(),email:$('bk-email').value.trim(),guests:Math.max(1,Number($('bk-guests').value)||1),date,time,duration:dur,locks:newKeys,
-    tableId,tableName: ids.length>1 ? tl.map((x,i)=>x?x.name:ids[i]).join(' + ') : (t?t.name:(editing?.tableName||tableId)), area: ids.length>1 ? [...new Set(tl.map(x=>x?.area||''))].filter(Boolean).join(' & ') : (t?.area||''),extras:ex.map(x=>({id:x.id,name:x.name,price:Number(x.price)})),
+    tableId,tableName: tableId==='request' ? 'Large group — to arrange' : ids.length>1 ? tl.map((x,i)=>x?x.name:ids[i]).join(' + ') : (t?t.name:(editing?.tableName||tableId)), area: ids.length>1 ? [...new Set(tl.map(x=>x?.area||''))].filter(Boolean).join(' & ') : (t?.area||''),extras:ex.map(x=>({id:x.id,name:x.name,price:Number(x.price)})),
     extrasTotal:ex.reduce((s,x)=>s+Number(x.price),0),notes:$('bk-notes').value.trim(),status,seen:true};
   const batch=writeBatch(db), ref = editing ? doc(db,'bookings',editing.id) : doc(collection(db,'bookings'));
   const newActive=status!=='cancelled', oldActive=editing && editing.status!=='cancelled', oldKeys=editing?keysOf(editing):[];
@@ -912,7 +943,7 @@ function renderPlan(){
   const orphan=bookings.filter(b=>b.date===date && b.status!=='cancelled' && !tablesOf(b.tableId).some(id=>settings.tables.find(t=>t.id===id)));
   $('planWrap').innerHTML = (dayWindow(date)?'':'<p class="hint">Closed this day.</p>')+`<table class="plan"><thead><tr><th class="tname">${esc(fmtD(date))}</th>${cols.map(c=>`<th>${c.endsWith(':00')?c:'<span class="hint">'+c.slice(3)+'</span>'}</th>`).join('')}</tr></thead><tbody>`+
     areas.map(a=>(areas.length>1?`<tr class="area"><th colspan="${cols.length+1}">${esc(a||'Other')}</th></tr>`:'')+settings.tables.filter(t=>(t.area||'')===a).map(row).join('')).join('')+
-    '</tbody></table>'+(orphan.length?`<p class="hint" style="margin-top:10px">Bookings on removed tables: ${orphan.map(b=>`<a href="#" data-bid="${esc(b.id)}">${esc(b.name)} ${esc(b.time)}</a>`).join(', ')}</p>`:'');
+    '</tbody></table>'+(orphan.length?`<p class="hint" style="margin-top:10px">Large-group requests / no table yet (open one to choose tables): ${orphan.map(b=>`<a href="#" data-bid="${esc(b.id)}">${esc(b.name)} ${esc(b.time)}</a>`).join(', ')}</p>`:'');
 }
 $('planWrap').onclick=e=>{
   const bid=e.target.closest('[data-bid]')?.dataset.bid; if(bid){ e.preventDefault(); return openBooking(bookings.find(x=>x.id===bid)); }
@@ -1174,9 +1205,33 @@ const permBoxes=(cur,attr)=>PERMS.map(([k,n])=>`<label><input type="checkbox" ${
 $('st-perms').innerHTML=permBoxes(LEGACY,'data-np'); $('st-perms').classList.add('perm-chips');
 function renderStaff(){
   $('stBody').innerHTML=`<tr><td><b>${esc(auth.currentUser?.email||'')}</b><br><span class="hint">You · main admin (only you can see this)</span></td><td>Everything</td><td></td></tr>`+staff.map(s=>{ const p=s.perms||LEGACY;
-    return `<tr data-sid="${esc(s.id)}"><td><b>${esc(s.name||'')}</b><br><span class="hint">${esc(s.id)}</span></td><td class="chips perm-chips">${permBoxes(p,'data-sp')}</td>
-      <td><button class="btn small danger" data-sdel="${esc(s.id)}">Remove</button></td></tr>`; }).join('');
+    return `<tr data-sid="${esc(s.id)}"><td><b>${esc(s.name||'')}</b><br><span class="hint">${s.shared?'Username: <b>'+esc(s.id.split('@')[0])+'</b> · everyone uses this':esc(s.id)}</span></td><td class="chips perm-chips">${permBoxes(p,'data-sp')}</td>
+      <td>${s.shared?`<button class="btn small ghost" data-spw="${esc(s.id)}" style="margin-bottom:6px">Change password</button><br>`:''}<button class="btn small danger" data-sdel="${esc(s.id)}">Remove</button></td></tr>`; }).join('');
 }
+
+$('sh-perms').innerHTML=permBoxes({bookings:true,offers:true,menu:true},'data-shp'); $('sh-perms').classList.add('perm-chips');
+$('addShared').onclick=async()=>{
+  const user=$('sh-user').value.trim().toLowerCase().replace(/[^a-z0-9._-]/g,''), pw=$('sh-pass').value;
+  if(user.length<3) return flash('shMsg','Choose a username of at least 3 letters, e.g. staff.',true);
+  if(pw.length<8) return flash('shMsg','Password must be at least 8 characters.',true);
+  const em=user+'@'+STAFF_DOMAIN, p=Object.fromEntries(PERMS.map(([k])=>[k, !!$('sh-perms').querySelector(`[data-shp="${k}"]`)?.checked]));
+  $('addShared').disabled=true; let existed=false;
+  try{ const a=staffAuth();
+    try{ await createUserWithEmailAndPassword(a, em, pw); }catch(e){ if(e.code==='auth/email-already-in-use') existed=true; else throw e; }
+    await signOut(a);
+    await setDoc(doc(db,'staff',em),{name:'Shared staff login ('+user+')',perms:p,shared:true,addedAt:serverTimestamp()});
+    $('sh-pass').value='';
+    flash('shMsg', existed ? `Username "${user}" already existed — it is now the shared login with its existing password.` : `Shared login ready — username: ${user}. Share the password with your team.`);
+  }catch(err){ const m={'auth/weak-password':'Please choose a stronger password.','auth/network-request-failed':'No internet connection — try again.'}[err.code]; m ? flash('shMsg',m,true) : fail('shMsg',err); }
+  finally{ $('addShared').disabled=false; } };
+async function changeSharedPassword(em){
+  const cur=prompt('Current password for "'+em.split('@')[0]+'":'); if(!cur) return;
+  const nw=prompt('New password (min 8 characters). Everyone will use this from now on:'); if(!nw) return;
+  if(nw.length<8) return flash('stMsg','The new password must be at least 8 characters.',true);
+  try{ const a=staffAuth(), c=await signInWithEmailAndPassword(a, em, cur); await updatePassword(c.user, nw); await signOut(a);
+    logNote='Shared login password changed ('+em.split('@')[0]+')'; await setDoc(doc(db,'staff',em),{pwChangedAt:serverTimestamp()},{merge:true}); logNote='';
+    flash('stMsg','Password changed — tell your team the new one. People already signed in stay signed in.'); }
+  catch(err){ logNote=''; const m={'auth/wrong-password':'The current password is not right.','auth/invalid-credential':'The current password is not right.','auth/weak-password':'Please choose a stronger password.'}[err.code]; m ? flash('stMsg',m,true) : fail('stMsg',err); } }
 let staffApp=null;
 function staffAuth(){ if(!staffApp) staffApp=initializeApp(firebaseConfig,'staff-creator'); return getAuth(staffApp); }
 $('addStaff').onclick=async()=>{
@@ -1202,6 +1257,7 @@ $('stBody').addEventListener('change',async e=>{ const k=e.target.dataset.sp, tr
   const s=staff.find(x=>x.id===tr.dataset.sid); const p={...(s.perms||LEGACY),[k]:e.target.checked};
   try{ await setDoc(doc(db,'staff',s.id),{perms:p},{merge:true}); flash('stMsg',`Updated ${s.name||s.id} — takes effect next time they open admin.`); }catch(err){ fail('stMsg',err); } });
 $('stBody').onclick=async e=>{
+  if(e.target.dataset.spw) return changeSharedPassword(e.target.dataset.spw);
   const id=e.target.dataset.sdel; if(!id||!confirm('Remove access for '+id+'? They will no longer be able to open the admin.')) return;
   try{ await deleteDoc(doc(db,'staff',id)); flash('stMsg','Access removed.'); }catch(err){ fail('stMsg',err); }
 };
@@ -1377,18 +1433,20 @@ function renderLogs(){
   const area=$('logArea').value, who=$('logWho').value, q=$('logFind').value.trim().toLowerCase();
   const names=Object.fromEntries((staff||[]).map(s=>[s.id,s.name]));
   const whoName=b=> b==='Main admin' ? 'Main admin' : (names[b] ? names[b]+' ('+b+')' : b);
-  const areas=[...new Set(logs.map(l=>l.area))], people=[...new Set(logs.map(l=>l.by))];
+  const whoOf=l=> l.name ? l.name+' · shared login' : whoName(l.by);
+  const areas=[...new Set(logs.map(l=>l.area))], people=[...new Set(logs.map(whoOf))];
   const keepA=$('logArea').value, keepW=$('logWho').value;
   $('logArea').innerHTML='<option value="">All areas</option>'+areas.map(a=>`<option value="${esc(a)}">${esc(a)}</option>`).join(''); $('logArea').value=keepA;
-  $('logWho').innerHTML='<option value="">Everyone</option>'+people.map(p=>`<option value="${esc(p)}">${esc(whoName(p))}</option>`).join(''); $('logWho').value=keepW;
-  const list=logs.filter(l=>(!area||l.area===area)&&(!who||l.by===who)&&(!q||(l.text+' '+l.by+' '+l.area).toLowerCase().includes(q)));
-  $('logBody').innerHTML = list.length ? list.map(l=>`<tr><td style="white-space:nowrap">${dLong(tsMs(l.at))}</td><td>${esc(whoName(l.by))}</td><td><span class="area-pill">${esc(l.area)}</span></td><td>${esc(l.text)}</td></tr>`).join('')
+  $('logWho').innerHTML='<option value="">Everyone</option>'+people.map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join(''); $('logWho').value=keepW;
+  const list=logs.filter(l=>(!area||l.area===area)&&(!who||whoOf(l)===who)&&(!q||(l.text+' '+whoOf(l)+' '+l.area).toLowerCase().includes(q)));
+  list.forEach(l=>l._who=whoOf(l));
+  $('logBody').innerHTML = list.length ? list.map(l=>`<tr><td style="white-space:nowrap">${dLong(tsMs(l.at))}</td><td>${esc(l._who)}</td><td><span class="area-pill">${esc(l.area)}</span></td><td>${esc(l.text)}</td></tr>`).join('')
     : '<tr class="empty-row"><td colspan="4">No activity matches.</td></tr>';
   return list;
 }
 ['logArea','logWho'].forEach(id=>$(id).onchange=renderLogs); $('logFind').oninput=renderLogs;
 $('logCsv').onclick=()=>{ const list=renderLogs(), q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
-  const csv='When,Who,Area,What changed\n'+list.map(l=>[new Date(tsMs(l.at)).toLocaleString('en-GB'),l.by,l.area,l.text].map(q).join(',')).join('\n');
+  const csv='When,Who,Area,What changed\n'+list.map(l=>[new Date(tsMs(l.at)).toLocaleString('en-GB'),l._who,l.area,l.text].map(q).join(',')).join('\n');
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='activity-log-'+today()+'.csv'; a.click(); };
 </script>
 </body>
