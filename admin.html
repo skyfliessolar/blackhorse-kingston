@@ -228,7 +228,7 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
   <form class="login-card" id="loginForm">
     <img src="logo.jpg" alt="">
     <h1>The Black Horse</h1>
-    <p>Staff admin — please sign in.</p>
+    <p>Main admin — please sign in.</p><p class="hint" style="margin-top:-6px">Staff: use <b>Staff login</b> at the bottom of the website.</p>
     <div class="field"><label for="le">Email or username</label><input id="le" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required></div>
     <div class="field"><label for="lp">Password</label><input id="lp" type="password" autocomplete="current-password" required></div>
     <button class="btn" id="loginBtn">Sign in</button>
@@ -563,7 +563,7 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
           <div class="field"><label>&nbsp;</label><button class="btn" id="addShared" style="width:100%">Create shared login</button></div></div>
         <div class="field"><label>What can employees use?</label><div class="chips" id="sh-perms"></div></div>
         <div class="msg" id="shMsg"></div>
-        <p class="hint">Employees sign in at <b>blackhorsedrunkenwok.co.uk/admin</b> (or the "Staff login" link at the bottom of the website) with the username and password. To change the shared password later, use "Change password" next to it in the list below — everyone then uses the new one.</p>
+        <p class="hint">Employees sign in with <b>Staff login</b> at the bottom of the website. Staff tools open right there on the website — they never see this admin portal. Staff tools cover: bookings, offers, menu prices, pub photos, discount codes, messages and hire enquiries. To change the shared password later, use "Change password" next to it in the list below.</p>
       </div>
       <div class="card">
         <h3>Add a personal staff login (optional)</h3>
@@ -573,7 +573,7 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
         <div class="field"><label>What can they use?</label><div class="chips" id="st-perms"></div></div>
         <button class="btn" id="addStaff">Create login</button>
         <div class="msg" id="stMsg"></div>
-        <p class="hint">They can change their password under "My password". If someone forgets theirs, remove them and create a new login.</p>
+        <p class="hint">They sign in with <b>Staff login</b> at the bottom of the website using this email and password. If someone forgets theirs, remove them and create a new login.</p>
       </div>
       <div class="tablewrap"><table><thead><tr><th>Staff</th><th>Can use</th><th></th></tr></thead><tbody id="stBody"></tbody></table></div>
     </section>
@@ -753,6 +753,13 @@ function watch(col, onData, label, describe){
 
 /* ---------- auth ---------- */
 let unsubs=[], isOwner=false, isShared=false, staffName='';
+/* This portal is for the main admin only. Staff are sent to their tools inside the website. */
+function staffElsewhere(){
+  $('appView').hidden=true; $('loginView').hidden=false;
+  try{ localStorage.setItem('bh_staff','1'); }catch(e){}
+  $('loginForm').innerHTML='<img src="logo.jpg" alt=""><h1>The Black Horse</h1><p>This page is for the main admin.</p><p class="hint">Your staff tools are on the website — tap below to open them.</p><a class="btn" href="./#staff" style="display:block;text-align:center;text-decoration:none">Open staff tools</a><p class="hint" style="margin-top:14px"><a href="#" id="adminSwitch">Sign in as main admin instead</a></p>';
+  $('adminSwitch').onclick=async e=>{ e.preventDefault(); await signOut(auth); location.reload(); };
+}
 const STAFF_DOMAIN='blackhorsedrunkenwok.co.uk';
 const loginId=v=>{ v=String(v||'').trim(); return v.includes('@') ? v : v.toLowerCase().replace(/[^a-z0-9._-]/g,'')+'@'+STAFF_DOMAIN; };
 function askName(){ return new Promise(res=>{
@@ -770,7 +777,7 @@ onAuthStateChanged(auth, user=>{
   $('dashDate').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
   $('planDate').value = today();
   if('Notification' in window && Notification.permission==='granted') $('notifBtn').textContent='🔔 Alerts on';
-  isShared=false; checkOwner().then(o=>{ isOwner=o; return loadPerms(user); }).then(()=> isShared ? askName() : null).then(start);
+  isShared=false; checkOwner().then(o=>{ isOwner=o; if(!o){ staffElsewhere(); throw 'staff'; } return loadPerms(user); }).then(()=> isShared ? askName() : null).then(start).catch(e=>{ if(e!=='staff') console.error(e); });
 });
 // The main admin is recognised by the database itself: only the main admin is allowed to list
 // the staff collection. No email address is stored in this page.
