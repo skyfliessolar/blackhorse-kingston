@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>document.documentElement.classList.add('checking');setTimeout(function(){document.documentElement.classList.remove('checking');},2500);</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Black Horse — Drunken Wok, Kingston upon Thames</title>
@@ -367,6 +368,17 @@
   .extra-opt .price{margin-left:auto;font-family:'Oswald',sans-serif;color:var(--gold-light);white-space:nowrap;}
   .extras-total{text-align:right;font-family:'Oswald',sans-serif;letter-spacing:.06em;color:var(--gold-light);margin:6px 0 16px;}
   .contact-card{background:var(--black-2);border:1px solid var(--line-dark);padding:32px;border-radius:2px;max-width:720px;margin:0 auto;}
+  /* ---------- website switched off by admin ---------- */
+  html.checking body{visibility:hidden;}
+  html.site-off body{overflow:hidden;}
+  #siteOff{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;text-align:center;padding:28px;
+    background:radial-gradient(ellipse at 50% 20%,rgba(201,169,97,.18),transparent 60%),var(--black);color:var(--cream);visibility:visible;}
+  #siteOff[hidden]{display:none;}
+  #siteOff .box{max-width:560px;}
+  #siteOff img{width:110px;height:110px;border-radius:50%;margin:0 auto 22px;border:2px solid var(--gold-dark);}
+  #siteOff h1{font-size:clamp(30px,6vw,48px);color:var(--gold-light);margin:10px 0 14px;}
+  #siteOff p{font-size:18px;color:rgba(241,232,214,.85);white-space:pre-line;margin:0 0 22px;}
+  #siteOff .tel{color:var(--gold-light);font-family:'Oswald',sans-serif;letter-spacing:.1em;}
   /* ---------- Amber Hour ambience ---------- */
   .hero{overflow:hidden;isolation:isolate;}
   .hero>.wrap{position:relative;z-index:2;}
@@ -804,7 +816,18 @@
     </div>
   </section>
 
+  <!-- OUR PUB photos (staff add these in the admin portal) -->
+  <section id="pubphotos" class="media-slot" data-place="pub" hidden>
+    <div class="wrap">
+      <div style="text-align:center;margin-bottom:26px"><span class="eyebrow">Inside The Black Horse</span>
+        <h2 style="font-size:clamp(28px,4vw,40px);margin:12px 0 0;color:var(--gold-light);">Our Pub</h2></div>
+      <div class="media-grid"></div>
+    </div>
+  </section>
 </main>
+<div id="siteOff" hidden role="alert"><div class="box"><img src="logo.jpg" alt="The Black Horse"><span class="eyebrow">The Black Horse · Kingston</span>
+  <h1 id="offTitle">We'll be back soon</h1><p id="offMsg">Our website is being updated. Please check back shortly.</p>
+  <a class="tel" href="tel:02035182275">020 3518 2275</a></div></div>
 
 <footer>
   <div class="wrap">
@@ -1166,7 +1189,7 @@ function checkAvail(){
   if(t){ av.innerHTML=`<span class="ok">✓ Available — ${pretty(time)} for ${guests}${t.area?' · '+esc(t.area):''}</span>`+(t.tables.length>1?`<div class="join-note">We'll join ${t.tables.length} tables together for your group.</div>`:''); return; }
   const all=timesFor(date)||[], tm=toMin(time);
   const alts=all.filter(x=>x!==time && freeTableAt(date,x,guests)).sort((a,b)=>Math.abs(toMin(a)-tm)-Math.abs(toMin(b)-tm)).slice(0,5).sort();
-  av.innerHTML = `<span class="no">✗ Fully booked at ${pretty(time)}.</span>` + (alts.length ? `<div class="chips">${alts.map(x=>`<button type="button" data-t="${x}">${pretty(x)}</button>`).join('')}</div>` : ' Please try another date.');
+  av.innerHTML = `<span class="ok">✓ ${pretty(time)} is busy, but you can still book — we'll arrange a table for you and confirm.</span>` + (alts.length ? `<div class="join-note">Or pick a quieter time:</div><div class="chips">${alts.map(x=>`<button type="button" data-t="${x}">${pretty(x)}</button>`).join('')}</div>` : '');
 }
 $('avail').addEventListener('click',e=>{ const b=e.target.closest('button[data-t]'); if(b){ $('time').value=b.dataset.t; checkAvail(); } });
 $('date').addEventListener('change',refreshTimes);
@@ -1208,8 +1231,8 @@ form.addEventListener('submit', async e=>{
   try{
     await loadTaken(date, true);
     const big = guests>autoLimit() || !fitsFor(guests).length;
-    const table = big ? {id:'request', name:'Large group — to arrange', area:'', tables:[]} : freeTableAt(date,time,guests);
-    if(!table){ checkAvail(); return showErr('Sorry, that time has just been taken — please pick one of the suggested times.'); }
+    const table = big ? {id:'request', name:'Large group — to arrange', area:'', tables:[]}
+      : (freeTableAt(date,time,guests) || {id:'request', name:'Busy time — to arrange', area:'', tables:[]});
     const dur=Number(settings.duration)||120, locks=table.tables.flatMap(tb=>blocksFor(date,time,dur).map(b=>`${date}_${b}_${tb.id}`));
     const ex=chosenExtras(), total=ex.reduce((s,x)=>s+Number(x.price||0),0);
     const ref=doc(collection(db,'bookings')), b=writeBatch(db);
@@ -1218,8 +1241,8 @@ form.addEventListener('submit', async e=>{
     locks.forEach(k=>{ const [, bt, tid]=k.split('_'); b.set(doc(db,'tableLocks',k),{date,time:bt,tableId:tid,bookingId:ref.id}); });
     await b.commit();
     const nice=new Date(date+'T00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
-    emailAlert('bookings', `New table booking — ${name}, ${date} ${time} (${guests})`, {Name:name, Phone:phone, Email:email, Date:date, Time:time, Guests:guests, Table:table.name+(table.area?' · '+table.area:''), Extras:ex.map(x=>x.name+' £'+x.price).join(', ')||'-', 'Extras total':'£'+total, Notes:$('notes').value.trim()||'-'}, email);
-    showOk(table.id==='request' ? `<b>Request received</b> — ${esc(nice)} at ${pretty(time)} for ${guests} guests. We'll call you on ${esc(phone)} to arrange the seating and confirm.` : `<b>Your table is reserved</b> — ${esc(nice)} at ${pretty(time)} for ${guests}.${total?` Extras: ${money(total)}, payable at the venue.`:''}<br>We'll contact you to confirm. Need to change it? Call 020 3518 2275.`);
+    emailAlert('bookings', `${table.id==='request'?'NEEDS A TABLE — ':''}New table booking — ${name}, ${date} ${time} (${guests})`, {Name:name, Phone:phone, Email:email, Date:date, Time:time, Guests:guests, Table:table.name+(table.area?' · '+table.area:''), Extras:ex.map(x=>x.name+' £'+x.price).join(', ')||'-', 'Extras total':'£'+total, Notes:$('notes').value.trim()||'-'}, email);
+    showOk(table.id==='request' ? `<b>Booking received</b> — ${esc(nice)} at ${pretty(time)} for ${guests} guests. ${table.name.startsWith('Busy')?'That time is busy, so we':'We'}'ll arrange your table and call you on ${esc(phone)} to confirm.` : `<b>Your table is reserved</b> — ${esc(nice)} at ${pretty(time)} for ${guests}.${total?` Extras: ${money(total)}, payable at the venue.`:''}<br>We'll contact you to confirm. Need to change it? Call 020 3518 2275.`);
     ['name','phone','email','notes'].forEach(i=>$(i).value=''); $('extrasOpts').querySelectorAll('input').forEach(i=>i.checked=false); updateExtras();
     taken.clear(); takenFor=''; refreshTimes();
   }catch(err){
@@ -1278,6 +1301,16 @@ $('contactForm').addEventListener('submit', async e=>{
   finally{ $('m-btn').disabled=false; }
 });
 
+/* ================= WEBSITE ON / OFF (switched in admin) ================= */
+async function loadStatus(){
+  try{ const s=await getDoc(doc(db,'site','status')); const d=s.exists()?s.data():{};
+    if(d.offline && !/[?&]preview\b/.test(location.search)){
+      if(d.title) $('offTitle').textContent=d.title; if(d.message) $('offMsg').textContent=d.message;
+      $('siteOff').hidden=false; document.documentElement.classList.add('site-off'); document.title=(d.title||"We'll be back soon")+' — The Black Horse'; }
+  }catch(e){ console.warn('Status',e); }
+  document.documentElement.classList.remove('checking');
+}
+
 /* ================= MENU (edited in admin) ================= */
 async function loadMenu(){ try{ const s=await getDoc(doc(db,'site','menu')); if(s.exists() && window.bhSetMenu) window.bhSetMenu(s.data()); }catch(e){ console.warn('Menu',e); } }
 
@@ -1310,7 +1343,7 @@ window.bhCreateVoucher=async(score, det={})=>{
 };
 
 /* ================= START ================= */
-loadContent(); loadGallery(); loadOffers(); loadPromo(); loadMenu();
+loadStatus(); loadContent(); loadGallery(); loadOffers(); loadPromo(); loadMenu();
 loadHours().then(loadSettings);
 </script>
 
