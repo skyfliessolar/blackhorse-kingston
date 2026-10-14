@@ -172,6 +172,25 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
 .v-calc .field{margin:0;flex:1;min-width:150px;}
 .v-calc .out{font-family:'Fraunces',serif;font-size:20px;}
 .vc-in{text-transform:uppercase;letter-spacing:.14em;font-family:'Oswald',sans-serif;font-size:16px !important;}
+
+.mn-tabs{display:flex;gap:8px;margin-bottom:16px;}
+.mn-tabs button{border:1px solid var(--line);background:#fff;padding:9px 18px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;border-radius:2px;}
+.mn-tabs button.on{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+.mn-cat{background:#fff;border:1px solid var(--line);border-left:4px solid var(--brass);padding:16px 18px;margin-bottom:14px;}
+.mn-cat .cat-head{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;margin-bottom:10px;}
+@media(max-width:700px){.mn-cat .cat-head{grid-template-columns:1fr;}}
+.mn-items{width:100%;border:none;}
+.mn-items th{background:none;padding:4px 6px;}
+.mn-items td{padding:4px 6px;border-bottom:1px solid #f0e8d8;vertical-align:middle;}
+.mn-items input[type=text]{width:100%;border:1px solid var(--line);border-radius:2px;padding:7px 8px;background:var(--paper);font-size:13.5px;}
+.mn-items input.pr{width:150px;text-align:right;}
+.mn-items tr.off input[type=text]{opacity:.5;text-decoration:line-through;}
+.mn-items .ck{text-align:center;width:56px;}
+@media(max-width:700px){.mn-items thead{display:none;} .mn-items tr{display:grid;grid-template-columns:1fr 130px;gap:4px;padding:8px 0;border-bottom:1px solid var(--line);} .mn-items td{border:none;padding:2px;} .mn-items td.d{grid-column:1/-1;} .mn-items td.ck{width:auto;text-align:left;}}
+.dirty-flag{font-size:12.5px;color:#8a6524;margin-right:10px;}
+.log-filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+.log-filters select,.log-filters input{border:1px solid var(--line);border-radius:2px;padding:8px 10px;background:#fff;}
+.area-pill{display:inline-block;font-family:'Oswald',sans-serif;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:var(--paper);}
 .switch{display:inline-flex;align-items:center;gap:8px;font-size:13px;}
 .perm-chips label{font-size:13px;margin:2px 10px 2px 0;}
 .plan td.taken{white-space:nowrap;}
@@ -205,11 +224,13 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
     <button class="tab-btn" data-tab="messages" data-perm="messages">Messages <span class="count" id="c-messages" hidden></span></button>
     <button class="tab-btn" data-tab="calls" data-perm="calls">Call log</button>
     <button class="tab-btn" data-tab="offers" data-perm="offers">Offers &amp; discounts</button>
+    <button class="tab-btn" data-tab="menu" data-perm="menu">Menu &amp; prices</button>
     <button class="tab-btn" data-tab="vouchers" data-perm="vouchers">Game &amp; discount codes</button>
     <button class="tab-btn" data-tab="photos" data-perm="photos">Photos &amp; videos</button>
     <button class="tab-btn" data-tab="settings" data-perm="settings">Tables &amp; charges</button>
     <button class="tab-btn" data-tab="content" data-perm="content">Site text</button>
     <button class="tab-btn" data-tab="hours" data-perm="hours">Opening hours</button>
+    <button class="tab-btn" data-tab="logs" data-perm="logs">Activity log</button>
     <button class="tab-btn" data-tab="notify" data-perm="owner">Email &amp; WhatsApp alerts</button>
     <button class="tab-btn" data-tab="staff" data-perm="owner">Staff &amp; permissions</button>
     <button class="tab-btn" data-tab="account">My password</button>
@@ -381,6 +402,30 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
       </div>
     </section>
 
+
+    <!-- MENU & PRICES -->
+    <section class="panel" id="p-menu">
+      <div class="head"><div><span class="eyebrow">Website</span><h2>Menu &amp; prices</h2></div><div><span class="dirty-flag" id="mnDirty" hidden>Unsaved changes</span><button class="btn" id="saveMenu">Save menu</button></div></div>
+      <p class="hint" style="margin-top:-8px">Change dishes, prices and descriptions, then press <b>Save menu</b> — the website updates straight away. Tick <b>Hide</b> for anything sold out.</p>
+      <div class="mn-tabs" id="mnTabs"><button class="on" data-mn="food">Food menu</button><button data-mn="lunch">Lunch menu</button></div>
+      <div class="card" id="mnDeal" hidden>
+        <h3>Lunch deal</h3>
+        <div class="grid3"><div class="field"><label>Main only</label><input id="dl-main"></div><div class="field"><label>Starter + main</label><input id="dl-two"></div><div class="field"><label>Starter + main + drink</label><input id="dl-three"></div></div>
+        <div class="grid2"><div class="field"><label>Times line</label><input id="dl-time"></div><div class="field"><label>Drink note</label><input id="dl-drink"></div></div>
+      </div>
+      <div id="mnList"></div>
+      <button class="btn ghost" id="mnAddCat">+ Add category</button>
+      <div class="msg" id="mnMsg"></div>
+    </section>
+
+    <!-- ACTIVITY LOG -->
+    <section class="panel" id="p-logs">
+      <div class="head"><div><span class="eyebrow">Who changed what</span><h2>Activity log</h2></div><button class="btn ghost" id="logCsv">Download (spreadsheet)</button></div>
+      <div class="log-filters"><select id="logArea"><option value="">All areas</option></select><select id="logWho"><option value="">Everyone</option></select><input id="logFind" placeholder="Search…"></div>
+      <div style="overflow-x:auto"><table><thead><tr><th>When</th><th>Who</th><th>Area</th><th>What changed</th></tr></thead><tbody id="logBody"><tr class="empty-row"><td colspan="4">No activity yet.</td></tr></tbody></table></div>
+      <p class="hint">Every change made in this admin portal is recorded here with the login that made it. The last 500 changes are shown.</p>
+    </section>
+
     <!-- SETTINGS -->
     <section class="panel" id="p-settings">
       <div class="head"><div><span class="eyebrow">Online booking</span><h2>Tables &amp; charges</h2></div><button class="btn" id="saveSettings">Save</button></div>
@@ -494,11 +539,69 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, doc, addDoc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, onSnapshot, writeBatch, serverTimestamp, query, where, orderBy, limit }
+import { getFirestore, collection, doc, addDoc as fsAdd, setDoc as fsSet, getDoc, getDocs, updateDoc as fsUpdate, deleteDoc as fsDelete, onSnapshot, writeBatch as fsBatch, serverTimestamp, query, where, orderBy, limit }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 
 const app = initializeApp(firebaseConfig), auth = getAuth(app), db = getFirestore(app);
+/* ---------- activity log: every change made in this portal is recorded with who made it ---------- */
+let logNote='';
+const pathOf=r=> r.path || (r.type==='col' ? r.c : r.c+'/'+r.id);
+const short=(v,n=60)=>{ v=String(v??''); return v.length>n ? v.slice(0,n-1)+'…' : v; };
+function describe(op, path, data){
+  const [col,id]=path.split('/'), d=data||{}, keys=Object.keys(d);
+  if(col==='tableLocks'||col==='logs') return null;
+  if(op==='update' && keys.length && keys.every(k=>k==='seen')) return null;
+  const area=AREA_NAMES[col==='site'?path:col]||col;
+  if(logNote) return {area, text:logNote};
+  if(col==='site'){
+    if(id==='booking'){ const o=settings||{}, ch=[];
+      if((o.tables||[]).length!==(d.tables||[]).length) ch.push(`tables ${(o.tables||[]).length} → ${(d.tables||[]).length}`);
+      const seats=t=>(t||[]).reduce((a,x)=>a+(Number(x.seats)||0),0); if(seats(o.tables)!==seats(d.tables)) ch.push(`total seats ${seats(o.tables)} → ${seats(d.tables)}`);
+      if(o.maxGuests!==d.maxGuests) ch.push(`largest online group ${o.maxGuests} → ${d.maxGuests}`);
+      if(o.duration!==d.duration) ch.push(`table held ${o.duration} → ${d.duration} min`);
+      if(JSON.stringify(o.extras||[])!==JSON.stringify(d.extras||[])) ch.push('extras/charges changed');
+      if(JSON.stringify(o.tables||[])!==JSON.stringify(d.tables||[]) && !ch.length) ch.push('table names, seats or areas changed');
+      return {area, text: ch.join('; ')||'Settings saved (no changes)'}; }
+    if(id==='promo') return {area, text:`Game ${d.enabled?'ON':'OFF'} · ${d.percent||25}% off ${d.appliesTo==='bill'?'whole bill':'food'}${d.requireDetails?' · name + contact required':''}`};
+    return {area, text:{content:'Website text changed', hours:'Opening hours changed', notify:'Alert settings changed', menu:'Menu saved'}[id]||'Saved'};
+  }
+  if(col==='bookings'){ const b={...((bookings||[]).find(x=>x.id===id)||{}), ...d}, who=`${short(b.name||'booking',40)} · ${b.date||''} ${b.time||''} · ${b.guests||'?'} guests`;
+    if(op==='delete') return {area, text:'Deleted booking: '+who};
+    if(op==='set') return {area, text:'New booking: '+who+(b.tableName?' · '+short(b.tableName,50):'')};
+    if(keys.length<=2 && 'status' in d) return {area, text:`${who} → ${d.status}`};
+    return {area, text:'Edited booking: '+who+(b.status?' · '+b.status:'')}; }
+  if(col==='offers'){ const o=(offers||[]).find(x=>x.id===id)||{}, t=short(o.title||d.title||'offer',40);
+    if(op==='add') return {area, text:'New offer added'}; if(op==='delete') return {area, text:`Deleted offer "${t}"`};
+    if('active' in d) return {area, text:`Offer "${t}" switched ${d.active?'ON':'OFF'}`};
+    if(keys.length===1 && keys[0]==='order') return {area, text:`Offer "${t}" moved`};
+    return {area, text:`Offer "${t}": `+keys.map(k=>`${k} → "${short(d[k],50)}"`).join(', ')}; }
+  if(col==='gallery'){ if(op==='add') return {area, text:`Added ${d.kind==='video'?'video':'photo'} to "${d.place||''}"`};
+    if(op==='delete') return {area, text:'Removed a photo/video'}; if('img' in d) return {area, text:'Replaced a photo'};
+    if('place' in d) return {area, text:`Moved a photo/video to "${d.place}"`}; if('caption' in d) return {area, text:`Caption: "${short(d.caption)}"`}; return {area, text:'Photo order changed'}; }
+  if(col==='staff'){ if(op==='delete') return {area, text:'Removed access: '+id};
+    const p=d.perms ? Object.entries(d.perms).filter(([,v])=>v).map(([k])=>(PERMS.find(x=>x[0]===k)||[k,k])[1]).join(', ') : '';
+    return {area, text:(d.addedAt?'Login added: ':'Permissions changed: ')+id+(p?' — '+p:' — no access')}; }
+  if(col==='vouchers' && d.used) return {area, text:`Code ${id} redeemed${d.saved?' — '+money(d.saved)+' off':''}`};
+  if(col==='hireEnquiries'){ const h=(hires||[]).find(x=>x.id===id)||{}; return {area, text: op==='delete'?`Deleted enquiry from ${short(h.name)}`:`Enquiry from ${short(h.name)} → ${d.status||'updated'}`}; }
+  if(col==='messages'){ const m=(messages||[]).find(x=>x.id===id)||{}; return {area, text: op==='delete'?`Deleted message from ${short(m.name)}`:'Message updated'}; }
+  if(col==='calls') return {area, text: op==='add'?`Call logged: ${short(d.name)} (${d.reason||''})`: op==='delete'?'Call deleted':'Call marked done'};
+  return {area, text:op+' '+path};
+}
+async function logAct(op, path, data){
+  try{ const e=describe(op, path, data); if(!e) return;
+    await fsAdd(collection(db,'logs'),{at:serverTimestamp(), by: isOwner ? 'Main admin' : (auth.currentUser?.email||'').toLowerCase(), area:short(e.area,40), text:short(e.text,300)}); }
+  catch(err){ console.warn('log',err); }
+}
+const addDoc=async(c,d)=>{ const r=await fsAdd(c,d); logAct('add', pathOf(c)+'/'+r.id, d); return r; };
+const setDoc=async(r,d,o)=>{ const x=await fsSet(r,d,o); logAct('set', pathOf(r), d); return x; };
+const updateDoc=async(r,d)=>{ const x=await fsUpdate(r,d); logAct('update', pathOf(r), d); return x; };
+const deleteDoc=async r=>{ const x=await fsDelete(r); logAct('delete', pathOf(r)); return x; };
+const writeBatch=database=>{ const b=fsBatch(database), ops=[]; return {
+  set(r,d,o){ ops.push(['set',r,d]); b.set(r,d,o); return this; }, update(r,d){ ops.push(['update',r,d]); b.update(r,d); return this; },
+  delete(r){ ops.push(['delete',r]); b.delete(r); return this; },
+  async commit(){ await b.commit(); const seen=new Set(); for(const [op,r,d] of ops){ const p=pathOf(r); if(seen.has(p)) continue; seen.add(p); logAct(op,p,d); } } }; };
+
 const $ = id => document.getElementById(id);
 const esc = s => s==null ? '' : String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const today = () => { const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
@@ -521,6 +624,7 @@ function openTab(t){
   if(t==='bookings') markSeen('bookings', bookings);
   if(t==='plan') renderPlan();
   if(t!=='vouchers') stopScan();
+  if(t==='logs') renderLogs();
 }
 document.querySelectorAll('.tab-btn').forEach(b=>b.onclick=()=>openTab(b.dataset.tab));
 document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>openTab(b.dataset.go));
@@ -576,8 +680,8 @@ onAuthStateChanged(auth, user=>{
 // The main admin is recognised by the database itself: only the main admin is allowed to list
 // the staff collection. No email address is stored in this page.
 async function checkOwner(){ try{ await getDocs(collection(db,'staff')); return true; }catch(e){ return false; } }
-const PERMS=[['bookings','Bookings & table plan'],['hire','Private hire'],['messages','Messages'],['calls','Call log'],['offers','Offers & discounts'],
-  ['vouchers','Game & discount codes'],['photos','Photos & videos'],['settings','Tables & charges'],['content','Site text'],['hours','Opening hours']];
+const PERMS=[['bookings','Bookings & table plan'],['hire','Private hire'],['messages','Messages'],['calls','Call log'],['offers','Offers & discounts'],['menu','Menu & prices'],
+  ['vouchers','Game & discount codes'],['logs','Activity log'],['photos','Photos & videos'],['settings','Tables & charges'],['content','Site text'],['hours','Opening hours']];
 const LEGACY={bookings:true,hire:true,messages:true,calls:true};
 let perms={};
 const can=p=> isOwner || (p!=='owner' && perms[p]===true);
@@ -635,6 +739,8 @@ async function start(){
   if(isOwner) loadNotify();
   if(can('vouchers')) unsubs.push(onSnapshot(query(collection(db,'vouchers'),orderBy('createdAt','desc'),limit(300)), s=>{vouchers=s.docs.map(d=>({id:d.id,...d.data()})); renderVouchers();}, e=>console.warn('vouchers',e)));
   if(isOwner) loadPromo();
+  if(can('menu')) loadMenuAdmin();
+  if(can('logs')) unsubs.push(onSnapshot(query(collection(db,'logs'),orderBy('at','desc'),limit(500)), s=>{ logs=s.docs.map(d=>({id:d.id,...d.data()})); if($('p-logs').classList.contains('active')) renderLogs(); }, e=>console.warn('logs',e)));
   openFromHash();
   renderDash();
 }
@@ -1203,6 +1309,87 @@ $('savePromo').onclick=async()=>{
 function hashCode(){ const m=location.hash.match(/^#v=([A-Za-z0-9]{8})$/); return m ? m[1].toUpperCase() : null; }
 function openFromHash(){ const c=hashCode(); if(c && can('vouchers')){ openTab('vouchers'); $('vcInput').value=c; lookup(c); history.replaceState(null,'',location.pathname); } }
 window.addEventListener('hashchange',()=>{ if(auth.currentUser) openFromHash(); });
+
+
+/* ---------- menu & prices ---------- */
+const DEFAULT_MENU={"food": [{"t": "Starters", "sub": "", "items": [{"n": "Chicken Satay", "p": "£8.50", "d": "Succulent chicken marinated in Thai spices with a rich peanut sauce", "hot": false}, {"n": "Fish Cake", "p": "£7.99", "d": "Spicy fish cake with Thai spices, served with sweet chilli sauce", "hot": false}, {"n": "Veg Spring Roll", "p": "£7.25", "d": "Deep-fried mixed vegetable spring roll with sweet chilli sauce", "hot": false}, {"n": "Duck Spring Roll", "p": "£8.99", "d": "Deep-fried aromatic duck spring roll with hoisin sauce", "hot": false}, {"n": "Prawn Popcorn", "p": "£9.99", "d": "Popcorn tempura shrimp with spicy creamy mayo", "hot": false}, {"n": "Chicken Wing", "p": "£8.50", "d": "Crispy chicken wings tossed in hot & honey sauce with spring onion", "hot": false}, {"n": "Crispy Tofu", "p": "£7.99", "d": "Deep-fried tofu with sweet & spicy peanut sauce", "hot": false}, {"n": "Edamame Beans", "p": "£5.99", "d": "Steamed edamame beans with rock salt", "hot": false}, {"n": "Prawn Crackers", "p": "£4.99", "d": "Light, crispy Asian snack made from ground shrimp, garlic and pepper", "hot": false}]}, {"t": "Soups", "sub": "Mushroom / Chicken / Prawn", "items": [{"n": "Tom Yum", "p": "£7.99 / £8.99", "d": "Thai hot & sour creamy soup with mushroom, lemongrass, galangal and kaffir lime", "hot": true}, {"n": "Tom Ka", "p": "£7.99 / £8.99", "d": "Thai coconut milk soup with mushroom, Thai herbs, fresh chilli and chilli oil", "hot": false}]}, {"t": "Salads", "sub": "", "items": [{"n": "Beef Salad", "p": "£9.99", "d": "British beef slices with green salad, cherry tomato and mint, in a chilli-lime dressing", "hot": false}, {"n": "Raw Papaya Salad (Veg / Prawn)", "p": "£8.99 / £10.99", "d": "Green papaya with cherry tomato, green beans, carrot and peanut in a chilli-tamarind dressing", "hot": true}]}, {"t": "Curries", "sub": "Veg & Tofu / Chicken / Beef / Prawn", "items": [{"n": "Green Curry", "p": "£13.99 / £14.99 / £15.99", "d": "Thai green curry with pea aubergine, Thai aubergine, bamboo shoot and sweet basil", "hot": true}, {"n": "Panang Curry", "p": "£13.99 / £14.99 / £15.99", "d": "Rich, creamy red curry with pea & Thai aubergine, sweet basil and kaffir lime", "hot": false}]}, {"t": "Stir Fried", "sub": "Veg & Tofu / Chicken / Beef / Prawn", "items": [{"n": "Chilli Basil", "p": "£13.99 / £14.99 / £15.99", "d": "Fresh chilli, garlic, French beans and holy basil in our house sauce", "hot": false}, {"n": "Cashew Nut", "p": "£13.99 / £14.99 / £15.99", "d": "Mushroom, mixed pepper, onion and cashew nuts with spring onion in our house sauce", "hot": false}, {"n": "Garlic", "p": "£13.99 / £14.99 / £15.99", "d": "Mixed pepper, onion and garlic in our house sauce", "hot": false}, {"n": "Pad Thai", "p": "£13.99 / £15.99", "d": "Flat rice noodles with Thai chives, bean sprouts, shallots, crushed peanut, egg and our special sauce", "hot": false}]}, {"t": "House Specials", "sub": "", "items": [{"n": "Red Curry Duck", "p": "£17.99", "d": "Rich red curry with roasted duck, pineapple, lychee, grapes, cherry tomato and sweet basil", "hot": false}, {"n": "Crispy Chilli Chicken", "p": "£15.99", "d": "Crispy chicken fillet in a tangy, sweet & spicy sauce with onion, pepper and a hint of basil", "hot": false}, {"n": "Special Fried Rice", "p": "£15.99", "d": "Fried rice with chicken & king prawn, egg and mixed vegetables in special house spice", "hot": false}, {"n": "Drunken Noodles", "p": "£15.99", "d": "Fresh rice noodles with vegetables, chicken & prawn in a chilli-garlic savoury sauce", "hot": true}]}, {"t": "Sides", "sub": "", "items": [{"n": "Steamed Jasmine Rice", "p": "£3.99", "d": "", "hot": false}, {"n": "Egg Fried Rice", "p": "£4.50", "d": "", "hot": false}, {"n": "Steamed Brown & Wild Rice", "p": "£4.99", "d": "", "hot": false}, {"n": "Stir-Fried Egg Noodle", "p": "£5.99", "d": "Yellow egg noodles with house spice and spring onion", "hot": false}, {"n": "Steamed Broccoli", "p": "£4.99", "d": "", "hot": false}, {"n": "Stir-Fried Asian Greens", "p": "£6.99", "d": "Asian greens with garlic, bean sprouts and house sauce", "hot": false}]}, {"t": "Kids Menu", "sub": "", "items": [{"n": "Kids Fried Rice", "p": "£6.99", "d": "Fried rice with chicken, egg and spring onion", "hot": false}, {"n": "Kids Egg Noodle", "p": "£6.99", "d": "Stir-fried noodles with egg, chicken and spring onion", "hot": false}, {"n": "Chicken Nuggets & Fries", "p": "£6.99", "d": "", "hot": false}]}], "lunch": [{"t": "Starters", "sub": "", "items": [{"n": "Chicken Wing", "p": "", "d": "Crispy chicken wings in hot & honey sauce with spring onion", "hot": false}, {"n": "Fish Cake", "p": "", "d": "Spicy Thai fish cake with sweet chilli sauce", "hot": false}, {"n": "Veg Spring Roll", "p": "", "d": "Mixed vegetable spring roll with sweet chilli sauce", "hot": false}, {"n": "Edamame Beans", "p": "", "d": "Steamed with rock salt", "hot": false}, {"n": "Prawn Crackers", "p": "", "d": "Light and crispy", "hot": false}]}, {"t": "Mains", "sub": "Veg & Tofu / Chicken / Beef / Prawn · served with jasmine rice", "items": [{"n": "Green Curry", "p": "", "d": "Pea aubergine, Thai aubergine, bamboo shoot and sweet basil", "hot": true}, {"n": "Panang Curry", "p": "", "d": "Rich, creamy red curry with sweet basil and kaffir lime", "hot": false}, {"n": "Chilli Basil Stir Fry", "p": "", "d": "Fresh chilli, garlic, French beans and holy basil", "hot": false}, {"n": "Cashew Nut Stir Fry", "p": "", "d": "Mushroom, onion and cashew nuts with spring onion", "hot": false}, {"n": "Pad Thai (no beef)", "p": "", "d": "Flat rice noodles, chives, bean sprouts, peanut and egg", "hot": false}]}, {"t": "Add-ons", "sub": "", "items": [{"n": "Beef", "p": "+ £2.00", "d": "", "hot": false}, {"n": "Prawn", "p": "+ £2.50", "d": "", "hot": false}]}], "deal": {"time": "Lunch deal · 12pm – 3pm", "main": "£10.99", "two": "£15.00", "three": "£20.00", "drink": "Drink: glass of house red or white (125ml), a pint of beer, or a soft drink / juice"}};
+let menuData=null, mnWhich='food', mnSaved='';
+const clone=o=>JSON.parse(JSON.stringify(o));
+async function loadMenuAdmin(){
+  try{ const s=await getDoc(doc(db,'site','menu')); menuData = s.exists() ? {...clone(DEFAULT_MENU),...s.data()} : clone(DEFAULT_MENU); }catch(e){ menuData=clone(DEFAULT_MENU); }
+  mnSaved=JSON.stringify(menuData); renderMenuAdmin();
+}
+function mnDirty(){ $('mnDirty').hidden = JSON.stringify(menuData)===mnSaved; }
+function renderMenuAdmin(){
+  if(!menuData) return;
+  $('mnTabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.mn===mnWhich));
+  $('mnDeal').hidden = mnWhich!=='lunch';
+  const d=menuData.deal||{}; ['main','two','three','time','drink'].forEach(k=>$('dl-'+k).value=d[k]||'');
+  const cats=menuData[mnWhich]||[];
+  $('mnList').innerHTML = cats.map((c,ci)=>`<div class="mn-cat" data-ci="${ci}">
+    <div class="cat-head"><div class="field" style="margin:0"><label>Category</label><input data-cf="t" value="${esc(c.t)}" maxlength="60"></div>
+      <div class="field" style="margin:0"><label>Note under heading (optional)</label><input data-cf="sub" value="${esc(c.sub||'')}" maxlength="120"></div>
+      <div class="toolbar"><button class="btn small ghost" data-cmove="-1" ${ci===0?'disabled':''}>▲</button><button class="btn small ghost" data-cmove="1" ${ci===cats.length-1?'disabled':''}>▼</button><button class="btn small danger" data-cdel="1">Delete</button></div></div>
+    <table class="mn-items"><thead><tr><th>Dish</th><th>Price</th><th>Description</th><th class="ck">Spicy</th><th class="ck">Hide</th><th></th></tr></thead><tbody>
+    ${c.items.map((it,ii)=>`<tr data-ii="${ii}" class="${it.off?'off':''}"><td><input type="text" data-if="n" value="${esc(it.n)}" maxlength="80"></td><td><input type="text" class="pr" data-if="p" value="${esc(it.p)}" maxlength="60" placeholder="no price"></td>
+      <td class="d"><input type="text" data-if="d" value="${esc(it.d)}" maxlength="200"></td><td class="ck"><input type="checkbox" data-if="hot" ${it.hot?'checked':''} title="Spicy"></td>
+      <td class="ck"><input type="checkbox" data-if="off" ${it.off?'checked':''} title="Hide on website"></td><td><button class="delete-x" data-idel="1" title="Remove dish">&times;</button></td></tr>`).join('')}
+    </tbody></table><button class="btn small ghost" data-iadd="1" style="margin-top:8px">+ Add dish</button></div>`).join('') || '<p class="hint">No categories yet.</p>';
+  mnDirty();
+}
+$('mnTabs').onclick=e=>{ const b=e.target.closest('button[data-mn]'); if(b){ mnWhich=b.dataset.mn; renderMenuAdmin(); } };
+$('mnList').addEventListener('input',e=>{ const cat=e.target.closest('[data-ci]'); if(!cat) return; const c=menuData[mnWhich][cat.dataset.ci];
+  if(e.target.dataset.cf) c[e.target.dataset.cf]=e.target.value;
+  const row=e.target.closest('[data-ii]'); if(row && e.target.dataset.if){ const it=c.items[row.dataset.ii], f=e.target.dataset.if; it[f]= e.target.type==='checkbox' ? e.target.checked : e.target.value; if(f==='off') row.classList.toggle('off',e.target.checked); }
+  mnDirty(); });
+$('mnList').addEventListener('click',e=>{ const bt=e.target.closest('button'), cat=e.target.closest('[data-ci]'); if(!bt||!cat) return; const list=menuData[mnWhich], ci=Number(cat.dataset.ci), c=list[ci];
+  if(bt.dataset.iadd){ c.items.push({n:'',p:'',d:'',hot:false,off:false}); renderMenuAdmin(); const rows=$('mnList').querySelectorAll(`[data-ci="${ci}"] [data-ii]`); rows[rows.length-1]?.querySelector('input')?.focus(); }
+  else if(bt.dataset.idel){ const ii=Number(bt.closest('[data-ii]').dataset.ii); if(c.items[ii].n && !confirm('Remove "'+c.items[ii].n+'"?')) return; c.items.splice(ii,1); renderMenuAdmin(); }
+  else if(bt.dataset.cdel){ if(!confirm('Delete the whole "'+(c.t||'category')+'" category?')) return; list.splice(ci,1); renderMenuAdmin(); }
+  else if(bt.dataset.cmove){ const j=ci+Number(bt.dataset.cmove); if(j<0||j>=list.length) return; [list[ci],list[j]]=[list[j],list[ci]]; renderMenuAdmin(); } });
+$('mnAddCat').onclick=()=>{ menuData[mnWhich].push({t:'New category',sub:'',items:[{n:'',p:'',d:'',hot:false,off:false}]}); renderMenuAdmin(); $('mnList').lastElementChild?.scrollIntoView({behavior:'smooth'}); };
+['main','two','three','time','drink'].forEach(k=>$('dl-'+k).addEventListener('input',()=>{ menuData.deal=menuData.deal||{}; menuData.deal[k]=$('dl-'+k).value; mnDirty(); }));
+function menuChanges(before, after){
+  const out=[], idx=m=>{ const r={}; ['food','lunch'].forEach(w=>(m[w]||[]).forEach(c=>(c.items||[]).forEach(i=>{ if(i.n) r[w+'|'+i.n]=i; }))); return r; };
+  const a=idx(before), b=idx(after);
+  Object.keys(b).forEach(k=>{ const n=k.split('|')[1]; if(!a[k]) out.push('added '+n+(b[k].p?' ('+b[k].p+')':'')); else{ if(a[k].p!==b[k].p) out.push(n+' '+(a[k].p||'—')+' → '+(b[k].p||'—')); if(!!a[k].off!==!!b[k].off) out.push(n+(b[k].off?' hidden':' shown')); if(a[k].d!==b[k].d) out.push(n+' description edited'); } });
+  Object.keys(a).forEach(k=>{ if(!b[k]) out.push('removed '+k.split('|')[1]); });
+  ['main','two','three'].forEach(k=>{ const x=(before.deal||{})[k], y=(after.deal||{})[k]; if(x!==y) out.push('lunch deal '+(k==='main'?'main':k==='two'?'2 courses':'3 courses + drink')+' '+(x||'—')+' → '+(y||'—')); });
+  return out;
+}
+$('saveMenu').onclick=async()=>{
+  const clean=l=>(l||[]).map(c=>({t:String(c.t||'').trim().slice(0,60),sub:String(c.sub||'').trim().slice(0,120),
+    items:(c.items||[]).filter(i=>String(i.n||'').trim()).map(i=>({n:String(i.n).trim().slice(0,80),p:String(i.p||'').trim().slice(0,60),d:String(i.d||'').trim().slice(0,200),hot:!!i.hot,off:!!i.off}))})).filter(c=>c.t);
+  const data={food:clean(menuData.food), lunch:clean(menuData.lunch), deal:Object.fromEntries(['main','two','three','time','drink'].map(k=>[k,String((menuData.deal||{})[k]||'').trim().slice(0,160)]))};
+  if(!data.food.length) return flash('mnMsg','The food menu needs at least one category with a dish.',true);
+  const changes=menuChanges(JSON.parse(mnSaved||'{}'), data);
+  $('saveMenu').disabled=true;
+  try{ logNote=changes.length ? changes.slice(0,12).join('; ')+(changes.length>12?` (+${changes.length-12} more)`:'') : 'Menu saved (no dish or price changes)';
+    await setDoc(doc(db,'site','menu'),data); menuData={...data}; mnSaved=JSON.stringify(menuData); renderMenuAdmin(); flash('mnMsg','Saved — the website menu is updated.'); }
+  catch(e){ fail('mnMsg',e); } finally{ logNote=''; $('saveMenu').disabled=false; }
+};
+
+/* ---------- activity log ---------- */
+let logs=[];
+const AREA_NAMES={bookings:'Bookings',hireEnquiries:'Private hire',messages:'Messages',calls:'Call log',offers:'Offers',gallery:'Photos & videos',
+  'site/booking':'Tables & charges','site/menu':'Menu & prices','site/content':'Site text','site/hours':'Opening hours','site/notify':'Alerts','site/promo':'Game settings',staff:'Staff',vouchers:'Discount codes'};
+function renderLogs(){
+  const area=$('logArea').value, who=$('logWho').value, q=$('logFind').value.trim().toLowerCase();
+  const names=Object.fromEntries((staff||[]).map(s=>[s.id,s.name]));
+  const whoName=b=> b==='Main admin' ? 'Main admin' : (names[b] ? names[b]+' ('+b+')' : b);
+  const areas=[...new Set(logs.map(l=>l.area))], people=[...new Set(logs.map(l=>l.by))];
+  const keepA=$('logArea').value, keepW=$('logWho').value;
+  $('logArea').innerHTML='<option value="">All areas</option>'+areas.map(a=>`<option value="${esc(a)}">${esc(a)}</option>`).join(''); $('logArea').value=keepA;
+  $('logWho').innerHTML='<option value="">Everyone</option>'+people.map(p=>`<option value="${esc(p)}">${esc(whoName(p))}</option>`).join(''); $('logWho').value=keepW;
+  const list=logs.filter(l=>(!area||l.area===area)&&(!who||l.by===who)&&(!q||(l.text+' '+l.by+' '+l.area).toLowerCase().includes(q)));
+  $('logBody').innerHTML = list.length ? list.map(l=>`<tr><td style="white-space:nowrap">${dLong(tsMs(l.at))}</td><td>${esc(whoName(l.by))}</td><td><span class="area-pill">${esc(l.area)}</span></td><td>${esc(l.text)}</td></tr>`).join('')
+    : '<tr class="empty-row"><td colspan="4">No activity matches.</td></tr>';
+  return list;
+}
+['logArea','logWho'].forEach(id=>$(id).onchange=renderLogs); $('logFind').oninput=renderLogs;
+$('logCsv').onclick=()=>{ const list=renderLogs(), q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const csv='When,Who,Area,What changed\n'+list.map(l=>[new Date(tsMs(l.at)).toLocaleString('en-GB'),l.by,l.area,l.text].map(q).join(',')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='activity-log-'+today()+'.csv'; a.click(); };
 </script>
 </body>
 </html>
