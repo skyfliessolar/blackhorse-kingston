@@ -70,6 +70,13 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .sf-mi input[type=text]{background:rgba(241,232,214,.06);border:1px solid var(--line-dark);color:var(--cream);padding:8px;font:inherit;font-size:14px;border-radius:2px;width:100%;}
 .sf-mi.off .nm{opacity:.45;text-decoration:line-through;}
 .sf-mi label{font-size:12px;display:flex;gap:4px;align-items:center;}
+.sf-ta{width:100%;min-height:90px;background:rgba(241,232,214,.06);border:1px solid var(--line-dark);color:var(--cream);padding:10px;font:inherit;font-size:15px;border-radius:2px;resize:vertical;}
+.sf-fld{margin:0 0 14px;} .sf-fld .sf-lbl{margin-bottom:5px;}
+.sf-hr{display:grid;grid-template-columns:110px 1fr 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid rgba(228,206,147,.08);}
+.sf-hr input[type=time]{background:rgba(241,232,214,.06);border:1px solid var(--line-dark);color:var(--cream);padding:7px;font:inherit;border-radius:2px;color-scheme:dark;}
+.sf-hr label{font-size:13px;display:flex;gap:5px;align-items:center;}
+.sf-note{font-size:13px;color:rgba(241,232,214,.65);margin:-4px 0 12px;}
+@media(max-width:600px){ .sf-hr{grid-template-columns:1fr 1fr;} .sf-hr b{grid-column:1/-1;} }
 .sf-cat{font-family:'Oswald',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);font-size:13px;margin:18px 0 4px;}
 .sf-v{border:2px solid var(--line-dark);border-radius:3px;padding:14px;margin-top:12px;}
 .sf-v.ok{border-color:#3f8a55;background:rgba(63,138,85,.12);} .sf-v.bad{border-color:#a94a3d;background:rgba(169,74,61,.12);}
@@ -99,12 +106,22 @@ document.body.insertAdjacentHTML('beforeend', `
   <div class="sf-tabs" id="sfTabs"></div><div class="sf-msg sf-toast" id="sfMsg" role="status"></div><div class="sf-body" id="sfBody"></div></div>`);
 
 /* ---------------- state ---------------- */
-let me=null, perms={}, isOwner=false, isShared=false, staffName='', tab='', unsubs=[];
+let me=null, perms={}, scope={}, isOwner=false, isShared=false, staffName='', tab='', unsubs=[];
 let bookings=[], offers=[], gallery=[], hires=[], messages=[], menuData=null, menuSaved='';
 const LEGACY={bookings:true,hire:true,messages:true,calls:true};
 const can = p => isOwner || perms[p]===true;
+/* What the main admin allowed inside each area (missing = everything). */
+const allowList = area => isOwner ? null : (Array.isArray(scope[area]) ? scope[area] : null);
+const allowed = (area, key) => { const l=allowList(area); return !l || l.includes(key); };
+const mayDo = (area, act) => isOwner || !scope[area] || typeof scope[area]!=='object' || scope[area][act]!==false;
+const photoLimit = () => isOwner ? 0 : (Number(scope.photos)||0);
+const mayRemovePhoto = () => isOwner || scope.photoDel!==false;
+const CF_NAMES={tagline:'Hero tagline',welcome:'Welcome paragraph',food:'Drunken Wok paragraph',drinks:'Drinks paragraph',terrace:'Terrace paragraph',capacity:'Guest capacity',hire:'Private hire paragraph'};
+const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+const DEF_HOURS={Monday:{open:'12:00',close:'23:00',closed:false},Tuesday:{open:'12:00',close:'23:00',closed:false},Wednesday:{open:'12:00',close:'23:00',closed:false},
+  Thursday:{open:'12:00',close:'23:00',closed:false},Friday:{open:'12:00',close:'00:00',closed:false},Saturday:{open:'12:00',close:'00:00',closed:false},Sunday:{open:'12:00',close:'22:00',closed:false}};
 const TABS=[['bookings','Bookings','bookings'],['offers','Offers','offers'],['menu','Menu prices','menu'],['photos','Pub photos','pubphotos'],
-  ['codes','Discount codes','vouchers'],['inbox','Messages','messages','hire']];
+  ['text','Site text','content'],['hours','Opening hours','hours'],['codes','Discount codes','vouchers'],['inbox','Messages','messages','hire']];
 
 /* ---------------- activity log (same log the main admin reads) ---------------- */
 async function logAct(area, text){
@@ -142,11 +159,11 @@ $('sfOpen').onclick=()=>openPanel();
 $('sfClose').onclick=()=>closePanel();
 
 onAuthStateChanged(auth, async user=>{
-  unsubs.forEach(u=>u()); unsubs=[]; me=user; perms={}; isOwner=false; isShared=false;
+  unsubs.forEach(u=>u()); unsubs=[]; me=user; perms={}; scope={}; isOwner=false; isShared=false;
   if(!user){ $('sfBar').hidden=true; closePanel(); pubTools(); return; }
   try{ await getDocs(collection(db,'staff')); isOwner=true; }catch(e){ isOwner=false; }
   if(!isOwner){
-    try{ const s=await getDoc(doc(db,'staff',user.email.toLowerCase())); if(s.exists()){ perms=s.data().perms||LEGACY; isShared=s.data().shared===true; } }catch(e){}
+    try{ const s=await getDoc(doc(db,'staff',user.email.toLowerCase())); if(s.exists()){ perms=s.data().perms||LEGACY; scope=s.data().scope||{}; isShared=s.data().shared===true; } }catch(e){}
     if(!Object.values(perms).some(Boolean)){ alert('This login has no staff access yet. Ask the manager to switch on what you can use.'); await signOut(auth); store.del('bh_staff'); return; }
   }
   if(isShared) await askName();
@@ -177,7 +194,7 @@ $('sfTabs').onclick=e=>{ const b=e.target.closest('[data-t]'); if(b){ tab=b.data
 function render(){
   const tabs=myTabs(); $('sfTabs').innerHTML=tabs.map(([k,n])=>`<button data-t="${k}" class="${k===tab?'on':''}">${n}</button>`).join('');
   const body=$('sfBody');
-  ({bookings:rBookings, offers:rOffers, menu:rMenu, photos:rPhotos, codes:rCodes, inbox:rInbox})[tab]?.(body);
+  ({bookings:rBookings, offers:rOffers, menu:rMenu, photos:rPhotos, text:rText, hours:rHours, codes:rCodes, inbox:rInbox})[tab]?.(body);
 }
 
 /* ---- bookings ---- */
@@ -187,7 +204,7 @@ function rBookings(body){
   const urgent=bookings.filter(needsTable).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
   const day=bookings.filter(b=>b.date===bDate).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   const row=(b,u)=>`<div class="sf-row ${u?'urgent':''}"><div class="top"><b>${esc(b.time)} · ${esc(b.name)}</b><span>${esc(b.guests)} guests</span>
-      <select class="sf-sel" data-bs="${esc(b.id)}" style="margin-left:auto">${['pending','confirmed','cancelled'].map(s=>`<option value="${s}" ${b.status===s?'selected':''}>${s[0].toUpperCase()+s.slice(1)}</option>`).join('')}</select></div>
+      <select class="sf-sel" data-bs="${esc(b.id)}" style="margin-left:auto">${['pending','confirmed','cancelled'].map(s=>`<option value="${s}" ${b.status===s?'selected':''} ${b.status!==s && ((s==='confirmed'&&!mayDo('bookings','confirm'))||(s==='cancelled'&&!mayDo('bookings','cancel')))?'disabled':''}>${s[0].toUpperCase()+s.slice(1)}</option>`).join('')}</select></div>
     <div class="sub">${u?'⚠️ Needs a table · '+esc(fmtD(b.date))+' · ':''}${esc(b.tableName||'')} · <a href="tel:${esc(b.phone)}">${esc(b.phone)}</a>${b.notes?' · “'+esc(b.notes)+'”':''}${b.seen===false?' · <b style="color:#F0C36D">NEW</b>':''}</div></div>`;
   body.innerHTML=`
     ${urgent.length?`<h3>⚠️ Need a table (${urgent.length})</h3><p class="sub" style="margin:-6px 0 10px;color:rgba(241,232,214,.7)">Booked at a busy time or a big group — arrange the seating, call the customer, then set to Confirmed.</p>${urgent.map(b=>row(b,true)).join('')}`:''}
@@ -209,13 +226,13 @@ $('sfBody').addEventListener('change', async e=>{
 /* ---- offers ---- */
 function rOffers(body){
   const l=offers.slice().sort((a,b)=>(a.order||0)-(b.order||0)), t=todayISO();
-  body.innerHTML=`<div class="sf-tools"><h3 style="margin:0;flex:1">Offers &amp; discounts</h3><button class="sf-btn" id="sfAddOffer">+ New offer</button></div>
+  body.innerHTML=`<div class="sf-tools"><h3 style="margin:0;flex:1">Offers &amp; discounts</h3>${mayDo('offers','add')?'<button class="sf-btn" id="sfAddOffer">+ New offer</button>':''}</div>
   ${l.map(o=>{ const live=o.active!==false && (!o.from||o.from<=t) && (!o.to||o.to>=t);
     return `<div class="sf-row" data-oid="${esc(o.id)}"><div class="top"><span>${live?'🟢 On the website':'⚪ Not showing'}</span>
-      <label style="margin-left:auto;display:flex;gap:6px;align-items:center"><input type="checkbox" data-of="active" ${o.active!==false?'checked':''}> On</label><button class="sf-btn danger" data-odel>Delete</button></div>
-      <div class="sf-mi" style="grid-template-columns:110px 1fr"><input type="text" data-of="badge" value="${esc(o.badge||'')}" placeholder="Badge" maxlength="20"><input type="text" data-of="title" value="${esc(o.title||'')}" placeholder="Title" maxlength="80"></div>
-      <div class="sf-mi" style="grid-template-columns:1fr 1fr"><input type="text" data-of="text" value="${esc(o.text||'')}" placeholder="Details" maxlength="300"><input type="text" data-of="when" value="${esc(o.when||'')}" placeholder="When (e.g. Tuesdays 5–9pm)" maxlength="80"></div></div>`; }).join('') || '<p style="color:rgba(241,232,214,.6)">No offers yet.</p>'}`;
-  $('sfAddOffer').onclick=async()=>{ try{ await addDoc(collection(db,'offers'),{badge:'NEW',title:'New offer',text:'',when:'',from:'',to:'',active:false,order:offers.length,createdAt:serverTimestamp()}); say('Offer added — fill it in and tick On.'); logAct('Offers','New offer added'); }catch(e){ fail(e); } };
+      <label style="margin-left:auto;display:flex;gap:6px;align-items:center"><input type="checkbox" data-of="active" ${o.active!==false?'checked':''} ${mayDo('offers','toggle')?'':'disabled'}> On</label>${mayDo('offers','del')?'<button class="sf-btn danger" data-odel>Delete</button>':''}</div>
+      <fieldset style="border:0;padding:0;margin:0" ${mayDo('offers','edit')?'':'disabled'}><div class="sf-mi" style="grid-template-columns:110px 1fr"><input type="text" data-of="badge" value="${esc(o.badge||'')}" placeholder="Badge" maxlength="20"><input type="text" data-of="title" value="${esc(o.title||'')}" placeholder="Title" maxlength="80"></div>
+      <div class="sf-mi" style="grid-template-columns:1fr 1fr"><input type="text" data-of="text" value="${esc(o.text||'')}" placeholder="Details" maxlength="300"><input type="text" data-of="when" value="${esc(o.when||'')}" placeholder="When (e.g. Tuesdays 5–9pm)" maxlength="80"></div></fieldset></div>`; }).join('') || '<p style="color:rgba(241,232,214,.6)">No offers yet.</p>'}`;
+  if($('sfAddOffer')) $('sfAddOffer').onclick=async()=>{ try{ await addDoc(collection(db,'offers'),{badge:'NEW',title:'New offer',text:'',when:'',from:'',to:'',active:false,order:offers.length,createdAt:serverTimestamp()}); say('Offer added — fill it in and tick On.'); logAct('Offers','New offer added'); }catch(e){ fail(e); } };
 }
 $('sfBody').addEventListener('change', async e=>{
   const card=e.target.closest('[data-oid]'), f=e.target.dataset.of; if(!card||!f) return; const o=offers.find(x=>x.id===card.dataset.oid)||{};
@@ -238,12 +255,15 @@ let mWhich='food';
 async function rMenu(body){
   if(!menuData){ body.innerHTML='<p>Loading menu…</p>'; await loadMenu(); if(tab!=='menu') return; }
   if(!menuData){ body.innerHTML='<p>Menu could not be loaded.</p>'; return; }
+  const okW = w => (menuData[w]||[]).some(c=>allowed('menu', w+':'+c.t)) || (w==='lunch' && allowed('menu','deal'));
+  if(!okW(mWhich)) mWhich = okW('food') ? 'food' : 'lunch';
+  if(!okW('food') && !okW('lunch')){ body.innerHTML='<p>The manager hasn\u2019t given you any menu sections to change.</p>'; return; }
   const cats=menuData[mWhich]||[];
-  body.innerHTML=`<div class="sf-tools"><h3 style="margin:0;flex:1">Menu prices</h3><select class="sf-sel" id="sfMw"><option value="food">Food menu</option><option value="lunch">Lunch menu</option></select><button class="sf-btn" id="sfSaveMenu">Save prices</button></div>
-    <p class="sub" style="color:rgba(241,232,214,.7);margin:-6px 0 6px">Change prices or tick <b>Sold out</b> to hide a dish, then press Save prices.</p>
-    ${cats.map((c,ci)=>`<div class="sf-cat">${esc(c.t)}</div>`+c.items.map((it,ii)=>`<div class="sf-mi ${it.off?'off':''}" data-ci="${ci}" data-ii="${ii}"><span class="nm">${esc(it.n)}</span>
+  body.innerHTML=`<div class="sf-tools"><h3 style="margin:0;flex:1">Menu prices</h3><select class="sf-sel" id="sfMw">${okW('food')?'<option value="food">Food menu</option>':''}${okW('lunch')?'<option value="lunch">Lunch menu</option>':''}</select><button class="sf-btn" id="sfSaveMenu">Save prices</button></div>
+    <p class="sub" style="color:rgba(241,232,214,.7);margin:-6px 0 6px">Change prices or tick <b>Sold out</b> to hide a dish, then press Save prices.${allowList('menu')?' You can change the sections shown here.':''}</p>
+    ${cats.map((c,ci)=> !allowed('menu', mWhich+':'+c.t) ? '' : `<div class="sf-cat">${esc(c.t)}</div>`+c.items.map((it,ii)=>`<div class="sf-mi ${it.off?'off':''}" data-ci="${ci}" data-ii="${ii}"><span class="nm">${esc(it.n)}</span>
       <input type="text" data-mf="p" value="${esc(it.p||'')}" placeholder="price" maxlength="60"><label><input type="checkbox" data-mf="off" ${it.off?'checked':''}> Sold out</label></div>`).join('')).join('')}
-    ${mWhich==='lunch'?`<div class="sf-cat">Lunch deal prices</div>${['main','two','three'].map(k=>`<div class="sf-mi"><span class="nm">${{main:'Main',two:'Starter + main',three:'Starter + main + drink'}[k]}</span><input type="text" data-deal="${k}" value="${esc((menuData.deal||{})[k]||'')}" maxlength="20"></div>`).join('')}`:''}`;
+    ${mWhich==='lunch'&&allowed('menu','deal')?`<div class="sf-cat">Lunch deal prices</div>${['main','two','three'].map(k=>`<div class="sf-mi"><span class="nm">${{main:'Main',two:'Starter + main',three:'Starter + main + drink'}[k]}</span><input type="text" data-deal="${k}" value="${esc((menuData.deal||{})[k]||'')}" maxlength="20"></div>`).join('')}`:''}`;
   $('sfMw').value=mWhich; $('sfMw').onchange=e=>{ mWhich=e.target.value; render(); };
   $('sfSaveMenu').onclick=saveMenu;
 }
@@ -255,6 +275,13 @@ $('sfBody').addEventListener('input', e=>{
   if(e.target.dataset.mf==='off'){ it.off=e.target.checked; r.classList.toggle('off',it.off); } else it.p=e.target.value;
 });
 async function saveMenu(){
+  // start from the newest saved menu and copy in only the sections this login may change
+  let latest=null; try{ const s=await getDoc(doc(db,'site','menu')); latest=s.exists()?s.data():null; }catch(e){}
+  if(latest && allowList('menu')){ const mine=menuData; menuData=JSON.parse(JSON.stringify(latest));
+    ['food','lunch'].forEach(w=>(menuData[w]||[]).forEach(c=>{ if(!allowed('menu',w+':'+c.t)) return; const lc=(mine[w]||[]).find(x=>x.t===c.t); if(!lc) return;
+      c.items=c.items.map(it=>{ const li=lc.items.find(x=>x.n===it.n); return li?{...it,p:li.p||'',off:!!li.off}:it; }); }));
+    if(allowed('menu','deal')) menuData.deal={...(menuData.deal||{}), ...Object.fromEntries(['main','two','three'].map(k=>[k,(mine.deal||{})[k]||''])) };
+    menuSaved=JSON.stringify(latest); }
   const before=JSON.parse(menuSaved||'{}'), ch=[];
   ['food','lunch'].forEach(w=>(menuData[w]||[]).forEach((c,ci)=>c.items.forEach((it,ii)=>{ const o=(((before[w]||[])[ci]||{}).items||[])[ii]||{};
     if((o.p||'')!==(it.p||'')) ch.push(`${it.n} ${o.p||'—'} → ${it.p||'—'}`); if(!!o.off!==!!it.off) ch.push(`${it.n} ${it.off?'sold out':'back on'}`); })));
@@ -271,21 +298,28 @@ const pubItems=()=>gallery.filter(g=>g.place==='pub').sort((a,b)=>(a.order||0)-(
 function shrink(file, max, q){ return new Promise((res,rej)=>{ const img=new Image(); img.onload=()=>{ let w=img.width,h=img.height; const r=Math.min(1,max/Math.max(w,h)); w=Math.round(w*r); h=Math.round(h*r);
   const c=document.createElement('canvas'); c.width=w; c.height=h; c.getContext('2d').drawImage(img,0,0,w,h); URL.revokeObjectURL(img.src); res(c.toDataURL('image/jpeg',q)); }; img.onerror=rej; img.src=URL.createObjectURL(file); }); }
 async function toData(f){ let d=await shrink(f,1400,.8); if(d.length>950000) d=await shrink(f,1100,.66); if(d.length>950000) d=await shrink(f,900,.6); return d; }
+const myKey = () => isOwner ? 'Main admin' : (me?.email||'').toLowerCase();
+const startOfDay = () => { const d=new Date(); d.setHours(0,0,0,0); return d.getTime(); };
+const addedToday = () => gallery.filter(g=>g.place==='pub' && g.by===myKey() && tsMs(g.createdAt)>=startOfDay()).length;
+const photosLeft = () => { const n=photoLimit(); return n ? Math.max(0, n-addedToday()) : Infinity; };
 async function addPhotos(files, report){
   files=[...files].filter(f=>f.type.startsWith('image/')); if(!files.length) return report('Please choose photos (JPG or PNG).',true);
+  const left=photosLeft();
+  if(left<=0) return report(`You've added today's ${photoLimit()} photo${photoLimit()>1?'s':''} — the manager has set this limit. Try again tomorrow.`,true);
+  if(files.length>left){ report(`Only ${left} more photo${left>1?'s':''} allowed today — adding the first ${left}.`,true); files=files.slice(0,left); }
   const base=pubItems().length;
   for(let i=0;i<files.length;i++){ report(`Uploading ${i+1} of ${files.length}…`);
-    try{ await addDoc(collection(db,'gallery'),{kind:'photo',place:'pub',img:await toData(files[i]),caption:'',order:base+i,createdAt:serverTimestamp()}); }catch(err){ return report((FRIENDLY[err.code])||'Upload failed — please try again.',true); } }
+    try{ await addDoc(collection(db,'gallery'),{kind:'photo',place:'pub',img:await toData(files[i]),caption:'',order:base+i,by:myKey(),createdAt:serverTimestamp()}); }catch(err){ return report((FRIENDLY[err.code])||'Upload failed — please try again.',true); } }
   report(files.length>1?`${files.length} photos added — live on the website.`:'Photo added — live on the website.');
   logAct('Pub photos', `Added ${files.length} photo${files.length>1?'s':''} to "Our Pub"`); window.bhReloadGallery?.();
 }
-async function removePhoto(id, report){ if(!confirm('Remove this photo from the website?')) return;
+async function removePhoto(id, report){ if(!mayRemovePhoto()) return report('The manager hasn\u2019t allowed removing photos.',true); if(!confirm('Remove this photo from the website?')) return;
   try{ await deleteDoc(doc(db,'gallery',id)); report('Photo removed.'); logAct('Pub photos','Removed a photo from "Our Pub"'); window.bhReloadGallery?.(); }catch(err){ report(FRIENDLY[err.code]||'Could not remove it.',true); } }
 function rPhotos(body){
   const l=pubItems();
   body.innerHTML=`<div class="sf-tools"><h3 style="margin:0;flex:1">Pub photos</h3><label class="sf-btn" style="cursor:pointer">📷 Add photos<input type="file" id="sfPf" accept="image/*" multiple hidden></label></div>
-    <p class="sub" style="color:rgba(241,232,214,.7);margin:-6px 0 12px">These appear in the "Our Pub" section at the end of the website.</p>
-    <div class="sf-grid">${l.map(g=>`<figure><img src="${g.img}" alt=""><button class="sf-btn danger" style="width:100%;margin-top:5px" data-pdel="${esc(g.id)}">Remove</button></figure>`).join('')||'<p style="color:rgba(241,232,214,.6)">No pub photos yet.</p>'}</div>`;
+    <p class="sub" style="color:rgba(241,232,214,.7);margin:-6px 0 12px">These appear in the "Our Pub" section at the end of the website.${photoLimit()?` You can add <b>${photosLeft()}</b> more today (limit ${photoLimit()} a day).`:''}</p>
+    <div class="sf-grid">${l.map(g=>`<figure><img src="${g.img}" alt="">${mayRemovePhoto()?`<button class="sf-btn danger" style="width:100%;margin-top:5px" data-pdel="${esc(g.id)}">Remove</button>`:''}</figure>`).join('')||'<p style="color:rgba(241,232,214,.6)">No pub photos yet.</p>'}</div>`;
   $('sfPf').onchange=e=>addPhotos(e.target.files, say);
 }
 $('sfBody').addEventListener('click', e=>{ const id=e.target.dataset.pdel; if(id) removePhoto(id, say); });
@@ -299,11 +333,69 @@ function pubTools(){
   if(!bar){ sec.querySelector('.wrap').insertAdjacentHTML('afterbegin', `<div class="pub-add" id="pubAdd"><label class="btn btn-gold" style="cursor:pointer">📷 Add pub photos<input type="file" id="pubAddIn" accept="image/*" multiple hidden></label><span id="pubAddMsg" style="align-self:center;font-size:14px;color:#8FD19E"></span></div>`);
     $('pubAddIn').onchange=e=>addPhotos(e.target.files,(t,bad)=>{ const m=$('pubAddMsg'); m.textContent=t; m.style.color=bad?'#F0A496':'#8FD19E'; }); }
   // a Remove button on each photo for staff
+  if(!mayRemovePhoto()){ sec.querySelectorAll('.pub-del').forEach(b=>b.remove()); return; }
   const ids=pubItems().map(g=>g.id); sec.querySelectorAll('.media-grid figure').forEach((f,i)=>{ if(f.querySelector('.pub-del')||!ids[i]) return;
     f.insertAdjacentHTML('afterbegin',`<button class="pub-del" data-pid="${esc(ids[i])}">Remove</button>`); });
 }
 document.addEventListener('click', e=>{ const b=e.target.closest('.pub-del'); if(b){ e.preventDefault(); e.stopPropagation(); removePhoto(b.dataset.pid,(t,bad)=>{ const m=$('pubAddMsg'); if(m){ m.textContent=t; m.style.color=bad?'#F0A496':'#8FD19E'; } }); } }, true);
 window.addEventListener('bh-gallery', ()=>setTimeout(pubTools,50));
+
+/* ---- site text (only the parts the main admin ticked) ---- */
+let textData=null;
+async function rText(body){
+  body.innerHTML='<p>Loading…</p>';
+  try{ const s=await getDoc(doc(db,'site','content')); textData=s.exists()?s.data():{}; }catch(e){ textData={}; }
+  if(tab!=='text') return;
+  const keys=Object.keys(CF_NAMES).filter(k=>allowed('content',k));
+  if(!keys.length){ body.innerHTML='<p>The manager hasn’t given you any website text to change.</p>'; return; }
+  body.innerHTML=`<div class="sf-tools"><h3 style="margin:0;flex:1">Site text</h3><button class="sf-btn" id="sfSaveText">Save text</button></div>
+    <p class="sf-note">Leave a box empty to show the standard wording.</p>
+    ${keys.map(k=>`<div class="sf-fld"><label class="sf-lbl" for="sft-${k}">${esc(CF_NAMES[k])}</label>${k==='capacity'
+      ? `<input class="sf-in" id="sft-${k}" data-tk="${k}" type="number" min="0" max="2000" value="${esc(textData[k]??'')}" style="max-width:160px">`
+      : k==='tagline' ? `<input class="sf-in" id="sft-${k}" data-tk="${k}" maxlength="200" value="${esc(textData[k]??'')}">`
+      : `<textarea class="sf-ta" id="sft-${k}" data-tk="${k}" maxlength="1500">${esc(textData[k]??'')}</textarea>`}</div>`).join('')}`;
+  $('sfSaveText').onclick=saveText;
+}
+async function saveText(){
+  const d={}, ch=[];
+  $('sfBody').querySelectorAll('[data-tk]').forEach(el=>{ const k=el.dataset.tk; if(!allowed('content',k)) return;
+    let v=el.value.trim(); if(k==='capacity') v = v ? Math.max(0,Math.min(2000,Math.round(Number(v)||0))) : '';
+    if(String(textData[k]??'')!==String(v)){ d[k]=v; ch.push(CF_NAMES[k]); } });
+  if(!ch.length) return say('Nothing has changed.');
+  $('sfSaveText').disabled=true;
+  try{ await setDoc(doc(db,'site','content'), d, {merge:true}); Object.assign(textData,d); say('Saved — live on the website.'); window.bhReloadContent?.();
+    logAct('Site text', 'Changed: '+ch.join(', ')); }
+  catch(err){ fail(err); } finally{ const b=$('sfSaveText'); if(b) b.disabled=false; }
+}
+
+/* ---- opening hours (only the days the main admin ticked) ---- */
+let hoursData=null;
+async function rHours(body){
+  body.innerHTML='<p>Loading…</p>';
+  try{ const s=await getDoc(doc(db,'site','hours')); hoursData={...JSON.parse(JSON.stringify(DEF_HOURS)), ...(s.exists()?s.data():{})}; }catch(e){ hoursData=JSON.parse(JSON.stringify(DEF_HOURS)); }
+  if(tab!=='hours') return;
+  const days=DAYS.filter(d=>allowed('hours',d));
+  if(!days.length){ body.innerHTML='<p>The manager hasn’t given you any opening hours to change.</p>'; return; }
+  body.innerHTML=`<div class="sf-tools"><h3 style="margin:0;flex:1">Opening hours</h3><button class="sf-btn" id="sfSaveHours">Save hours</button></div>
+    ${allowList('hours')?'<p class="sf-note">You can change the days shown here.</p>':''}
+    ${days.map(d=>{ const h=hoursData[d]||DEF_HOURS[d]; return `<div class="sf-hr" data-hd="${d}"><b>${d}</b>
+      <input type="time" class="o" value="${esc(h.open)}" ${h.closed?'disabled':''} aria-label="${d} opens"><input type="time" class="c" value="${esc(h.close)}" ${h.closed?'disabled':''} aria-label="${d} closes">
+      <label><input type="checkbox" class="cl" ${h.closed?'checked':''}> Closed</label></div>`; }).join('')}`;
+  body.querySelectorAll('.sf-hr .cl').forEach(cb=>cb.onchange=()=>{ const r=cb.closest('.sf-hr'); r.querySelector('.o').disabled=r.querySelector('.c').disabled=cb.checked; });
+  $('sfSaveHours').onclick=saveHours;
+}
+const t12 = t => { if(!t) return '—'; let [h,m]=t.split(':').map(Number); const ap=h>=12?'pm':'am'; h=h%12||12; return h+(m?':'+String(m).padStart(2,'0'):'')+ap; };
+async function saveHours(){
+  const d={}, ch=[];
+  $('sfBody').querySelectorAll('[data-hd]').forEach(r=>{ const day=r.dataset.hd; if(!allowed('hours',day)) return;
+    const v={open:r.querySelector('.o').value||'12:00', close:r.querySelector('.c').value||'23:00', closed:r.querySelector('.cl').checked}, o=hoursData[day]||{};
+    if(v.open!==o.open || v.close!==o.close || !!v.closed!==!!o.closed){ d[day]=v; ch.push(day+' '+(v.closed?'closed':t12(v.open)+'–'+t12(v.close))); } });
+  if(!ch.length) return say('Nothing has changed.');
+  $('sfSaveHours').disabled=true;
+  try{ await setDoc(doc(db,'site','hours'), d, {merge:true}); Object.assign(hoursData,d); say('Saved — live on the website.'); window.bhReloadHours?.();
+    logAct('Opening hours', ch.join('; ')); }
+  catch(err){ fail(err); } finally{ const b=$('sfSaveHours'); if(b) b.disabled=false; }
+}
 
 /* ---- discount codes ---- */
 let scanStream=null, scanTimer=0, detector=null;
