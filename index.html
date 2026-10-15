@@ -390,6 +390,35 @@
   .glow-cta{position:relative;}
   html.fx-no-motion .reveal{opacity:1 !important;transform:none !important;}
   html.fx-no-motion #scrollBar{display:none;}
+  /* ================= IMMERSIVE PUB MODE (on together with the 3D pint) ================= */
+  #pubScene{position:fixed;left:0;top:0;width:100vw;height:115vh;z-index:-1;pointer-events:none;display:none;will-change:transform;}
+  #pubGlow{position:fixed;inset:0;z-index:-1;pointer-events:none;display:none;mix-blend-mode:screen;animation:pubFlicker 5.5s ease-in-out infinite;}
+  @keyframes pubFlicker{0%,100%{opacity:.85}18%{opacity:1}31%{opacity:.78}47%{opacity:.95}62%{opacity:.82}80%{opacity:1}}
+  html.pint-on{background:#0c0b09;}
+  html.pint-on #pubScene, html.pint-on #pubGlow{display:block;}
+  html.pint-on body{background:transparent;}
+  html.pint-on main > section{background-color:rgba(12,11,9,.66);}
+  html.pint-on main > section.section-panel{background:rgba(21,19,16,.8);}
+  html.pint-on .hero{background:radial-gradient(ellipse at 50% -10%,rgba(201,169,97,.16),transparent 60%),rgba(12,11,9,.45);}
+  html.pint-on #pint3d{background:transparent;}
+  html.pint-on header{background:rgba(12,11,9,.82);backdrop-filter:blur(8px);}
+  html.pint-on footer{background:rgba(12,11,9,.88);}
+  html.pint-on .media-slot{background:rgba(12,11,9,.66);}
+  /* customers book by pouring the pint: both Book a Table buttons step aside */
+  html.pint-on .nav-cta .btn-gold, html.pint-on .hero-ctas a.btn-gold[href="#book"]{display:none !important;}
+  /* cinematic sections */
+  html.pint-on.cine main > section:not(.hero):not(#pint3d){transform-origin:50% 0;will-change:transform,opacity;}
+  /* booking: a vintage wine label beside a bottle of the house red */
+  .wine-head,.wine-bottle{display:none;}
+  html.pint-on form.book-form{background:radial-gradient(ellipse at 50% 0%,#3a1418 0%,#22090c 55%,#140507 100%);border:1px solid #8B6F35;
+    box-shadow:inset 0 0 0 6px #140507, inset 0 0 0 7px rgba(201,169,97,.7), inset 0 0 0 11px #140507, inset 0 0 0 12px rgba(201,169,97,.35), 0 30px 70px rgba(0,0,0,.55);padding:44px 40px 40px;}
+  html.pint-on .wine-head{display:block;text-align:center;margin:-8px 0 22px;}
+  .wine-head .crest{font-family:'Cinzel',serif;color:var(--gold-light);font-size:22px;letter-spacing:.12em;}
+  .wine-head .sub{font-family:'Oswald',sans-serif;letter-spacing:.32em;text-transform:uppercase;font-size:11px;color:var(--gold);margin-top:6px;}
+  .wine-head .rule{height:1px;margin:14px auto 0;width:70%;background:linear-gradient(90deg,transparent,var(--gold),transparent);}
+  html.pint-on .wine-bottle{display:block;margin:30px auto 0;width:min(118px,34%);filter:drop-shadow(0 24px 30px rgba(0,0,0,.6));}
+  @media(max-width:850px){ html.pint-on .wine-bottle{width:78px;margin:16px auto 0;} }
+  .wine-bottle svg{width:100%;height:auto;display:block;overflow:visible;}
   /* ---------- pour into booking ---------- */
   .pour-layer{position:fixed;inset:0;width:100vw;height:100vh;z-index:70;pointer-events:none;}
   form.book-form{position:relative;isolation:isolate;overflow:hidden;}
@@ -778,8 +807,33 @@
         <h2>Book a Table</h2>
         <p>Planning a meal or meeting friends? Book your table at The Black Horse and enjoy Drunken Wok's Thai kitchen, great drinks and a relaxed atmosphere.</p>
         <p style="margin-top:22px;">Prefer to call? Ring us on <a href="tel:02035182275" style="color:var(--gold-light);font-weight:500;">020 3518 2275</a>.</p>
+        <div class="wine-bottle" aria-hidden="true"><svg viewBox="0 0 160 520">
+          <defs>
+            <linearGradient id="wbGlass" x1="0" x2="1"><stop offset="0" stop-color="#06120b"/><stop offset=".22" stop-color="#1d4a31"/><stop offset=".34" stop-color="#3d7a56"/><stop offset=".46" stop-color="#173b27"/><stop offset=".85" stop-color="#0a1e13"/><stop offset="1" stop-color="#030805"/></linearGradient>
+            <linearGradient id="wbWine" x1="0" x2="1"><stop offset="0" stop-color="#1a0306"/><stop offset=".4" stop-color="#4a0c14"/><stop offset="1" stop-color="#12020400"/></linearGradient>
+            <linearGradient id="wbFoil" x1="0" x2="1"><stop offset="0" stop-color="#6b5226"/><stop offset=".35" stop-color="#E4CE93"/><stop offset=".55" stop-color="#C9A961"/><stop offset="1" stop-color="#5a431c"/></linearGradient>
+            <linearGradient id="wbLabel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4ead2"/><stop offset="1" stop-color="#e2d2ad"/></linearGradient>
+            <linearGradient id="wbShine" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+            <clipPath id="wbClip"><path d="M64 6h32v118c0 22 46 46 46 92v276c0 14-10 22-24 22H42c-14 0-24-8-24-22V216c0-46 46-70 46-92z"/></clipPath>
+          </defs>
+          <path d="M64 6h32v118c0 22 46 46 46 92v276c0 14-10 22-24 22H42c-14 0-24-8-24-22V216c0-46 46-70 46-92z" fill="url(#wbGlass)"/>
+          <g clip-path="url(#wbClip)"><rect x="18" y="250" width="124" height="270" fill="url(#wbWine)" opacity=".55"/>
+            <rect class="wb-shine" x="-60" y="0" width="40" height="520" fill="url(#wbShine)" transform="skewX(-12)"/></g>
+          <path d="M60 2h40v58H60z" fill="url(#wbFoil)"/><path d="M60 54h40v6H60z" fill="#3b2a12" opacity=".6"/>
+          <rect x="30" y="270" width="100" height="150" rx="3" fill="url(#wbLabel)" stroke="#8B6F35" stroke-width="2"/>
+          <rect x="36" y="276" width="88" height="138" rx="2" fill="none" stroke="#C9A961" stroke-width=".8"/>
+          <image href="logo.jpg" x="62" y="284" width="36" height="36"/>
+          <text x="80" y="338" text-anchor="middle" font-family="Cinzel,serif" font-size="10.5" font-weight="600" fill="#2a1a0c">THE BLACK HORSE</text>
+          <text x="80" y="354" text-anchor="middle" font-family="Georgia,serif" font-style="italic" font-size="11" fill="#7a2a20">Réserve de la Maison</text>
+          <path d="M50 364h60" stroke="#C9A961" stroke-width=".8"/>
+          <text x="80" y="380" text-anchor="middle" font-family="Oswald,Arial,sans-serif" font-size="7" letter-spacing="1.6" fill="#5a4630">KINGSTON UPON THAMES</text>
+          <text x="80" y="398" text-anchor="middle" font-family="Cinzel,serif" font-size="9" fill="#2a1a0c">MMXXVI</text>
+          <path d="M40 150c6-12 18-22 24-28v-110h6v114c-6 8-20 18-26 30z" fill="#fff" opacity=".12"/>
+          <path d="M28 230c0-10 4-20 10-28v300c-6-2-10-6-10-12z" fill="#fff" opacity=".1"/>
+        </svg></div>
       </div>
       <form class="book-form" id="bookingForm" novalidate>
+        <div class="wine-head" aria-hidden="true"><div class="crest">❦ Réserve ❦</div><div class="sub">The Black Horse · Table Booking</div><div class="rule"></div></div>
         <div class="form-row">
           <div class="field"><label for="date">Date</label><input id="date" type="date" required></div>
           <div class="field"><label for="guests">Guests <span class="g-hint">(any group size)</span></label>
@@ -1371,13 +1425,13 @@ function gotoBook(){ document.getElementById('book').scrollIntoView({behavior:'s
 async function applyPint(on){
   const sec=$('pint3d'), reduce=matchMedia('(prefers-reduced-motion: reduce)').matches, saveData=navigator.connection && navigator.connection.saveData;
   const html=document.documentElement;
-  if(!on || reduce || saveData){ sec.hidden=true; html.classList.remove('pint-on'); window.BHPint && window.BHPint.unmount(); return; }
-  sec.hidden=false; html.classList.add('pint-on');
+  if(!on || reduce || saveData){ sec.hidden=true; html.classList.remove('pint-on'); window.bhCine && window.bhCine(); window.BHPint && window.BHPint.unmount(); return; }
+  sec.hidden=false; html.classList.add('pint-on'); window.bhImmersive && window.bhImmersive(true); window.bhCine && window.bhCine();
   const loadJs=src=>new Promise((ok,no)=>{ const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=()=>{ s.remove(); no(new Error('load '+src)); }; document.head.appendChild(s); });
   try{ if(!window.BHPint) await loadJs('fx3d.js').catch(()=>loadJs('Fx3d.js'));
     if(!window.BHPint.supported()) throw new Error('no-webgl');
     await window.BHPint.mount($('pint3dStage'), {onPour:(x,y)=>pourToBooking(x,y)}); }
-  catch(e){ console.warn('3D pint', e); sec.hidden=true; html.classList.remove('pint-on'); }
+  catch(e){ console.warn('3D pint', e); sec.hidden=true; html.classList.remove('pint-on'); window.bhCine && window.bhCine(); }
 }
 document.querySelectorAll('a[href="#book"]').forEach(l=>l.addEventListener('click',e=>{ if(!document.documentElement.classList.contains('pint-on') || l.closest('#menuModal,#play,#pint3d,#book')) return; e.preventDefault(); document.getElementById('pint3d').scrollIntoView({behavior:'smooth', block:'center'}); }));
 document.querySelectorAll('.pint-cta').forEach(l=>l.addEventListener('click',e=>{ e.preventDefault(); document.getElementById('pint3d').scrollIntoView({behavior:'smooth', block:'center'}); }));
@@ -1815,6 +1869,75 @@ loadHours().then(loadSettings);
       if(!reduce && !document.documentElement.classList.contains('fx-no-tilt')) el.style.transform=`perspective(900px) rotateX(${(.5-y)*3}deg) rotateY(${(x-.5)*4}deg) translateY(-3px)`; });
     el.addEventListener('pointerleave',()=>{ el.style.transform=''; }); }); }
   lightUp(); addEventListener('content-added',()=>lightUp());
+})();
+</script>
+
+<script>
+/* ================= IMMERSIVE PUB: the whole site sits inside a vintage pub (only while the 3D pint is on) ================= */
+(function(){
+  let painted=false, raf=0;
+  function paint(cv, glow){
+    const dpr=Math.min(devicePixelRatio||1,1.5), W=Math.max(innerWidth,800), H=Math.round(innerHeight*1.15);
+    cv.width=W*dpr; cv.height=H*dpr; glow.width=W*dpr; glow.height=innerHeight*dpr;
+    const x=cv.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); const R=(a,b)=>a+Math.random()*(b-a);
+    // brick wall
+    x.fillStyle='#1b0f09'; x.fillRect(0,0,W,H);
+    const bw=86, bh=34, wallB=H*.58;
+    for(let row=0,y=0;y<wallB;row++,y+=bh) for(let xx=(row%2)*bw/2-bw/2;xx<W;xx+=bw){ x.fillStyle=`rgb(${R(66,104)|0},${R(28,46)|0},${R(18,30)|0})`; x.fillRect(xx+2,y+2,bw-4,bh-4); }
+    const soot=x.createLinearGradient(0,0,0,wallB); soot.addColorStop(0,'rgba(0,0,0,.6)'); soot.addColorStop(1,'rgba(0,0,0,.2)'); x.fillStyle=soot; x.fillRect(0,0,W,wallB);
+    // back-bar shelves full of bottles
+    const shelf=y=>{ x.fillStyle='#3a2210'; x.fillRect(0,y,W,12); x.fillStyle='#C9A961'; x.fillRect(0,y,W,2);
+      const cols=[['#5a2a06','#c27a1c'],['#0e3b20','#2f8a4c'],['#cfc9bc','#ffffff'],['#4a0f12','#a3343a'],['#6b4a0a','#e2b04a'],['#1a2c3d','#4f7ca8']];
+      for(let bx=8;bx<W-20;){ const k=Math.random(), w=k<.3?R(20,26):k<.6?R(15,19):R(24,32), h=k<.3?R(80,100):k<.6?R(100,124):R(64,82), [c0,c1]=cols[Math.floor(Math.random()*cols.length)], top=y-h, n=w*.32;
+        const g=x.createLinearGradient(bx,0,bx+w,0); g.addColorStop(0,c0); g.addColorStop(.35,c1); g.addColorStop(.62,c0); g.addColorStop(1,'#000'); x.fillStyle=g;
+        x.beginPath(); x.moveTo(bx,y); x.lineTo(bx,top+h*.4); x.quadraticCurveTo(bx,top+h*.27,bx+w/2-n/2,top+h*.2); x.lineTo(bx+w/2-n/2,top); x.lineTo(bx+w/2+n/2,top); x.lineTo(bx+w/2+n/2,top+h*.2); x.quadraticCurveTo(bx+w,top+h*.27,bx+w,top+h*.4); x.lineTo(bx+w,y); x.closePath(); x.fill();
+        x.fillStyle='rgba(255,255,255,.3)'; x.fillRect(bx+w*.2,top+h*.42,2,h*.48); if(Math.random()<.8){ x.fillStyle=['#efe4cc','#d8c9a6','#1d1a16','#C9A961'][Math.floor(Math.random()*4)]; x.fillRect(bx+2,top+h*.56,w-4,h*.2); }
+        bx+=w+R(3,10); } };
+    shelf(H*.22); shelf(H*.38);
+    // gilded mirror sign
+    const mw=Math.min(560,W*.42), mh=mw*.26, mx=W/2-mw/2, my=H*.025; x.fillStyle='#17120d'; x.fillRect(mx,my,mw,mh); x.strokeStyle='#8B6F35'; x.lineWidth=9; x.strokeRect(mx,my,mw,mh); x.strokeStyle='#E4CE93'; x.lineWidth=2; x.strokeRect(mx+10,my+10,mw-20,mh-20);
+    x.textAlign='center'; x.textBaseline='middle'; x.fillStyle='#E4CE93'; x.font=`600 ${mw*.085}px Cinzel, Georgia, serif`; x.fillText('THE BLACK HORSE', W/2, my+mh*.44); x.font=`600 ${mw*.033}px Oswald, Arial`; x.fillStyle='#C9A961'; x.fillText('FINE ALES  ·  SPIRITS  ·  THAI KITCHEN', W/2, my+mh*.76);
+    // panelling, the bar counter, beer taps and stools in the foreground
+    const wd=x.createLinearGradient(0,wallB,0,H); wd.addColorStop(0,'#26140a'); wd.addColorStop(1,'#0c0603'); x.fillStyle=wd; x.fillRect(0,wallB,W,H-wallB);
+    const top=H*.72; const ct=x.createLinearGradient(0,top-14,0,top+10); ct.addColorStop(0,'#5a3418'); ct.addColorStop(.4,'#8a5a2c'); ct.addColorStop(1,'#2a160a'); x.fillStyle=ct; x.fillRect(0,top-14,W,24);
+    x.fillStyle='rgba(255,210,150,.25)'; x.fillRect(0,top-14,W,2);
+    for(let i=0;i<W;i+=150){ x.strokeStyle='rgba(0,0,0,.5)'; x.lineWidth=5; x.strokeRect(i+12,top+24,126,H-top-60); x.strokeStyle='rgba(201,169,97,.12)'; x.lineWidth=1.5; x.strokeRect(i+18,top+30,114,H-top-72); }
+    x.fillStyle='#C9A961'; x.fillRect(0,H-46,W,5); x.fillStyle='rgba(255,230,180,.4)'; x.fillRect(0,H-46,W,1);
+    for(let i=0;i<9;i++){ const tx=W*.18+i*(W*.64/8); x.fillStyle='#b8954d'; x.fillRect(tx-4,top-70,8,58); x.fillStyle='#d9c08a'; x.beginPath(); x.ellipse(tx,top-74,12,20,0,0,7); x.fill(); x.fillStyle=['#7a1f1f','#1f3d6b','#d9a23a','#2f6b3a','#222'][i%5]; x.fillRect(tx-10,top-96,20,16); }
+    [[W*.12,1],[W*.36,.9],[W*.64,.9],[W*.88,1]].forEach(([sx,s])=>{ x.fillStyle='rgba(8,5,3,.92)'; x.beginPath(); x.ellipse(sx,H-120*s,48*s,12*s,0,0,7); x.fill(); x.fillRect(sx-4*s,H-118*s,8*s,118*s); x.fillRect(sx-30*s,H-56*s,60*s,5*s); });
+    // soften, and darken so the website text always reads clearly
+    if('filter' in x){ const tmp=document.createElement('canvas'); tmp.width=cv.width; tmp.height=cv.height; const t=tmp.getContext('2d'); t.filter='blur(2.5px)'; t.drawImage(cv,0,0); x.setTransform(1,0,0,1,0,0); x.clearRect(0,0,cv.width,cv.height); x.drawImage(tmp,0,0); x.setTransform(dpr,0,0,dpr,0,0); }
+    x.fillStyle='rgba(8,6,4,.42)'; x.fillRect(0,0,W,H);
+    const v=x.createRadialGradient(W/2,H*.4,H*.2,W/2,H*.4,W*.75); v.addColorStop(0,'rgba(0,0,0,0)'); v.addColorStop(1,'rgba(0,0,0,.75)'); x.fillStyle=v; x.fillRect(0,0,W,H);
+    // Edison bulbs: their warm glow lives on its own flickering layer
+    const g=glow.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,W,innerHeight);
+    const n=Math.max(4,Math.round(W/260)); for(let i=0;i<n;i++){ const bx=(i+.5)*W/n, by=60+(i%2)*40;
+      g.strokeStyle='rgba(20,12,6,.9)'; g.lineWidth=2; g.beginPath(); g.moveTo(bx,0); g.lineTo(bx,by-16); g.stroke();
+      const h=g.createRadialGradient(bx,by,2,bx,by,190); h.addColorStop(0,'rgba(255,200,120,.5)'); h.addColorStop(.25,'rgba(255,150,60,.16)'); h.addColorStop(1,'rgba(255,140,50,0)'); g.fillStyle=h; g.fillRect(bx-190,by-190,380,380);
+      g.fillStyle='rgba(255,226,170,.95)'; g.beginPath(); g.ellipse(bx,by,8,12,0,0,7); g.fill(); g.fillStyle='#3b2a1a'; g.fillRect(bx-5,by-20,10,8); }
+    painted=true;
+  }
+  function parallax(){ const cv=document.getElementById('pubScene'); if(!cv) return; const max=innerHeight*.15, doc=Math.max(1,document.documentElement.scrollHeight-innerHeight);
+    cv.style.transform=`translate3d(0,${-(scrollY/doc)*max}px,0)`; }
+  window.bhImmersive=on=>{
+    let cv=document.getElementById('pubScene'), glow=document.getElementById('pubGlow');
+    if(on && !cv){ cv=document.createElement('canvas'); cv.id='pubScene'; cv.setAttribute('aria-hidden','true'); glow=document.createElement('canvas'); glow.id='pubGlow'; glow.setAttribute('aria-hidden','true'); document.body.prepend(glow); document.body.prepend(cv); }
+    if(on){ if(!painted) paint(cv,glow); parallax(); }
+  };
+  let rt; addEventListener('resize',()=>{ clearTimeout(rt); rt=setTimeout(()=>{ const cv=document.getElementById('pubScene'); if(cv && document.documentElement.classList.contains('pint-on')){ painted=false; paint(cv, document.getElementById('pubGlow')); parallax(); } },300); });
+  addEventListener('scroll',()=>{ if(!document.documentElement.classList.contains('pint-on')) return; cancelAnimationFrame(raf); raf=requestAnimationFrame(parallax); },{passive:true});
+  /* cinematic sections: each one swings up into place in 3D as it scrolls into view */
+  const cine=()=>{ const h=document.documentElement; const on=h.classList.contains('pint-on') && !h.classList.contains('fx-no-motion') && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+    h.classList.toggle('cine', on);
+    document.querySelectorAll('main > section:not(.hero):not(#pint3d)').forEach(s=>{ if(!on){ s.style.transform=''; s.style.opacity=''; return; }
+      const r=s.getBoundingClientRect(); if(r.top>innerHeight*1.2 || r.bottom<-50){ return; }
+      const p=Math.max(0,Math.min(1,(innerHeight-r.top)/(innerHeight*.55)));
+      if(p>=1){ if(s.style.transform){ s.style.transform=''; s.style.opacity=''; } return; }
+      const e=1-Math.pow(1-p,3); s.style.transform=`perspective(1400px) rotateX(${(1-e)*16}deg) translateY(${(1-e)*70}px) scale(${.92+.08*e})`; s.style.opacity=(.2+.8*e).toFixed(3); }); };
+  let cr; addEventListener('scroll',()=>{ cancelAnimationFrame(cr); cr=requestAnimationFrame(cine); },{passive:true}); addEventListener('bh-effects',()=>setTimeout(cine,50)); addEventListener('resize',cine);
+  window.bhCine=cine;
+  /* the bottle catches the light now and then */
+  addEventListener('load',()=>{ if(typeof anime==='undefined') return; anime({targets:'.wb-shine', translateX:[0,260], duration:2200, delay:1500, endDelay:3500, loop:true, easing:'easeInOutSine'}); });
 })();
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js" defer></script>
