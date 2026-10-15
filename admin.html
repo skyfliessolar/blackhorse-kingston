@@ -279,6 +279,7 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
     <button class="tab-btn" data-tab="logs" data-perm="logs">Activity log</button>
     <button class="tab-btn" data-tab="siteonoff" data-perm="owner">Website on / off</button>
     <button class="tab-btn" data-tab="effects" data-perm="owner">Animations &amp; 3D</button>
+    <button class="tab-btn" data-tab="timers" data-perm="owner">⏰ Timers (auto on/off)</button>
     <button class="tab-btn" data-tab="notify" data-perm="owner">Email &amp; WhatsApp alerts</button>
     <button class="tab-btn" data-tab="staff" data-perm="owner">Staff &amp; permissions</button>
     <button class="tab-btn" data-tab="account" id="accountTab">My password</button>
@@ -510,6 +511,31 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
     </section>
 
 
+    <!-- TIMERS -->
+    <section class="panel" id="p-timers">
+      <div class="head"><div><span class="eyebrow">Main admin only</span><h2>Timers — switch things on and off automatically</h2></div></div>
+      <div class="card" style="max-width:860px">
+        <h3 style="margin-top:0">New timer</h3>
+        <div class="grid3">
+          <div class="field"><label>What</label><select id="tmWhat">
+            <option value="site">The whole website</option><option value="anim">All animations</option><option value="pint3d">3D pint</option><option value="splash">Splash in the face</option>
+            <option value="ambience">Pub lights &amp; embers</option><option value="motion">Scroll animations</option><option value="shimmer">Gold shimmer</option><option value="tilt">Card spotlight &amp; tilt</option></select></div>
+          <div class="field"><label>Turn it</label><select id="tmTurn"><option value="off">OFF</option><option value="on">ON</option></select></div>
+          <div class="field"><label>When</label><select id="tmMode"><option value="once">Once — between two dates</option><option value="weekly">Every week — on chosen days</option></select></div>
+        </div>
+        <div class="grid2" id="tmOnce"><div class="field"><label>From</label><input type="datetime-local" id="tmStart"></div><div class="field"><label>Until (leave empty = until you remove it)</label><input type="datetime-local" id="tmEnd"></div></div>
+        <div id="tmWeekly" hidden>
+          <div class="field"><label>Days</label><div class="chips" id="tmDays"></div></div>
+          <div class="grid2"><div class="field"><label>From</label><input type="time" id="tmFrom" value="23:00"></div><div class="field"><label>Until (can run past midnight)</label><input type="time" id="tmTo" value="11:00"></div></div>
+        </div>
+        <div id="tmMsgBox"><div class="grid2"><div class="field"><label>Heading customers see</label><input id="tmTitle" maxlength="80" placeholder="We'll be back soon"></div>
+          <div class="field"><label>Message</label><input id="tmMsg" maxlength="300" placeholder="Testing going on — back in an hour"></div></div></div>
+        <button class="btn" id="tmAdd">Add timer</button> <span class="msg" id="tmMsgOut"></span>
+        <p class="hint">Times are UK time (London). While a timer is running it wins over the normal switches; when it ends, the website goes back to your normal settings.</p>
+      </div>
+      <div class="card" style="max-width:860px"><h3 style="margin-top:0">Your timers</h3><div id="tmList"></div></div>
+    </section>
+
     <!-- ANIMATIONS & 3D -->
     <section class="panel" id="p-effects">
       <div class="head"><div><span class="eyebrow">Main admin only</span><h2>Animations &amp; 3D</h2></div><div class="toolbar"><button class="btn ghost" id="fxAllOff">Turn all off</button><button class="btn" id="saveFx">Save</button></div></div>
@@ -519,6 +545,7 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
         <div class="fx-row"><div><b>Gold shimmer</b><p>A slow gold sheen across "The Black Horse" title and a glint around the logo.</p></div><label class="tgl"><input type="checkbox" data-fx="shimmer"><span></span></label></div>
         <div class="fx-row"><div><b>Scroll animations</b><p>Headings rise in word by word, cards cascade in, opening hours slide in, a gold progress line runs along the top, and the Book a Table buttons glow now and then.</p></div><label class="tgl"><input type="checkbox" data-fx="motion"><span></span></label></div>
         <div class="fx-row"><div><b>💦 Splash in the face</b><p>A real-looking splash of drink hits the screen as if someone threw it at the visitor — drops smack onto the "glass", run down and wipe away, then "Cheers!" appears. Plays once per visit, and again when someone taps "Cheers!". Choose the drink: <select id="fxSplashKind" style="margin-left:4px"><option value="water">Water</option><option value="ale">Ale</option><option value="wine">Red wine</option><option value="prosecco">Prosecco</option></select></p></div><label class="tgl"><input type="checkbox" data-fx="splash"><span></span></label></div>
+        <div class="fx-row"><div><b>How many splashes</b><p>When a visitor arrives, the splash can hit once, or two or three times from different sides with "Cheers!" on the last one.</p></div><select id="fxSplashCount"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></div>
         <div class="fx-row"><div><b>Card spotlight &amp; tilt</b><p>Cards catch a warm light and tilt slightly under the mouse (computers only).</p></div><label class="tgl"><input type="checkbox" data-fx="tilt"><span></span></label></div>
       </div>
       <div class="msg" id="fxMsg"></div>
@@ -881,6 +908,7 @@ async function start(){
   if(can('photos')||can('pubphotos')) unsubs.push(onSnapshot(collection(db,'gallery'), s=>{gallery=s.docs.map(d=>({id:d.id,...d.data()})); if(can('photos')) renderGallery(); renderPubPhotos();}));
   if(isOwner) loadStatusAdmin();
   if(isOwner) loadFx();
+  if(isOwner) loadTimers();
   if(can('offers')) unsubs.push(onSnapshot(collection(db,'offers'), s=>{offers=s.docs.map(d=>({id:d.id,...d.data()})); renderOffers();}));
   if(isOwner) unsubs.push(onSnapshot(collection(db,'staff'), s=>{staff=s.docs.map(d=>({id:d.id,...d.data()})); renderStaff();}));
   if(can('content')) loadContent();
@@ -1611,7 +1639,7 @@ $('saveMenu').onclick=async()=>{
 /* ---------- activity log ---------- */
 let logs=[];
 const AREA_NAMES={bookings:'Bookings',hireEnquiries:'Private hire',messages:'Messages',calls:'Call log',offers:'Offers',gallery:'Photos & videos',
-  'site/booking':'Tables & charges','site/menu':'Menu & prices','site/content':'Site text','site/hours':'Opening hours','site/notify':'Alerts','site/promo':'Game settings','site/status':'Website on/off','site/effects':'Animations & 3D',staff:'Staff',vouchers:'Discount codes'};
+  'site/booking':'Tables & charges','site/menu':'Menu & prices','site/content':'Site text','site/hours':'Opening hours','site/notify':'Alerts','site/promo':'Game settings','site/status':'Website on/off','site/effects':'Animations & 3D','site/schedule':'Timers',staff:'Staff',vouchers:'Discount codes'};
 function renderLogs(){
   const area=$('logArea').value, who=$('logWho').value, q=$('logFind').value.trim().toLowerCase();
   const names=Object.fromEntries((staff||[]).map(s=>[s.id,s.name]));
@@ -1709,16 +1737,57 @@ $('ppGrid').addEventListener('click',async e=>{ if(!e.target.matches('[data-ppde
   try{ await deleteDoc(doc(db,'gallery',id)); flash('ppMsg','Photo removed.'); }catch(err){ fail('ppMsg',err); } });
 
 
+/* ---------- timers: automatic on/off ---------- */
+const TM_WHAT={site:'The whole website',anim:'All animations',pint3d:'3D pint',splash:'Splash in the face',ambience:'Pub lights & embers',motion:'Scroll animations',shimmer:'Gold shimmer',tilt:'Card spotlight & tilt'};
+const TM_DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+let timers=[];
+function londonNow(){ const p=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',weekday:'short',hour12:false}).formatToParts(new Date()).map(x=>[x.type,x.value]));
+  const hm=(p.hour==='24'?'00':p.hour)+':'+p.minute; return {stamp:`${p.year}-${p.month}-${p.day}T${hm}`, hm, dow:TM_DAYS.indexOf(p.weekday)}; }
+function timerLive(r,n){ n=n||londonNow(); if(r.active===false) return false;
+  if(r.mode==='weekly'){ const d=r.days||[], f=r.from||'00:00', t=r.to||'23:59';
+    if(f<t) return d.includes(n.dow) && n.hm>=f && n.hm<t;
+    return (d.includes(n.dow) && n.hm>=f) || (d.includes((n.dow+6)%7) && n.hm<t); }
+  return (!r.start || n.stamp>=r.start) && (!r.end || n.stamp<r.end); }
+const tmWhen=r=> r.mode==='weekly' ? `Every ${(r.days||[]).length===7?'day':(r.days||[]).map(d=>TM_DAYS[d]).join(', ')}, ${r.from}–${r.to}${(r.from>r.to)?' (overnight)':''}`
+  : `${r.start?new Date(r.start).toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'}):'Now'} → ${r.end?new Date(r.end).toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'}):'until removed'}`;
+function renderTimers(){
+  const n=londonNow();
+  $('tmList').innerHTML = timers.length ? timers.map((r,i)=>{ const live=timerLive(r,n), past=r.mode!=='weekly' && r.end && n.stamp>=r.end;
+    return `<div class="fx-row" data-ti="${i}"><div><b>${esc(TM_WHAT[r.what]||r.what)} → ${r.turn==='on'?'ON':'OFF'}</b> ${live?'<span class="pill new">Running now</span>':past?'<span class="pill">Finished</span>':''}
+      <p>${esc(tmWhen(r))}${r.what==='site'&&r.turn==='off'&&(r.title||r.message)?' · “'+esc(r.title||'')+(r.message?' — '+esc(r.message):'')+'”':''}</p></div>
+      <div style="display:flex;gap:10px;align-items:center"><label class="tgl" title="Timer on/off"><input type="checkbox" data-tact ${r.active!==false?'checked':''}><span></span></label><button class="btn small danger" data-tdel>Remove</button></div></div>`; }).join('')
+    : '<p class="hint">No timers yet. Example: turn the whole website OFF every Monday 01:00–11:00, or turn the splash ON on Friday and Saturday 18:00–23:00.</p>';
+}
+async function loadTimers(){ try{ const s=await getDoc(doc(db,'site','schedule')); timers=s.exists()?(s.data().rules||[]):[]; }catch(e){ timers=[]; } renderTimers(); }
+async function saveTimers(note){ logNote=note; try{ await setDoc(doc(db,'site','schedule'),{rules:timers}); renderTimers(); return true; }catch(e){ fail('tmMsgOut',e); return false; } finally{ logNote=''; } }
+$('tmDays').innerHTML=[1,2,3,4,5,6,0].map(d=>`<label><input type="checkbox" value="${d}" ${d===5||d===6?'checked':''}> ${TM_DAYS[d]}</label>`).join('');
+const tmShow=()=>{ const w=$('tmMode').value==='weekly'; $('tmWeekly').hidden=!w; $('tmOnce').hidden=w; $('tmMsgBox').hidden=!($('tmWhat').value==='site'&&$('tmTurn').value==='off'); };
+['tmMode','tmWhat','tmTurn'].forEach(id=>$(id).onchange=tmShow); tmShow();
+$('tmAdd').onclick=async()=>{
+  const r={id:Math.random().toString(36).slice(2,9), what:$('tmWhat').value, turn:$('tmTurn').value, mode:$('tmMode').value, active:true};
+  if(r.mode==='weekly'){ r.days=[...$('tmDays').querySelectorAll('input:checked')].map(i=>Number(i.value)); r.from=$('tmFrom').value; r.to=$('tmTo').value;
+    if(!r.days.length) return flash('tmMsgOut','Tick at least one day.',true); if(!r.from||!r.to||r.from===r.to) return flash('tmMsgOut','Choose a start and an end time.',true); }
+  else{ r.start=$('tmStart').value; r.end=$('tmEnd').value; if(!r.start) return flash('tmMsgOut','Choose when it starts.',true); if(r.end && r.end<=r.start) return flash('tmMsgOut','The end must be after the start.',true); }
+  if(r.what==='site'&&r.turn==='off'){ r.title=$('tmTitle').value.trim().slice(0,80); r.message=$('tmMsg').value.trim().slice(0,300); }
+  timers.push(r); if(await saveTimers(`Timer added: ${TM_WHAT[r.what]} ${r.turn.toUpperCase()} — ${tmWhen(r)}`)) flash('tmMsgOut','Timer saved — the website follows it automatically.'); else timers.pop();
+};
+$('tmList').addEventListener('click',async e=>{ if(!e.target.matches('[data-tdel]')) return; const i=Number(e.target.closest('[data-ti]').dataset.ti), r=timers[i]; if(!confirm('Remove this timer?')) return;
+  timers.splice(i,1); await saveTimers(`Timer removed: ${TM_WHAT[r.what]} ${r.turn.toUpperCase()} — ${tmWhen(r)}`); });
+$('tmList').addEventListener('change',async e=>{ if(!e.target.matches('[data-tact]')) return; const i=Number(e.target.closest('[data-ti]').dataset.ti), r=timers[i]; r.active=e.target.checked;
+  await saveTimers(`Timer ${r.active?'resumed':'paused'}: ${TM_WHAT[r.what]} ${r.turn.toUpperCase()} — ${tmWhen(r)}`); });
+setInterval(()=>{ if($('p-timers').classList.contains('active')) renderTimers(); },30000);
+
 /* ---------- animations & 3D ---------- */
 const FX_DEF={pint3d:true, ambience:true, shimmer:true, tilt:true, motion:true, splash:false}; let fxCfg={...FX_DEF, splashKind:'water'};
 const FX_NAMES={pint3d:'3D pint', ambience:'Pub lights & embers', shimmer:'Gold shimmer', tilt:'Card spotlight & tilt', motion:'Scroll animations', splash:'Splash in the face'};
-function renderFx(){ document.querySelectorAll('[data-fx]').forEach(i=>i.checked=!!fxCfg[i.dataset.fx]); $('fxSplashKind').value=fxCfg.splashKind||'water'; }
+function renderFx(){ document.querySelectorAll('[data-fx]').forEach(i=>i.checked=!!fxCfg[i.dataset.fx]); $('fxSplashKind').value=fxCfg.splashKind||'water'; $('fxSplashCount').value=String(fxCfg.splashCount||3); }
 async function loadFx(){ try{ const s=await getDoc(doc(db,'site','effects')); if(s.exists()) fxCfg={...FX_DEF,...s.data()}; }catch(e){} renderFx(); }
 $('fxAllOff').onclick=()=>{ document.querySelectorAll('[data-fx]').forEach(i=>i.checked=false); flash('fxMsg','All switched off — press Save to apply.'); };
 $('saveFx').onclick=async()=>{
   const d=Object.fromEntries(Object.keys(FX_DEF).map(k=>[k, !!document.querySelector(`[data-fx="${k}"]`)?.checked]));
   const ch=Object.keys(d).filter(k=>d[k]!==fxCfg[k]).map(k=>`${FX_NAMES[k]} ${d[k]?'ON':'OFF'}`);
   d.splashKind=$('fxSplashKind').value; if(d.splashKind!==(fxCfg.splashKind||'water')) ch.push('Splash drink → '+$('fxSplashKind').selectedOptions[0].text);
+  d.splashCount=Number($('fxSplashCount').value)||3; if(d.splashCount!==(fxCfg.splashCount||3)) ch.push('Splashes → '+d.splashCount);
   $('saveFx').disabled=true; logNote = ch.length ? ch.join('; ') : 'Animation settings saved (no changes)';
   try{ await setDoc(doc(db,'site','effects'),d); fxCfg=d; flash('fxMsg','Saved — the website uses these settings now.'); }catch(e){ fail('fxMsg',e); } finally{ logNote=''; $('saveFx').disabled=false; }
 };
