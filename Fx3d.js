@@ -1,247 +1,2043 @@
-/* The Black Horse — realistic 3D pint (Three.js r128).
-   Loaded only when "3D pint" is on in the admin portal.
-   window.BHPint.mount(el, {onPour(x,y)}) — tap the glass: it tips, pours, and hands the stream to the page. */
-(function(){
-  const THREE_URL='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
-  let state=null;
-  const loadThree=()=> window.THREE ? Promise.resolve() : new Promise((ok,no)=>{ const s=document.createElement('script'); s.src=THREE_URL; s.onload=ok; s.onerror=no; document.head.appendChild(s); });
-  const webglOK=()=>{ try{ const c=document.createElement('canvas'); return !!(c.getContext('webgl2')||c.getContext('webgl')); }catch(e){ return false; } };
-  const ease={ inOut:t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2, out:t=>1-Math.pow(1-t,3) };
-  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)), seg=(t,a,b)=>clamp((t-a)/(b-a),0,1);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>document.documentElement.classList.add('checking');setTimeout(function(){document.documentElement.classList.remove('checking');},2500);</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Black Horse — Drunken Wok, Kingston upon Thames</title>
+<link rel="icon" href="logo.jpg">
+<meta name="description" content="The Black Horse, Kingston upon Thames — home of Drunken Wok Thai kitchen, live Sky &amp; TNT Sports, a large terrace with fire pit, and private hire for up to 250 guests.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://blackhorsedrunkenwok.co.uk/">
+<meta property="og:title" content="The Black Horse — Drunken Wok, Kingston upon Thames">
+<meta property="og:description" content="Thai food from Drunken Wok, live sport, a big terrace and private hire. 204 London Road, KT2 6QP.">
+<meta property="og:image" content="https://blackhorsedrunkenwok.co.uk/logo.jpg">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://blackhorsedrunkenwok.co.uk/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Oswald:wght@500;600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --black:#0C0B09;
+    --black-2:#151310;
+    --gold:#C9A961;
+    --gold-light:#E4CE93;
+    --gold-dark:#8B6F35;
+    --cream:#F1E8D6;
+    --text-dark:#221D14;
+    --line-dark: rgba(228,206,147,0.18);
+    --line-light: rgba(34,29,20,0.15);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--black);
+    color:var(--cream);
+    font-family:'Work Sans',sans-serif;
+    font-size:17px;
+    line-height:1.6;
+  }
+  h1,h2,h3{
+    font-family:'Cinzel',serif;
+    font-weight:600;
+    margin:0;
+    letter-spacing:0.01em;
+  }
+  .eyebrow{
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    letter-spacing:0.22em;
+    text-transform:uppercase;
+    font-size:13px;
+    color:var(--gold);
+  }
+  a{color:inherit;text-decoration:none;}
+  img{max-width:100%;display:block;}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 32px;}
+  section{padding:96px 0;}
+  @media(max-width:640px){ section{padding:64px 0;} .wrap{padding:0 20px;} }
 
-  /* ---------- procedural textures (nothing extra to download) ---------- */
-  function tex(w,h,draw,srgb){ const c=document.createElement('canvas'); c.width=w; c.height=h; draw(c.getContext('2d'),w,h); const t=new THREE.CanvasTexture(c); if(srgb!==false) t.encoding=THREE.sRGBEncoding; return t; }
-  const dot=()=>tex(64,64,(x,w)=>{ const g=x.createRadialGradient(w/2,w/2,0,w/2,w/2,w/2); g.addColorStop(0,'rgba(255,252,240,1)'); g.addColorStop(.3,'rgba(255,240,205,.9)'); g.addColorStop(1,'rgba(255,225,170,0)'); x.fillStyle=g; x.fillRect(0,0,w,w); });
-  const blob=()=>tex(64,64,(x,w)=>{ const g=x.createRadialGradient(w*.42,w*.4,0,w/2,w/2,w/2); g.addColorStop(0,'rgba(255,220,130,1)'); g.addColorStop(.45,'rgba(222,134,24,.95)'); g.addColorStop(1,'rgba(150,70,5,0)'); x.fillStyle=g; x.fillRect(0,0,w,w); });
-  const soft=()=>tex(256,256,(x,w)=>{ const g=x.createRadialGradient(w/2,w/2,0,w/2,w/2,w/2); g.addColorStop(0,'rgba(0,0,0,.8)'); g.addColorStop(.5,'rgba(0,0,0,.35)'); g.addColorStop(1,'rgba(0,0,0,0)'); x.fillStyle=g; x.fillRect(0,0,w,w); });
-  const bokeh=c=>tex(128,128,(x,w)=>{ const g=x.createRadialGradient(w/2,w/2,w*.3,w/2,w/2,w/2); g.addColorStop(0,c); g.addColorStop(.8,c); g.addColorStop(1,'rgba(0,0,0,0)'); x.fillStyle=g; x.beginPath(); x.arc(w/2,w/2,w/2,0,7); x.fill(); });
-  /* condensation: thousands of tiny drops and a few runs, wrapped round the glass */
-  const frost=()=>tex(1024,512,(x,w,h)=>{ x.clearRect(0,0,w,h);
-    for(let i=0;i<5200;i++){ const px=Math.random()*w, py=h*.1+Math.random()*h*.9, r=Math.random()<.92?Math.random()*1.6+.4:Math.random()*4+2;
-      const g=x.createRadialGradient(px-r*.3,py-r*.3,0,px,py,r); g.addColorStop(0,'rgba(255,255,255,.95)'); g.addColorStop(.6,'rgba(230,240,255,.35)'); g.addColorStop(1,'rgba(255,255,255,0)'); x.fillStyle=g; x.beginPath(); x.arc(px,py,r,0,7); x.fill(); }
-    for(let i=0;i<18;i++){ const px=Math.random()*w, y0=h*.2+Math.random()*h*.4, len=60+Math.random()*180; x.strokeStyle='rgba(255,255,255,.35)'; x.lineWidth=2.4; x.lineCap='round'; x.beginPath(); x.moveTo(px,y0);
-      for(let k=0;k<len;k+=6) x.lineTo(px+Math.sin(k*.08+i)*1.5, y0+k); x.stroke(); x.fillStyle='rgba(255,255,255,.8)'; x.beginPath(); x.arc(px,y0+len,3.2,0,7); x.fill(); } }, false);
-  /* foam lacing on the inside of the glass above the beer */
-  const lace=()=>tex(1024,256,(x,w,h)=>{ x.clearRect(0,0,w,h); for(let b=0;b<4;b++){ const y=30+b*52; x.strokeStyle=`rgba(255,248,232,${.5-b*.09})`;
-      for(let i=0;i<w;i+=3){ const hh=6+Math.sin(i*.05+b)*5+Math.random()*7; x.lineWidth=2+Math.random()*2; x.beginPath(); x.moveTo(i,y); x.lineTo(i+Math.random()*2,y+hh); x.stroke(); } } }, false);
-  const wood=()=>tex(1024,512,(x,w,h)=>{ const g=x.createLinearGradient(0,0,0,h); g.addColorStop(0,'#2d190c'); g.addColorStop(1,'#120804'); x.fillStyle=g; x.fillRect(0,0,w,h);
-    for(let i=0;i<180;i++){ const y=Math.random()*h, a=Math.random()*.08+.02; x.strokeStyle=`rgba(${Math.random()<.5?'130,78,34':'8,4,2'},${a})`; x.lineWidth=Math.random()*2+.5; x.beginPath(); x.moveTo(0,y); for(let px=0;px<=w;px+=32) x.lineTo(px, y+Math.sin(px*.01+i)*4+Math.sin(px*.003+i*2)*9); x.stroke(); }
-    const s=x.createRadialGradient(w/2,h*.45,10,w/2,h*.45,w*.45); s.addColorStop(0,'rgba(255,190,110,.18)'); s.addColorStop(1,'rgba(0,0,0,0)'); x.fillStyle=s; x.fillRect(0,0,w,h); });
-  function coaster(logo){ return tex(512,512,(x,w)=>{ const c=w/2;
-    x.fillStyle='#0e0c09'; x.beginPath(); x.arc(c,c,c,0,7); x.fill();
-    x.strokeStyle='#C9A961'; x.lineWidth=10; x.beginPath(); x.arc(c,c,c-14,0,7); x.stroke(); x.lineWidth=2; x.beginPath(); x.arc(c,c,c-30,0,7); x.stroke();
-    if(logo){ x.save(); x.beginPath(); x.arc(c,c,150,0,7); x.clip(); x.drawImage(logo,c-150,c-150,300,300); x.restore(); }
-    x.fillStyle='#E4CE93'; x.font='600 30px Cinzel, Georgia, serif'; x.textAlign='center'; x.textBaseline='middle';
-    const t='THE BLACK HORSE · DRUNKEN WOK · KINGSTON · '; x.save(); x.translate(c,c); for(let i=0;i<t.length;i++){ x.save(); x.rotate(-Math.PI/2+i*(Math.PI*2/t.length)); x.translate(0,-(c-56)); x.fillText(t[i],0,0); x.restore(); } x.restore(); }); }
+  .ornate-rule{display:flex;align-items:center;justify-content:center;gap:10px;margin:22px 0;color:var(--gold);}
+  .ornate-rule .bar{width:60px;height:1px;background:var(--gold-dark);}
+  .ornate-rule .diamonds{font-size:10px;letter-spacing:4px;color:var(--gold);}
+  .divider{display:flex;justify-content:center;padding:0;}
 
+  .mark{border-radius:50%;object-fit:cover;display:block;flex:none;background:var(--cream);}
 
-  /* ---------- vintage back-bar: brick, shelves of bottles, a gilded mirror sign and Edison bulbs ---------- */
-  function backbar(){ return tex(2048,1024,(x,w,h)=>{
-    const R=(a,b)=>a+Math.random()*(b-a);
-    // brick wall
-    x.fillStyle='#1b0f09'; x.fillRect(0,0,w,h);
-    const bw=118, bh=46; for(let row=0,y=0;y<h*.62;row++,y+=bh){ for(let c=-1,xx=(row%2)*bw/2-bw/2;xx<w;c++,xx+=bw){
-      const r=R(70,110), g=R(30,48), b=R(20,32); x.fillStyle=`rgb(${r},${g},${b})`; x.fillRect(xx+3,y+3,bw-6,bh-6);
-      const gr=x.createLinearGradient(0,y,0,y+bh); gr.addColorStop(0,'rgba(255,200,150,.06)'); gr.addColorStop(1,'rgba(0,0,0,.25)'); x.fillStyle=gr; x.fillRect(xx+3,y+3,bw-6,bh-6); } }
-    const soot=x.createLinearGradient(0,0,0,h*.62); soot.addColorStop(0,'rgba(0,0,0,.55)'); soot.addColorStop(1,'rgba(0,0,0,.15)'); x.fillStyle=soot; x.fillRect(0,0,w,h*.62);
-    // dark wood panelling below
-    const wd=x.createLinearGradient(0,h*.6,0,h); wd.addColorStop(0,'#2a160a'); wd.addColorStop(1,'#120804'); x.fillStyle=wd; x.fillRect(0,h*.6,w,h*.4);
-    for(let i=0;i<w;i+=170){ x.strokeStyle='rgba(0,0,0,.45)'; x.lineWidth=6; x.strokeRect(i+14,h*.66,140,h*.3); x.strokeStyle='rgba(201,169,97,.12)'; x.lineWidth=2; x.strokeRect(i+20,h*.67,128,h*.28); }
-    // gilded mirror sign in the middle
-    const mx=w*.32, my=h*.06, mw=w*.36, mh=h*.25; const mg=x.createLinearGradient(mx,my,mx+mw,my+mh); mg.addColorStop(0,'#16120e'); mg.addColorStop(.5,'#2b2219'); mg.addColorStop(1,'#120e0a');
-    x.fillStyle=mg; x.fillRect(mx,my,mw,mh); x.strokeStyle='#8B6F35'; x.lineWidth=14; x.strokeRect(mx,my,mw,mh); x.strokeStyle='#E4CE93'; x.lineWidth=3; x.strokeRect(mx+16,my+16,mw-32,mh-32);
-    const shine=x.createLinearGradient(mx,my,mx+mw*.6,my+mh); shine.addColorStop(0,'rgba(255,255,255,.08)'); shine.addColorStop(.5,'rgba(255,255,255,0)'); x.fillStyle=shine; x.fillRect(mx,my,mw,mh);
-    x.textAlign='center'; x.textBaseline='middle'; x.fillStyle='#E4CE93'; x.shadowColor='rgba(228,206,147,.6)'; x.shadowBlur=16;
-    x.font='600 76px Cinzel, Georgia, serif'; x.fillText('THE BLACK HORSE', w/2, my+mh*.42);
-    x.shadowBlur=0; x.font='600 30px Oswald, Arial, sans-serif'; x.fillStyle='#C9A961'; x.fillText('FINE ALES  ·  SPIRITS  ·  THAI KITCHEN', w/2, my+mh*.74);
-    // shelves of bottles either side of the mirror
-    const shelf=(y,x0,x1)=>{ x.fillStyle='#3a2210'; x.fillRect(x0,y,x1-x0,16); x.fillStyle='#C9A961'; x.fillRect(x0,y,x1-x0,3);
-      for(let bx=x0+16;bx<x1-30;){ const kind=Math.random(), bwid=kind<.3?R(30,38):kind<.6?R(22,28):R(34,46), bht=kind<.3?R(120,150):kind<.6?R(150,185):R(95,120);
-        const cols=[['#5a2a06','#c27a1c'],['#0e3b20','#2f8a4c'],['#d9d4c8','#ffffff'],['#4a0f12','#a3343a'],['#6b4a0a','#e2b04a'],['#1a2c3d','#4f7ca8']]; const [c0,c1]=cols[Math.floor(Math.random()*cols.length)];
-        const top=y-bht, g=x.createLinearGradient(bx,0,bx+bwid,0); g.addColorStop(0,c0); g.addColorStop(.35,c1); g.addColorStop(.6,c0); g.addColorStop(1,'#000'); x.fillStyle=g;
-        x.beginPath(); const neck=bwid*.32; x.moveTo(bx,y); x.lineTo(bx,top+bht*.38); x.quadraticCurveTo(bx,top+bht*.26,bx+bwid/2-neck/2,top+bht*.2); x.lineTo(bx+bwid/2-neck/2,top);
-        x.lineTo(bx+bwid/2+neck/2,top); x.lineTo(bx+bwid/2+neck/2,top+bht*.2); x.quadraticCurveTo(bx+bwid,top+bht*.26,bx+bwid,top+bht*.38); x.lineTo(bx+bwid,y); x.closePath(); x.fill();
-        x.fillStyle='rgba(255,255,255,.35)'; x.fillRect(bx+bwid*.18,top+bht*.4,3,bht*.5);
-        if(Math.random()<.8){ x.fillStyle=['#efe4cc','#d8c9a6','#1d1a16','#C9A961'][Math.floor(Math.random()*4)]; x.fillRect(bx+3,top+bht*.55,bwid-6,bht*.22); }
-        x.fillStyle='#2a1a0c'; x.fillRect(bx+bwid/2-neck/2,top-6,neck,8);
-        bx+=bwid+R(4,14); } };
-    shelf(h*.28,30,mx-30); shelf(h*.5,30,mx-30); shelf(h*.28,mx+mw+30,w-30); shelf(h*.5,mx+mw+30,w-30); shelf(h*.5,mx+20,mx+mw-20);
-    // Edison bulbs with warm halos
-    [[w*.12,h*.08],[w*.26,h*.13],[w*.74,h*.13],[w*.88,h*.08],[w*.5,h*.36]].forEach(([bx,by])=>{
-      x.strokeStyle='rgba(20,12,6,.9)'; x.lineWidth=3; x.beginPath(); x.moveTo(bx,0); x.lineTo(bx,by-26); x.stroke();
-      const halo=x.createRadialGradient(bx,by,4,bx,by,220); halo.addColorStop(0,'rgba(255,200,120,.55)'); halo.addColorStop(.25,'rgba(255,160,70,.18)'); halo.addColorStop(1,'rgba(255,140,50,0)'); x.fillStyle=halo; x.fillRect(bx-220,by-220,440,440);
-      x.fillStyle='rgba(255,224,170,.95)'; x.beginPath(); x.ellipse(bx,by,15,22,0,0,7); x.fill(); x.fillStyle='#3b2a1a'; x.fillRect(bx-9,by-34,18,12); });
-    // vignette & haze
-    const v=x.createRadialGradient(w/2,h*.45,h*.2,w/2,h*.45,w*.7); v.addColorStop(0,'rgba(0,0,0,0)'); v.addColorStop(1,'rgba(0,0,0,.7)'); x.fillStyle=v; x.fillRect(0,0,w,h);
-  }); }
-  /* ---------- the nonic pint profile ---------- */
-  const OUTER=[[0,-1.20],[0.50,-1.20],[0.535,-1.16],[0.55,-1.05],[0.595,-0.50],[0.645,0.20],[0.675,0.55],[0.725,0.72],[0.735,0.80],[0.715,0.92],[0.72,1.08],[0.735,1.22]];
-  function rAt(y,inset){ for(let i=1;i<OUTER.length;i++){ const [r1,y1]=OUTER[i-1],[r2,y2]=OUTER[i]; if(y>=y1&&y<=y2){ const t=(y-y1)/((y2-y1)||1); return r1+(r2-r1)*t-(inset||0); } } return OUTER[OUTER.length-1][0]-(inset||0); }
-  const lathe=(pts,seg)=>new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(Math.max(0,p[0]),p[1])),seg||96);
-  const profile=(y0,y1,inset,step)=>{ const p=[]; for(let y=y0;y<=y1+1e-6;y+=step||.04) p.push([rAt(y,inset),y]); return p; };
+  .btn{
+    display:inline-flex;align-items:center;gap:10px;
+    font-family:'Oswald',sans-serif;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;
+    font-size:13px;padding:16px 30px;border-radius:2px;border:1px solid transparent;cursor:pointer;
+    transition:transform .15s ease, background .2s ease, color .2s ease;
+  }
+  .btn:hover{transform:translateY(-1px);}
+  .btn-gold{background:var(--gold);color:var(--black);}
+  .btn-gold:hover{background:var(--gold-light);}
+  .btn-outline-light{border-color:rgba(241,232,214,0.5);color:var(--cream);}
+  .btn-outline-light:hover{border-color:var(--gold);color:var(--gold-light);background:rgba(201,169,97,0.08);}
 
-  function build(el, hooks){
-    const W=()=>el.clientWidth||600, H=()=>el.clientHeight||460, mobile=matchMedia('(max-width: 700px)').matches;
-    const renderer=new THREE.WebGLRenderer({antialias:true, alpha:true, powerPreference:'high-performance'});
-    renderer.setPixelRatio(Math.min(devicePixelRatio||1, mobile?1.5:1.75)); renderer.setSize(W(),H());
-    renderer.outputEncoding=THREE.sRGBEncoding; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.0;
-    el.appendChild(renderer.domElement); renderer.domElement.setAttribute('aria-hidden','true');
-    const scene=new THREE.Scene(); scene.fog=new THREE.Fog(0x0c0a08,7.5,14);
-    const camera=new THREE.PerspectiveCamera(30, W()/H(), .1, 100); camera.position.set(0,1.0,7.9); camera.lookAt(0,.32,0);
+  header{position:sticky;top:0;z-index:50;background:rgba(12,11,9,0.96);border-bottom:1px solid var(--line-dark);}
+  .nav-inner{
+    max-width:1120px;margin:0 auto;padding:0 32px;
+    display:flex;align-items:center;justify-content:space-between;height:76px;color:var(--cream);
+  }
+  .brand{
+    font-family:'Cinzel',serif;font-weight:600;font-size:19px;color:var(--cream);
+    display:flex;align-items:center;gap:12px;letter-spacing:0.02em;
+  }
+  .brand .mark{width:34px;height:34px;border:1px solid var(--gold-dark);}
+  .brand .brand-sub{display:block;font-family:'Oswald',sans-serif;font-size:9.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold-light);font-weight:500;margin-top:2px;}
+  nav.links{display:flex;gap:28px;align-items:center;}
+  nav.links a{
+    font-family:'Oswald',sans-serif;font-size:12.5px;letter-spacing:0.14em;text-transform:uppercase;
+    color:rgba(241,232,214,0.75);padding:6px 0;border-bottom:1px solid transparent;
+  }
+  nav.links a:hover{color:var(--gold-light);border-color:var(--gold);}
+  .nav-cta{display:flex;align-items:center;gap:18px;}
+  .phone-link{font-family:'Oswald',sans-serif;font-size:12.5px;letter-spacing:0.08em;color:rgba(241,232,214,0.65);display:none;}
+  @media(min-width:900px){.phone-link{display:inline;}}
+  @media(max-width:900px){nav.links{display:none;}}
 
-    /* studio-style reflections: tall soft-boxes give the glass its long vertical highlights */
-    const env=new THREE.Scene(); env.background=new THREE.Color(0x100a06);
-    const box=(c,w,h,x,y,z)=>{ const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h), new THREE.MeshBasicMaterial({color:c, side:THREE.DoubleSide})); m.position.set(x,y,z); m.lookAt(0,y*.3,0); env.add(m); };
-    box(0xfff4e0,.55,6,-3.2,1,2.2); box(0xffe2b8,.4,6,3.4,1,1.6); box(0xff9a3c,7,.8,0,-1.6,-4); box(0xffd9a0,2.4,1.2,0,4.5,1.5); box(0x6b4a2a,9,4,0,0,-6); box(0xffffff,.25,5,1.6,1,4);
-    const pm=new THREE.PMREMGenerator(renderer); scene.environment=pm.fromScene(env,.02).texture; pm.dispose();
+  .hero{
+    background:radial-gradient(ellipse at 50% -10%, rgba(201,169,97,0.14), transparent 60%), var(--black);
+    color:var(--cream);padding:110px 0 96px;text-align:center;position:relative;border-bottom:1px solid var(--line-dark);
+  }
+  .hero-medallion{width:150px;height:150px;margin:0 auto 22px;position:relative;}
+  .hero-medallion .ring{position:absolute;inset:0;border-radius:50%;border:2px solid var(--gold-dark);}
+  .hero-medallion .ring::before{content:'';position:absolute;inset:6px;border-radius:50%;border:1px solid var(--gold-dark);opacity:0.6;}
+  .hero-medallion .mark{width:132px;height:132px;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);}
+  .hero .eyebrow{margin-bottom:16px;display:block;}
+  .hero h1{font-size:clamp(44px,8vw,80px);line-height:1;color:var(--gold-light);text-shadow:0 0 40px rgba(201,169,97,0.18);}
+  .hero .tagline{
+    font-family:'Work Sans',serif;font-style:italic;font-weight:400;font-size:clamp(16px,2.2vw,20px);
+    color:rgba(241,232,214,0.82);margin:22px auto 0;max-width:520px;
+  }
+  .kitchen-line{
+    display:inline-flex;align-items:center;gap:10px;margin-top:26px;padding:10px 20px 10px 10px;
+    border:1px solid var(--line-dark);border-radius:999px;font-family:'Oswald',sans-serif;
+    font-size:12.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gold-light);
+  }
+  .kitchen-line .mark{width:26px;height:26px;}
+  .hero .hero-ctas{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:32px;}
 
-    scene.add(new THREE.HemisphereLight(0xffe6c4,0x1a0d05,.5));
-    const key=new THREE.SpotLight(0xffd29a,1.7,30,.42,.7,1); key.position.set(3.5,5,4.5); scene.add(key);
-    const back=new THREE.PointLight(0xff8a1f,3.6,8,2); back.position.set(-.3,.1,-1.6); scene.add(back);
-    const rim=new THREE.DirectionalLight(0xbcd2ff,.6); rim.position.set(-4,2,-3); scene.add(rim);
+  .welcome-grid{display:grid;grid-template-columns:1.2fr 0.8fr;gap:64px;align-items:start;}
+  @media(max-width:800px){.welcome-grid{grid-template-columns:1fr;gap:40px;}}
+  .welcome-grid h2{font-size:clamp(30px,4vw,42px);margin:14px 0 22px;color:var(--gold-light);}
+  .welcome-grid p{max-width:52ch;color:rgba(241,232,214,0.78);}
+  .addr-card{background:var(--black-2);color:var(--cream);padding:36px 34px;border-radius:2px;border-left:4px solid var(--gold);}
+  .addr-card .eyebrow{display:block;margin-bottom:14px;}
+  .addr-card address{font-style:normal;font-family:'Cinzel',serif;font-size:19px;line-height:1.6;margin-bottom:22px;color:var(--gold-light);}
+  .addr-card .btn{width:100%;justify-content:center;}
 
-    /* soft out-of-focus pub lights far behind */
-    const bk=new THREE.Group(); scene.add(bk); const btex=[bokeh('rgba(255,190,110,1)'),bokeh('rgba(255,150,60,1)'),bokeh('rgba(255,230,190,1)')];
-    for(let i=0;i<(mobile?10:18);i++){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:btex[i%3], transparent:true, opacity:.035+Math.random()*.05, depthWrite:false, blending:THREE.AdditiveBlending, fog:false}));
-      const s=.3+Math.random()*.7; sp.scale.set(s,s,1); const side=Math.random()<.5?-1:1; sp.position.set(side*(2.6+Math.random()*4.5), Math.random()*2.4-.6, -8-Math.random()*4); sp.userData={ph:Math.random()*6, sp:.3+Math.random()*.6, o:sp.material.opacity}; bk.add(sp); }
+  .section-panel{background:var(--black-2);}
+  .section-panel p{color:rgba(241,232,214,0.78);}
 
-    const bbTex=backbar(); const backdrop=new THREE.Mesh(new THREE.PlaneGeometry(24,12), new THREE.MeshBasicMaterial({map:bbTex, fog:false, depthWrite:false, color:0xb8aaa0}));
-    backdrop.position.set(0,1.75,-9); backdrop.renderOrder=-1; scene.add(backdrop);
-    { const c=bbTex.image, x2=c.getContext('2d'); if('filter' in x2){ const tmp=document.createElement('canvas'); tmp.width=c.width; tmp.height=c.height; const t2=tmp.getContext('2d'); t2.filter='blur(3px)'; t2.drawImage(c,0,0); x2.clearRect(0,0,c.width,c.height); x2.drawImage(tmp,0,0); bbTex.needsUpdate=true; } }
-    /* brass beer pumps with cream handles, standing back on the bar */
-    const brass=new THREE.MeshStandardMaterial({color:0xC9A961, metalness:1, roughness:.25, envMapIntensity:1.4}), ceramic=new THREE.MeshPhysicalMaterial({color:0xc9b48e, roughness:.3, clearcoat:1, envMapIntensity:.8}), wood2=new THREE.MeshStandardMaterial({color:0x3a1d0c, roughness:.45, metalness:.1});
-    const pump=(px,pz,lean)=>{ const g=new THREE.Group(); g.position.set(px,-1.26,pz); g.rotation.z=lean;
-      const baseP=new THREE.Mesh(new THREE.CylinderGeometry(.16,.2,.12,32),brass); baseP.position.y=.06; g.add(baseP);
-      const stem=new THREE.Mesh(new THREE.CylinderGeometry(.05,.06,.5,24),brass); stem.position.y=.37; g.add(stem);
-      const collar=new THREE.Mesh(new THREE.SphereGeometry(.09,24,16),brass); collar.position.y=.64; g.add(collar);
-      const handle=new THREE.Mesh(new THREE.LatheGeometry([[0,0],[.07,0],[.085,.12],[.07,.5],[.09,.85],[.075,1.0],[0,1.02]].map(p=>new THREE.Vector2(p[0],p[1])),32),ceramic); handle.position.y=.68; g.add(handle);
-      const clip=new THREE.Mesh(new THREE.CylinderGeometry(.092,.092,.2,32,1,true),wood2); clip.position.y=1.25; g.add(clip);
-      const spout=new THREE.Mesh(new THREE.TorusGeometry(.12,.025,10,24,Math.PI),brass); spout.position.set(.12,.25,0); spout.rotation.z=Math.PI/2; g.add(spout);
-      scene.add(g); return g; };
-    [[-2.3,-1.5,.04],[-1.7,-1.85,-.03],[2.4,-1.7,.02]].forEach(([a,b,c])=>pump(a,b,c).scale.setScalar(.85));
-    const pint=new THREE.Group(); scene.add(pint);
-    /* thick glass: outer skin, inner skin, heavy base and rolled lip */
-    const glassOuter=new THREE.Mesh(lathe(OUTER), new THREE.MeshPhysicalMaterial({color:0xffffff, roughness:.03, metalness:0, transmission:.95, transparent:true, opacity:.14, envMapIntensity:2.6, clearcoat:1, clearcoatRoughness:.02, side:THREE.FrontSide, depthWrite:false}));
-    const glassInner=new THREE.Mesh(lathe(profile(-1.04,1.21,.035,.06)), new THREE.MeshPhysicalMaterial({color:0xfff8ee, roughness:.05, transmission:.95, transparent:true, opacity:.1, envMapIntensity:1.8, side:THREE.BackSide, depthWrite:false}));
-    glassOuter.renderOrder=6; glassInner.renderOrder=2; pint.add(glassInner, glassOuter);
-    const base=new THREE.Mesh(new THREE.CylinderGeometry(.5,.505,.16,72), new THREE.MeshPhysicalMaterial({color:0xfff2dd, roughness:.02, transmission:.9, transparent:true, opacity:.5, envMapIntensity:2.4, clearcoat:1})); base.position.y=-1.11; base.renderOrder=5; pint.add(base);
-    const lip=new THREE.Mesh(new THREE.TorusGeometry(.718,.018,12,120), new THREE.MeshPhysicalMaterial({color:0xffffff, roughness:.02, transparent:true, opacity:.6, envMapIntensity:3, clearcoat:1})); lip.rotation.x=Math.PI/2; lip.position.y=1.22; lip.renderOrder=7; pint.add(lip);
-    const fr=frost(); fr.wrapS=THREE.RepeatWrapping; fr.repeat.set(2,1);
-    const frostMesh=new THREE.Mesh(lathe(profile(-1.06,.86,-.004,.05)), new THREE.MeshPhysicalMaterial({map:fr, transparent:true, opacity:.75, roughness:.15, envMapIntensity:2, depthWrite:false, color:0xffffff}));
-    frostMesh.renderOrder=8; pint.add(frostMesh);
+  .kitchen-badge{width:140px;height:140px;margin:0 0 24px;}
+  .kitchen-badge .mark{width:140px;height:140px;border:3px solid var(--gold);}
 
-    /* the beer: darker at the bottom, glowing gold near the top */
-    const beerTop=.86, foamTop=1.16, bottom=-1.02, liquidH=beerTop-bottom;
-    const beerGeo=lathe([[0,bottom],...profile(bottom,beerTop,.038,.05),[0,beerTop]],80);
-    { const pos=beerGeo.attributes.position, col=new Float32Array(pos.count*3), a=new THREE.Color(0x3f1801), b=new THREE.Color(0xc8740f), c=new THREE.Color();
-      for(let i=0;i<pos.count;i++){ const t=clamp((pos.getY(i)-bottom)/liquidH,0,1); c.copy(a).lerp(b, Math.pow(t,.8)); col.set([c.r,c.g,c.b],i*3); } beerGeo.setAttribute('color',new THREE.BufferAttribute(col,3)); }
-    const beer=new THREE.Mesh(beerGeo, new THREE.MeshPhysicalMaterial({vertexColors:true, emissive:0x5a2200, emissiveIntensity:.38, roughness:.12, metalness:0, transparent:true, opacity:.96, envMapIntensity:.8, clearcoat:1, clearcoatRoughness:.08}));
-    beer.renderOrder=3; pint.add(beer);
-    /* creamy foam head with an uneven top */
-    const head=new THREE.Group(); pint.add(head);
-    const fpts=[[0,beerTop-.02],[rAt(beerTop,.034),beerTop-.02],...profile(beerTop,foamTop,.032,.03),[rAt(foamTop,.045),foamTop+.035],[.6,foamTop+.075],[.42,foamTop+.105],[.2,foamTop+.12],[0,foamTop+.125]];
-    const foamGeo=lathe(fpts,96); { const p=foamGeo.attributes.position; for(let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i), z=p.getZ(i); if(y>foamTop){ p.setY(i, y+Math.sin(x*14)*Math.cos(z*13)*.012+Math.sin((x+z)*31)*.005); } } foamGeo.computeVertexNormals(); }
-    const foamMat=new THREE.MeshPhysicalMaterial({color:0xfbefd8, roughness:.92, metalness:0, emissive:0x2b1c09, emissiveIntensity:.25});
-    const foam=new THREE.Mesh(foamGeo, foamMat); foam.renderOrder=4; head.add(foam);
-    const fb=new THREE.InstancedMesh(new THREE.SphereGeometry(1,8,6), foamMat, mobile?140:260), m4=new THREE.Matrix4(), q=new THREE.Quaternion(), v3=new THREE.Vector3(), s3=new THREE.Vector3();
-    for(let i=0;i<fb.count;i++){ const a=Math.random()*6.283, r=Math.sqrt(Math.random())*.64, y=foamTop+.1-r*r*.13, sz=.012+Math.random()*.028; m4.compose(v3.set(Math.cos(a)*r,y,Math.sin(a)*r), q, s3.set(sz,sz*.7,sz)); fb.setMatrixAt(i,m4); } head.add(fb);
-    const laceMesh=new THREE.Mesh(lathe(profile(foamTop+.02,1.2,.036,.03)), new THREE.MeshBasicMaterial({map:lace(), transparent:true, opacity:.55, side:THREE.DoubleSide, depthWrite:false})); laceMesh.renderOrder=5; pint.add(laceMesh);
+  .fd-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;}
+  @media(max-width:800px){.fd-grid{grid-template-columns:1fr;gap:40px;}}
+  .fd-grid h2{font-size:clamp(28px,3.4vw,38px);margin:0 0 18px;color:var(--gold-light);}
+  .highlight-card{background:rgba(201,169,97,0.06);border:1px solid var(--line-dark);padding:30px 28px;border-radius:2px;}
+  .highlight-card h3{color:var(--gold-light);font-size:22px;margin-bottom:10px;font-family:'Cinzel',serif;}
 
-    /* bubble streams rising from points on the glass bottom */
-    const N=mobile?140:240, bp=new Float32Array(N*3), bv=new Float32Array(N), streams=[...Array(9)].map(()=>({a:Math.random()*6.283, r:Math.random()*.42}));
-    const seed=(i,y)=>{ const s=streams[i%streams.length]; bp[i*3]=Math.cos(s.a)*s.r+(Math.random()-.5)*.03; bp[i*3+1]=y!=null?y:bottom+Math.random()*1.8; bp[i*3+2]=Math.sin(s.a)*s.r+(Math.random()-.5)*.03; bv[i]=.22+Math.random()*.3; };
-    for(let i=0;i<N;i++) seed(i);
-    const bg=new THREE.BufferGeometry(); bg.setAttribute('position',new THREE.BufferAttribute(bp,3));
-    const bubbles=new THREE.Points(bg,new THREE.PointsMaterial({map:dot(), size:.03, transparent:true, opacity:.8, depthWrite:false, blending:THREE.AdditiveBlending, color:0xfff3d6})); bubbles.renderOrder=4; pint.add(bubbles);
-
-    /* poured liquid (only during the pour) */
-    const P=mobile?280:460, pp=new Float32Array(P*3), pv=new Float32Array(P*3), pl=new Uint8Array(P); for(let i=0;i<P;i++) pp[i*3+1]=-99;
-    const pg=new THREE.BufferGeometry(); pg.setAttribute('position',new THREE.BufferAttribute(pp,3));
-    const pour=new THREE.Points(pg,new THREE.PointsMaterial({map:blob(), size:.07, transparent:true, opacity:.9, depthWrite:false}));
-    /* the pouring stream itself: a glossy amber ribbon that follows the arc from the rim to the bar */
-    const streamMat=new THREE.MeshPhysicalMaterial({color:0xc06a0e, emissive:0x6a2c00, emissiveIntensity:.5, roughness:.08, clearcoat:1, clearcoatRoughness:.05, transparent:true, opacity:.93, envMapIntensity:1.4});
-    let stream=null; const streamPts=[...Array(18)].map(()=>new THREE.Vector3());
-    function drawStream(origin, strength){
-      if(stream){ scene.remove(stream); stream.geometry.dispose(); stream=null; } if(strength<=.02) return;
-      const vx=.95, vy=.18, g=5.4; let tEnd=0; while(origin.y+vy*tEnd-.5*g*tEnd*tEnd>-1.24 && tEnd<2) tEnd+=.02;
-      streamPts.forEach((p,i)=>{ const t=tEnd*i/(streamPts.length-1); p.set(origin.x+vx*t, origin.y+vy*t-.5*g*t*t, origin.z); });
-      const curve=new THREE.CatmullRomCurve3(streamPts), geo=new THREE.TubeGeometry(curve,40,.028+.03*strength,10,false);
-      const pos=geo.attributes.position; for(let i=0;i<pos.count;i++){ const y=pos.getY(i); pos.setX(i,pos.getX(i)+Math.sin(y*22+clock.elapsedTime*18)*.006); }
-      stream=new THREE.Mesh(geo,streamMat); stream.renderOrder=9; scene.add(stream); } pour.renderOrder=9; pour.frustumCulled=false; scene.add(pour); let pIdx=0;
-
-    /* coaster, bar top, contact shadow, and the spill puddle */
-    const co=new THREE.Mesh(new THREE.CylinderGeometry(1.05,1.05,.05,80), [new THREE.MeshStandardMaterial({color:0xC9A961, roughness:.6}), new THREE.MeshStandardMaterial({map:coaster(null), roughness:.75}), new THREE.MeshStandardMaterial({color:0x111111})]);
-    co.position.y=-1.235; scene.add(co); const logo=new Image(); logo.onload=()=>{ co.material[1].map=coaster(logo); co.material[1].needsUpdate=true; }; logo.src='logo.jpg';
-    const bar=new THREE.Mesh(new THREE.PlaneGeometry(16,9), new THREE.MeshStandardMaterial({map:wood(), roughness:.65, metalness:0, envMapIntensity:.3, color:0x9a8070})); bar.rotation.x=-Math.PI/2; bar.position.y=-1.262; scene.add(bar);
-    const sh=new THREE.Mesh(new THREE.PlaneGeometry(3.2,3.2), new THREE.MeshBasicMaterial({map:soft(), transparent:true, depthWrite:false})); sh.rotation.x=-Math.PI/2; sh.position.y=-1.205; scene.add(sh);
-    const pudTex=tex(256,256,(x,w)=>{ const g=x.createRadialGradient(w/2,w/2,0,w/2,w/2,w/2); g.addColorStop(0,'rgba(170,82,8,.95)'); g.addColorStop(.62,'rgba(190,98,14,.85)'); g.addColorStop(.85,'rgba(230,150,50,.45)'); g.addColorStop(1,'rgba(230,150,50,0)'); x.fillStyle=g; x.fillRect(0,0,w,w); });
-    const puddle=new THREE.Mesh(new THREE.CircleGeometry(1,48), new THREE.MeshPhysicalMaterial({map:pudTex, roughness:.04, clearcoat:1, clearcoatRoughness:.02, transparent:true, opacity:0, envMapIntensity:2.2, depthWrite:false}));
-    puddle.rotation.x=-Math.PI/2; puddle.position.set(1.55,-1.256,.35); puddle.scale.set(.01,.01,1); scene.add(puddle);
-
-    /* interaction */
-    const ray=new THREE.Raycaster(), ptr=new THREE.Vector2(); let hover=false, drag=null, spin=0, spinV=.22, tiltX=0, tiltY=0, mx=0, my=0, pourT=-1, handed=false;
-    const cv=renderer.domElement; cv.style.touchAction='pan-y';
-    const hit=e=>{ const r=cv.getBoundingClientRect(); ptr.set(((e.clientX-r.left)/r.width)*2-1, -((e.clientY-r.top)/r.height)*2+1); ray.setFromCamera(ptr,camera); return ray.intersectObjects([glassOuter,beer,foam],false).length>0; };
-    cv.addEventListener('pointermove',e=>{ const r=cv.getBoundingClientRect(); mx=((e.clientX-r.left)/r.width-.5)*2; my=((e.clientY-r.top)/r.height-.5)*2;
-      if(drag){ const dx=e.clientX-drag.x; spinV=dx*.02; spin+=dx*.012; drag.x=e.clientX; drag.moved+=Math.abs(dx); }
-      hover=pourT<0 && hit(e); cv.style.cursor= drag ? 'grabbing' : (hover ? 'pointer' : 'grab'); });
-    cv.addEventListener('pointerdown',e=>{ drag={x:e.clientX, moved:0}; });
-    cv.addEventListener('pointerleave',()=>{ hover=false; drag=null; mx=my=0; });
-    addEventListener('pointerup',()=>{ drag=null; });
-    cv.addEventListener('click',e=>{ if(drag&&drag.moved>6) return; if(hit(e)) startPour(); });
-    function startPour(){ if(pourT>=0) return; pourT=0; handed=false; hover=false; setRun(true); }
-    const rimWorld=new THREE.Vector3();
-    const screenOf=v=>{ const p=v.clone().project(camera), r=cv.getBoundingClientRect(); return {x:r.left+(p.x+1)/2*r.width, y:r.top+(1-p.y)/2*r.height}; };
-
-    /* render loop — paused off-screen (except while pouring) */
-    const clock=new THREE.Clock(); let running=false, raf=0, visible=true;
-    /* automatic quality: if the device can't keep up, lower the resolution and drop the finest details */
-    let qN=0, qT=0, qLevel=0; const baseDpr=renderer.getPixelRatio();
-    function quality(raw){ qN++; qT+=raw; if(qN<60) return; const fps=qN/qT; qN=0; qT=0;
-      if(fps<28 && qLevel===0){ qLevel=1; renderer.setPixelRatio(Math.min(1,baseDpr)); }
-      else if(fps<18 && qLevel===1){ qLevel=2; renderer.setPixelRatio(.75); frostMesh.visible=false; laceMesh.visible=false; fb.visible=false; bk.visible=false; } }
-    function frame(){ raf=requestAnimationFrame(frame); const raw=clock.getDelta(), dt=Math.min(raw,.05), t=clock.elapsedTime; quality(raw);
-      if(!drag && pourT<0){ spinV+=(.22-spinV)*Math.min(1,dt*1.5); spin+=spinV*dt; }
-      tiltX+=((my*.1)-tiltX)*Math.min(1,dt*4); tiltY+=((mx*.16)-tiltY)*Math.min(1,dt*4);
-      let lift=Math.sin(t*1.1)*.025, tipZ=0, shiftX=0, level=1;
-      if(pourT>=0){ pourT+=dt;
-        const up=ease.inOut(seg(pourT,0,1.1)), down=ease.inOut(seg(pourT,5.2,6.6)), k=up*(1-down);
-        lift+=k*.5; tipZ=-k*1.28; shiftX=-k*.5;
-        level = pourT<6.6 ? 1-.72*ease.inOut(seg(pourT,1.0,5.0)) : .28+.72*ease.out(seg(pourT,6.8,9.4));
-        spin+=((Math.round(spin/(Math.PI*2))*Math.PI*2)-spin)*Math.min(1,dt*4);
-        const flow = pourT>.85 && pourT<5.2 ? ease.out(seg(pourT,.85,1.3))*(1-seg(pourT,4.6,5.2)) : 0;
-        rimWorld.set(.74,1.2,0); pint.localToWorld(rimWorld);
-        if(flow>0){ const n=Math.ceil(dt*45); for(let j=0;j<n;j++){ const i=pIdx++%P; pp[i*3]=rimWorld.x+(Math.random()-.5)*.05; pp[i*3+1]=rimWorld.y+(Math.random()-.5)*.03; pp[i*3+2]=rimWorld.z+(Math.random()-.5)*.05;
-            pv[i*3]=.85+Math.random()*.35; pv[i*3+1]=.15+Math.random()*.25; pv[i*3+2]=(Math.random()-.5)*.1; pl[i]=1; } }
-        drawStream(rimWorld, flow*(.55+.45*level));
-        if(!handed && pourT>1.5){ handed=true; const s=screenOf(rimWorld); hooks&&hooks.onPour&&hooks.onPour(s.x,s.y); }
-        if(pourT>1.2 && pourT<5.4){ const g=ease.out(seg(pourT,1.2,5.4)); puddle.material.opacity=.92*g; const s=.12+g*.7; puddle.scale.set(s,s*.62,1); }
-        if(pourT>6.5) puddle.material.opacity*=Math.pow(.3,dt);
-        if(pourT>9.6){ pourT=-1; puddle.material.opacity=0; puddle.scale.set(.01,.01,1); if(!visible) setRun(false); } }
-      pint.rotation.set(tiltX, spin, tiltY*.35+tipZ); pint.position.set(shiftX, lift, 0);
-      const hs=hover?1.035:1; pint.scale.lerp(s3.set(hs,hs,hs), Math.min(1,dt*8));
-      /* liquid level: the beer column shortens and the head rides down on top of it */
-      beer.scale.y=level; beer.position.y=bottom*(1-level); head.position.y=(level-1)*liquidH;
-      back.intensity=3.6+Math.sin(t*2.3)*.3+(hover?1:0);
-      bk.children.forEach(s=>{ s.material.opacity=s.userData.o*(.7+.3*Math.sin(t*s.userData.sp+s.userData.ph)); });
-      const p=bg.attributes.position.array, topNow=bottom+liquidH*level-.03;
-      for(let i=0;i<N;i++){ p[i*3+1]+=bv[i]*dt; p[i*3]+=Math.sin(t*4+i)*.0006; if(p[i*3+1]>topNow) seed(i,bottom+.02); }
-      bg.attributes.position.needsUpdate=true;
-      let any=false; for(let i=0;i<P;i++){ if(!pl[i]) continue; any=true; pv[i*3+1]-=5.4*dt; pp[i*3]+=pv[i*3]*dt; pp[i*3+1]+=pv[i*3+1]*dt; pp[i*3+2]+=pv[i*3+2]*dt;
-        if(pp[i*3+1]<-1.25){ pl[i]=0; pp[i*3+1]=-99; } }
-      if(any) pg.attributes.position.needsUpdate=true;
-      renderer.render(scene,camera); }
-    function setRun(on){ if(on&&!running){ running=true; clock.getDelta(); frame(); } else if(!on&&running){ running=false; cancelAnimationFrame(raf); } }
-    const io=new IntersectionObserver(es=>{ visible=es[0].isIntersecting; setRun((visible||pourT>=0)&&!document.hidden); },{rootMargin:'160px'}); io.observe(el);
-    const vis=()=>setRun((visible||pourT>=0)&&!document.hidden); document.addEventListener('visibilitychange',vis);
-    const rs=()=>{ camera.aspect=W()/H(); camera.fov=W()<560?44:30; camera.updateProjectionMatrix(); renderer.setSize(W(),H()); };
-    addEventListener('resize',rs); rs(); renderer.render(scene,camera);
-    return { pour:startPour, destroy(){ setRun(false); io.disconnect(); document.removeEventListener('visibilitychange',vis); removeEventListener('resize',rs);
-      scene.traverse(o=>{ if(o.geometry) o.geometry.dispose(); const m=o.material; (Array.isArray(m)?m:[m]).forEach(x=>{ if(!x) return; if(x.map) x.map.dispose(); x.dispose(); }); }); renderer.dispose(); cv.remove(); } };
+  .sport-badges{display:flex;gap:14px;flex-wrap:wrap;margin:26px 0 34px;justify-content:center;}
+  .sport-badge{
+    font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;
+    border:1px solid var(--gold);color:var(--gold-light);padding:10px 20px;border-radius:999px;
+  }
+  .sport-strap{
+    margin-top:56px;padding-top:28px;border-top:1px solid var(--line-dark);
+    font-family:'Oswald',sans-serif;letter-spacing:0.18em;text-transform:uppercase;font-size:13px;
+    color:rgba(241,232,214,0.5);text-align:center;
   }
 
-  window.BHPint={ supported:webglOK,
-    async mount(el, hooks){ if(state) return state; if(!webglOK()) throw new Error('no-webgl'); await loadThree(); state=build(el, typeof hooks==='function'?{onPour:hooks}:hooks); return state; },
-    pour(){ state&&state.pour(); },
-    unmount(){ if(state){ state.destroy(); state=null; } } };
+  .terrace-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center;}
+  @media(max-width:800px){.terrace-grid{grid-template-columns:1fr;}}
+  .terrace-grid h2{color:var(--gold-light);}
+  .firepit{background:var(--black-2);border-radius:2px;padding:40px;border:1px solid var(--line-dark);}
+  .firepit .glow{width:56px;height:56px;border-radius:50%;background:radial-gradient(circle, var(--gold-dark) 0%, rgba(139,111,53,0) 70%);margin-bottom:18px;}
+  .firepit h3{font-size:19px;margin-bottom:8px;color:var(--gold-light);font-family:'Cinzel',serif;}
+  .firepit ul{margin:0;padding-left:20px;color:rgba(241,232,214,0.78);}
+  .firepit li{margin-bottom:6px;}
+
+  .hire-grid{display:grid;grid-template-columns:0.9fr 1.1fr;gap:56px;align-items:center;}
+  @media(max-width:800px){.hire-grid{grid-template-columns:1fr;}}
+  .hire-grid h2{color:var(--gold-light);}
+  .capacity-stat{border:1px solid var(--gold);padding:40px 32px;text-align:center;border-radius:2px;}
+  .capacity-stat .num{font-family:'Cinzel',serif;font-size:60px;color:var(--gold-light);line-height:1;}
+  .capacity-stat .label{font-family:'Oswald',sans-serif;letter-spacing:0.14em;text-transform:uppercase;font-size:12px;color:rgba(241,232,214,0.55);margin-top:10px;}
+
+  .why-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:44px;}
+  @media(max-width:800px){.why-grid{grid-template-columns:repeat(2,1fr);}}
+  @media(max-width:520px){.why-grid{grid-template-columns:1fr;}}
+  .mat{background:var(--black-2);color:var(--cream);border-radius:14px;padding:30px 24px;box-shadow:0 0 0 1px var(--line-dark) inset;text-align:left;}
+  .mat svg{width:28px;height:28px;color:var(--gold);margin-bottom:16px;stroke:var(--gold);}
+  .mat h3{font-size:17px;margin-bottom:8px;color:var(--gold-light);font-family:'Cinzel',serif;}
+  .mat p{font-size:14.5px;color:rgba(241,232,214,0.68);margin:0;}
+
+  .book-wrap{display:grid;grid-template-columns:0.8fr 1.2fr;gap:64px;}
+  @media(max-width:850px){.book-wrap{grid-template-columns:1fr;gap:36px;}}
+  .book-copy h2{font-size:clamp(28px,3.6vw,40px);margin:14px 0 16px;color:var(--gold-light);}
+  .book-copy p{color:rgba(241,232,214,0.72);max-width:38ch;}
+  form.book-form{background:var(--black-2);border:1px solid var(--line-dark);border-radius:2px;padding:36px;}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .stepper{display:flex;align-items:stretch;}
+  .stepper input{text-align:center;font-weight:600;font-size:18px !important;border-radius:0 !important;-moz-appearance:textfield;min-width:0;}
+  .stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+  .st-btn{flex:0 0 48px;border:1px solid var(--line-dark);background:rgba(201,169,97,.1);color:var(--gold-light);font-size:22px;line-height:1;cursor:pointer;touch-action:manipulation;user-select:none;}
+  .st-btn:first-child{border-radius:2px 0 0 2px;border-right:none;} .st-btn:last-child{border-radius:0 2px 2px 0;border-left:none;}
+  .st-btn:hover{background:rgba(201,169,97,.22);} .st-btn:active{background:var(--gold);color:var(--black);}
+  .g-hint{text-transform:none;letter-spacing:0;font-weight:400;opacity:.7;font-size:12px;}
+  .join-note{font-size:13.5px;color:rgba(241,232,214,.75);margin-top:4px;}
+  @media(max-width:520px){.form-row{grid-template-columns:1fr;}}
+  .field{margin-bottom:18px;}
+  .field label{display:block;font-family:'Oswald',sans-serif;font-size:11.5px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(241,232,214,0.55);margin-bottom:7px;}
+  .field input, .field textarea{
+    width:100%;border:1px solid var(--line-dark);border-radius:2px;padding:12px 14px;
+    font-family:'Work Sans',sans-serif;font-size:15px;background:var(--black);color:var(--cream);
+  }
+  .field input:focus, .field textarea:focus{outline:2px solid var(--gold);outline-offset:1px;}
+  .field textarea{resize:vertical;min-height:80px;}
+  form.book-form .btn{width:100%;justify-content:center;margin-top:6px;}
+  .type-switch{display:flex;gap:10px;margin-bottom:22px;}
+  .type-switch label{flex:1;cursor:pointer;}
+  .type-switch input{position:absolute;opacity:0;pointer-events:none;}
+  .type-switch span{display:block;text-align:center;padding:12px;border:1px solid var(--line-dark);border-radius:2px;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(241,232,214,0.6);}
+  .type-switch input:checked + span{border-color:var(--gold);color:var(--gold-light);background:rgba(201,169,97,0.08);}
+  .type-switch input:focus-visible + span{outline:2px solid var(--gold);}
+  .hire-only{display:none !important;} form.is-hire .hire-only{display:block !important;} form.is-hire span.hire-only{display:inline !important;} form.is-hire .field.table-only,form.is-hire div.table-only{display:none !important;} form.is-hire .table-only{display:none;}
+  #book-error{display:none;margin-top:16px;padding:14px 16px;background:rgba(160,60,50,0.15);border-left:3px solid #C0584A;font-size:14.5px;color:var(--cream);}
+  form.book-form .btn:disabled{opacity:.55;cursor:not-allowed;}
+  #book-confirm{display:none;margin-top:16px;padding:14px 16px;background:rgba(201,169,97,0.1);border-left:3px solid var(--gold);font-size:14.5px;color:var(--cream);}
+
+  .hours-list{max-width:520px;margin:44px auto 0;}
+  .hours-row{
+    display:flex;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--line-dark);
+    font-family:'Oswald',sans-serif;letter-spacing:0.04em;font-size:15px;
+  }
+  .hours-row.today{color:var(--gold-light);}
+  .hours-row .day{text-transform:uppercase;}
+
+  .find-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--line-dark);border-radius:2px;overflow:hidden;}
+  @media(max-width:800px){.find-grid{grid-template-columns:1fr;}}
+  .find-info{padding:44px 40px;background:var(--black-2);}
+  .find-info .eyebrow{display:block;margin-bottom:14px;}
+  .find-info h2{color:var(--gold-light);font-size:clamp(26px,3.2vw,34px);}
+  .find-info address{font-style:normal;font-family:'Cinzel',serif;font-size:20px;line-height:1.6;margin:14px 0 24px;color:var(--gold-light);}
+  .find-info .tel{display:block;font-family:'Oswald',sans-serif;letter-spacing:0.05em;margin-bottom:26px;color:rgba(241,232,214,0.72);}
+  .map-embed{min-height:340px;background:var(--black-2);}
+  .map-embed iframe{width:100%;height:100%;min-height:340px;border:0;display:block;filter:grayscale(0.3) contrast(1.05);}
+
+  footer{background:var(--black);color:rgba(241,232,214,0.6);padding:64px 0 36px;text-align:center;border-top:1px solid var(--line-dark);}
+  footer .brand{justify-content:center;margin-bottom:14px;}
+  footer .brand .mark{width:46px;height:46px;}
+  footer .tagline{font-family:'Work Sans',serif;font-style:italic;color:var(--gold-light);font-size:17px;margin:0 0 30px;}
+  footer nav{display:flex;justify-content:center;gap:26px;flex-wrap:wrap;margin-bottom:34px;}
+  footer nav a{font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(241,232,214,0.55);}
+  footer nav a:hover{color:var(--gold-light);}
+  footer .fine{font-size:12.5px;color:rgba(241,232,214,0.3);border-top:1px solid var(--line-dark);padding-top:24px;margin-top:10px;}
+  footer .credit{margin-top:22px;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;
+    font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(241,232,214,0.38);}
+    footer .credit a{color:var(--gold-light);font-weight:600;border-bottom:1px solid transparent;padding-bottom:1px;transition:color .2s,border-color .2s;}
+  footer .credit a:hover{color:var(--gold);border-color:var(--gold);}
+
+  /* ---------- menu + gallery + lightbox ---------- */
+  .menu-tabs{display:flex;gap:10px;justify-content:center;margin:26px 0 30px;flex-wrap:wrap;}
+  .menu-tabs button{background:none;border:1px solid var(--line-dark);color:rgba(241,232,214,0.7);font-family:'Oswald',sans-serif;font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;padding:11px 22px;border-radius:999px;cursor:pointer;}
+  .menu-tabs button.active{border-color:var(--gold);color:var(--black);background:var(--gold);}
+  .menu-pages{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:18px;}
+  .menu-pages figure,.gallery-grid figure{margin:0;cursor:zoom-in;border:1px solid var(--line-dark);border-radius:2px;overflow:hidden;background:var(--black-2);transition:transform .2s,border-color .2s;}
+  .menu-pages figure:hover,.gallery-grid figure:hover{transform:translateY(-3px);border-color:var(--gold-dark);}
+  .menu-pages img{width:100%;aspect-ratio:1100/1556;object-fit:cover;}
+  .menu-pages figcaption,.gallery-grid figcaption{font-family:'Oswald',sans-serif;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-light);padding:10px 12px;}
+  @media(max-width:640px){.menu-pages{grid-template-columns:1fr 1fr;gap:10px;} .menu-pages figcaption{font-size:10px;padding:8px;}}
+  .menu-cat{margin:0 auto 38px;max-width:980px;text-align:left;}
+  .menu-cat h3{font-family:'Cinzel',serif;color:var(--gold-light);font-size:clamp(20px,2.6vw,26px);text-align:center;margin:0 0 4px;letter-spacing:.04em;}
+  .menu-cat .sub{text-align:center;font-family:'Oswald',sans-serif;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:18px;}
+  .menu-cat .rule{width:60px;height:1px;background:var(--gold-dark);margin:10px auto 22px;}
+  .menu-items{display:grid;grid-template-columns:1fr 1fr;gap:18px 44px;}
+  @media(max-width:760px){.menu-items{grid-template-columns:1fr;gap:16px;}}
+  .mi-top{display:flex;align-items:baseline;gap:10px;}
+  .mi-name{font-family:'Oswald',sans-serif;font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:14.5px;color:var(--cream);}
+  .mi-dots{flex:1;border-bottom:1px dotted rgba(201,169,97,.4);transform:translateY(-4px);min-width:16px;}
+  .mi-price{font-family:'Oswald',sans-serif;color:var(--gold-light);font-size:14.5px;white-space:nowrap;}
+  .mi-desc{font-size:13.5px;color:rgba(241,232,214,0.62);margin-top:3px;line-height:1.5;}
+  .mi-hot{color:#E0574A;font-size:12px;margin-left:4px;}
+  .deal-box{max-width:760px;margin:0 auto 34px;border:1px solid var(--gold);padding:26px 24px;text-align:center;background:rgba(201,169,97,.05);}
+  .deal-box .deal-time{font-family:'Oswald',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-size:12.5px;}
+  .deal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px;}
+  @media(max-width:600px){.deal-grid{grid-template-columns:1fr;}}
+  .deal-grid div{border:1px solid var(--line-dark);padding:14px 10px;}
+  .deal-grid b{display:block;font-family:'Cinzel',serif;color:var(--gold-light);font-size:26px;}
+  .deal-grid span{font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:rgba(241,232,214,.7);}
+  .cat-btns{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:0 auto 26px;max-width:900px;}
+  .cat-btns button{background:transparent;border:1px solid var(--line-dark);color:rgba(241,232,214,.8);font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:10px 16px;border-radius:2px;cursor:pointer;transition:all .2s;}
+  .cat-btns button:hover{border-color:var(--gold);color:var(--gold-light);}
+  .cat-btns button.on{background:rgba(201,169,97,.14);border-color:var(--gold);color:var(--gold-light);}
+  .cat-btns button .n{opacity:.55;margin-left:6px;font-size:11px;}
+  .menu-cat{animation:fadeUp .25s ease;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .media-slot{padding:56px 0;}
+  .media-slot .wrap{max-width:1120px;}
+  .media-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;}
+  .media-grid.one{grid-template-columns:1fr;max-width:980px;margin:0 auto;}
+  .media-grid figure{margin:0;border:1px solid var(--line-dark);border-radius:2px;overflow:hidden;background:var(--black-2);position:relative;}
+  .media-grid figure.ph{cursor:zoom-in;}
+  .media-grid img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;transition:transform .4s;}
+  .media-grid.one img{aspect-ratio:16/9;}
+  .media-grid figure.ph:hover img{transform:scale(1.03);}
+  .media-grid .vid{position:relative;aspect-ratio:16/9;width:100%;}
+  .media-grid .vid iframe,.media-grid .vid video{position:absolute;inset:0;width:100%;height:100%;border:0;}
+  .media-grid figcaption{font-family:'Oswald',sans-serif;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-light);padding:10px 12px;text-align:center;}
+  .menu-launch{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:820px;margin:28px auto 6px;}
+  @media(max-width:640px){.menu-launch{grid-template-columns:1fr;}}
+  .menu-card{display:flex;flex-direction:column;gap:6px;text-align:left;background:var(--black-2);border:1px solid var(--line-dark);border-radius:2px;padding:24px 22px;cursor:pointer;color:var(--cream);transition:border-color .2s,transform .2s;}
+  .menu-card:hover{border-color:var(--gold);transform:translateY(-2px);}
+  .menu-card .mc-k{font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);}
+  .menu-card .mc-t{font-family:'Cinzel',serif;font-size:26px;color:var(--gold-light);}
+  .menu-card .mc-s{font-size:14px;color:rgba(241,232,214,.65);}
+  .menu-card .mc-go{margin-top:8px;font-family:'Oswald',sans-serif;font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-light);}
+  .menu-modal{position:fixed;inset:0;z-index:150;background:var(--black);display:flex;flex-direction:column;}
+  .menu-modal[hidden]{display:none;}
+  .mm-head{flex:none;background:rgba(12,11,9,.97);border-bottom:1px solid var(--line-dark);padding:calc(10px + env(safe-area-inset-top,0px)) 14px 10px;}
+  .mm-top{display:flex;align-items:center;justify-content:space-between;max-width:1000px;margin:0 auto;}
+  .mm-title{font-family:'Cinzel',serif;color:var(--gold-light);font-size:18px;}
+  .mm-close{background:none;border:1px solid var(--line-dark);color:var(--cream);width:42px;height:42px;border-radius:50%;font-size:24px;cursor:pointer;}
+  .mm-tabs{margin:10px 0 8px !important;}
+  .mm-tabs button{padding:8px 16px !important;}
+  .mm-cats{flex-wrap:nowrap !important;overflow-x:auto;justify-content:flex-start !important;margin:0 auto !important;padding-bottom:4px;scrollbar-width:none;max-width:1000px;}
+  .mm-cats::-webkit-scrollbar{display:none;}
+  .mm-cats button{flex:none;}
+  @media(min-width:900px){.mm-cats{justify-content:center !important;flex-wrap:wrap !important;}}
+  .mm-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:26px 18px calc(20px + env(safe-area-inset-bottom,0px));scroll-behavior:smooth;}
+  .mm-body .menu-cat{scroll-margin-top:12px;}
+  body.menu-open{overflow:hidden;}
+  .sel{width:100%;border:1px solid var(--line-dark);border-radius:2px;padding:12px 14px;font-family:'Work Sans',sans-serif;font-size:15px;background:var(--black);color:var(--cream);appearance:auto;}
+  .avail{min-height:22px;margin:-4px 0 18px;font-size:14.5px;}
+  .avail .ok{color:#8FD19E;} .avail .no{color:#F0A496;}
+  .avail .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+  .avail .chips button{background:transparent;border:1px solid var(--gold);color:var(--gold-light);font-family:'Oswald',sans-serif;letter-spacing:.06em;padding:8px 14px;border-radius:999px;cursor:pointer;}
+  .avail .chips button:hover{background:var(--gold);color:var(--black);}
+  .form-aside{font-size:13.5px;color:rgba(241,232,214,.6);margin:14px 0 0;text-align:center;}
+  .form-aside a{color:var(--gold-light);text-decoration:underline;text-underline-offset:3px;}
+  .hire-modal{position:fixed;inset:0;z-index:160;background:rgba(6,5,4,.86);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:max(24px,env(safe-area-inset-top)) 14px 24px;}
+  .hire-modal[hidden]{display:none;}
+  .hire-card{background:var(--black-2);border:1px solid var(--line-dark);border-top:3px solid var(--gold);width:100%;max-width:620px;padding:26px 24px;border-radius:2px;}
+  .hm-head{display:flex;justify-content:space-between;align-items:center;}
+  .hm-head h3{color:var(--gold-light);font-size:24px;}
+  .hm-sub{color:rgba(241,232,214,.6);font-size:14px;margin:6px 0 20px;}
+  .note-ok{margin-top:14px;padding:12px 14px;border-left:3px solid var(--gold);background:rgba(201,169,97,.1);}
+  .note-err{margin-top:14px;padding:12px 14px;border-left:3px solid #C0584A;background:rgba(160,60,50,.15);}
+  .offer-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px;max-width:1000px;margin:0 auto;}
+  .offer{position:relative;text-align:left;background:linear-gradient(160deg,rgba(201,169,97,.13),rgba(21,19,16,.9) 55%);border:1px solid var(--gold-dark);border-radius:2px;padding:26px 22px 22px;overflow:hidden;}
+  .offer .badge{display:inline-block;font-family:'Cinzel',serif;font-size:26px;color:var(--black);background:var(--gold);padding:4px 14px;border-radius:2px;margin-bottom:12px;}
+  .offer h3{font-size:20px;color:var(--gold-light);margin-bottom:8px;}
+  .offer p{margin:0;color:rgba(241,232,214,.75);font-size:14.5px;}
+  .offer .when{margin-top:12px;font-family:'Oswald',sans-serif;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);}
+  .offer::after{content:'';position:absolute;top:-40%;right:-30%;width:60%;height:180%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.07),transparent);transform:rotate(18deg);animation:shine 5s ease-in-out infinite;}
+  @keyframes shine{0%,70%{right:120%}100%{right:-60%}}
+  .mat .art{width:84px;height:84px;margin-bottom:10px;display:block;overflow:visible;}
+  .mat{transition:transform .25s, box-shadow .25s;}
+  .mat:hover{transform:translateY(-4px);box-shadow:0 0 0 1px var(--gold-dark) inset, 0 14px 30px rgba(0,0,0,.35);}
+  .reveal{opacity:0;transform:translateY(22px);}
+  .no-motion .reveal, .reveal.in{opacity:1;transform:none;}
+  .hero-spark{position:absolute;width:4px;height:4px;border-radius:50%;background:var(--gold-light);box-shadow:0 0 8px 2px rgba(228,206,147,.6);pointer-events:none;opacity:0;}
+  .menu-note{text-align:center;font-size:13.5px;color:rgba(241,232,214,0.55);margin-top:22px;}
+  .gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-top:36px;}
+  .gallery-grid img{width:100%;aspect-ratio:4/3;object-fit:cover;}
+  .lightbox{position:fixed;inset:0;background:rgba(6,5,4,.95);z-index:300;display:none;align-items:center;justify-content:center;flex-direction:column;padding:56px 12px 20px;}
+  .lightbox.open{display:flex;}
+  .lightbox img{max-width:100%;max-height:calc(100vh - 120px);object-fit:contain;box-shadow:0 10px 40px rgba(0,0,0,.6);}
+  .lightbox .lb-cap{font-family:'Oswald',sans-serif;letter-spacing:.1em;text-transform:uppercase;font-size:12px;color:var(--gold-light);margin-top:12px;}
+  .lightbox button{position:absolute;background:rgba(241,232,214,.08);border:1px solid var(--line-dark);color:var(--cream);width:46px;height:46px;border-radius:50%;font-size:22px;cursor:pointer;}
+  .lightbox .lb-close{top:12px;right:12px;} .lightbox .lb-prev{left:12px;top:50%;} .lightbox .lb-next{right:12px;top:50%;}
+  /* ---------- booking slots & extras ---------- */
+  .slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;}
+  .slot-grid label{cursor:pointer;} .slot-grid input{position:absolute;opacity:0;pointer-events:none;}
+  .slot-grid span{display:block;text-align:center;padding:10px 4px;border:1px solid var(--line-dark);border-radius:2px;font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:.05em;color:var(--cream);}
+  .slot-grid input:checked + span{background:var(--gold);color:var(--black);border-color:var(--gold);}
+  .slot-grid input:focus-visible + span{outline:2px solid var(--gold);}
+  .slot-grid label.full span{opacity:.35;text-decoration:line-through;cursor:not-allowed;}
+  .slot-hint{font-size:13.5px;color:rgba(241,232,214,0.6);padding:10px 0;}
+  .extra-opt{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1px solid var(--line-dark);border-radius:2px;margin-bottom:8px;cursor:pointer;}
+  .extra-opt input{margin-top:4px;accent-color:var(--gold);}
+  .extra-opt b{color:var(--gold-light);font-weight:500;} .extra-opt small{display:block;color:rgba(241,232,214,0.55);}
+  .extra-opt .price{margin-left:auto;font-family:'Oswald',sans-serif;color:var(--gold-light);white-space:nowrap;}
+  .extras-total{text-align:right;font-family:'Oswald',sans-serif;letter-spacing:.06em;color:var(--gold-light);margin:6px 0 16px;}
+  .contact-card{background:var(--black-2);border:1px solid var(--line-dark);padding:32px;border-radius:2px;max-width:720px;margin:0 auto;}
+  /* ---------- website switched off by admin ---------- */
+  html.checking body{visibility:hidden;}
+  html.site-off body{overflow:hidden;}
+  #siteOff{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;text-align:center;padding:28px;
+    background:radial-gradient(ellipse at 50% 20%,rgba(201,169,97,.18),transparent 60%),var(--black);color:var(--cream);visibility:visible;}
+  #siteOff[hidden]{display:none;}
+  #siteOff .box{max-width:560px;}
+  #siteOff img{width:110px;height:110px;border-radius:50%;margin:0 auto 22px;border:2px solid var(--gold-dark);}
+  #siteOff h1{font-size:clamp(30px,6vw,48px);color:var(--gold-light);margin:10px 0 14px;}
+  #siteOff p{font-size:18px;color:rgba(241,232,214,.85);white-space:pre-line;margin:0 0 22px;}
+  #siteOff .tel{color:var(--gold-light);font-family:'Oswald',sans-serif;letter-spacing:.1em;}
+  /* ---------- scroll motion (anime.js) ---------- */
+  .splash-btn{position:fixed;left:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:65;display:inline-flex;align-items:center;gap:6px;padding:9px 14px 9px 11px;border-radius:999px;border:1px solid rgba(228,206,147,.55);background:rgba(12,11,9,.78);color:var(--gold-light);font-family:'Oswald',sans-serif;letter-spacing:.12em;text-transform:uppercase;font-size:12px;cursor:pointer;backdrop-filter:blur(4px);box-shadow:0 6px 20px rgba(0,0,0,.4);transition:transform .2s;}
+  .splash-btn:hover{transform:translateY(-2px) scale(1.04);} .splash-btn[hidden]{display:none;}
+  body:has(.sf-bar:not([hidden])) .splash-btn{bottom:calc(64px + env(safe-area-inset-bottom));}
+  #scrollBar{position:fixed;left:0;top:0;height:2px;width:100%;z-index:60;transform-origin:0 50%;transform:scaleX(0);background:linear-gradient(90deg,var(--gold-dark),var(--gold-light),#ffcf7a);box-shadow:0 0 10px rgba(228,206,147,.6);pointer-events:none;}
+  header{transition:background .35s,box-shadow .35s;}
+  header.scrolled{background:rgba(12,11,9,.86);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,.35);}
+  .nav-inner{transition:padding .35s;}
+  header.scrolled .nav-inner{padding-top:8px;padding-bottom:8px;}
+  .w-split{display:inline-block;overflow:hidden;vertical-align:bottom;padding-bottom:.08em;}
+  .w-split>span{display:inline-block;will-change:transform;}
+  .glow-cta{position:relative;}
+  html.fx-no-motion .reveal{opacity:1 !important;transform:none !important;}
+  html.fx-no-motion #scrollBar{display:none;}
+  /* ================= IMMERSIVE PUB MODE (on together with the 3D pint) ================= */
+  #pubScene{position:fixed;left:0;top:0;width:100vw;height:115vh;z-index:-1;pointer-events:none;display:none;will-change:transform;}
+  #pubGlow{position:fixed;inset:0;z-index:-1;pointer-events:none;display:none;mix-blend-mode:screen;animation:pubFlicker 5.5s ease-in-out infinite;}
+  @keyframes pubFlicker{0%,100%{opacity:.85}18%{opacity:1}31%{opacity:.78}47%{opacity:.95}62%{opacity:.82}80%{opacity:1}}
+  html.pint-on{background:#0c0b09;}
+  html.pint-on #pubScene, html.pint-on #pubGlow{display:block;}
+  html.pint-on body{background:transparent;}
+  html.pint-on main > section{background-color:rgba(12,11,9,.66);}
+  html.pint-on main > section.section-panel{background:rgba(21,19,16,.8);}
+  html.pint-on .hero{background:radial-gradient(ellipse at 50% -10%,rgba(201,169,97,.16),transparent 60%),rgba(12,11,9,.45);}
+  html.pint-on #pint3d{background:transparent;}
+  html.pint-on header{background:rgba(12,11,9,.82);backdrop-filter:blur(8px);}
+  html.pint-on footer{background:rgba(12,11,9,.88);}
+  html.pint-on .media-slot{background:rgba(12,11,9,.66);}
+  /* customers book by pouring the pint: both Book a Table buttons step aside */
+  html.pint-on .nav-cta .btn-gold, html.pint-on .hero-ctas a.btn-gold[href="#book"]{display:none !important;}
+  /* cinematic sections */
+  html.pint-on.cine main > section:not(.hero):not(#pint3d){transform-origin:50% 0;will-change:transform,opacity;}
+  /* booking: a vintage wine label beside a bottle of the house red */
+  .wine-head,.wine-bottle{display:none;}
+  html.pint-on form.book-form{background:radial-gradient(ellipse at 50% 0%,#3a1418 0%,#22090c 55%,#140507 100%);border:1px solid #8B6F35;
+    box-shadow:inset 0 0 0 6px #140507, inset 0 0 0 7px rgba(201,169,97,.7), inset 0 0 0 11px #140507, inset 0 0 0 12px rgba(201,169,97,.35), 0 30px 70px rgba(0,0,0,.55);padding:44px 40px 40px;}
+  html.pint-on .wine-head{display:block;text-align:center;margin:-8px 0 22px;}
+  .wine-head .crest{font-family:'Cinzel',serif;color:var(--gold-light);font-size:22px;letter-spacing:.12em;}
+  .wine-head .sub{font-family:'Oswald',sans-serif;letter-spacing:.32em;text-transform:uppercase;font-size:11px;color:var(--gold);margin-top:6px;}
+  .wine-head .rule{height:1px;margin:14px auto 0;width:70%;background:linear-gradient(90deg,transparent,var(--gold),transparent);}
+  html.pint-on .wine-bottle{display:block;margin:30px auto 0;width:min(118px,34%);filter:drop-shadow(0 24px 30px rgba(0,0,0,.6));}
+  @media(max-width:850px){ html.pint-on .wine-bottle{width:78px;margin:16px auto 0;} }
+  .wine-bottle svg{width:100%;height:auto;display:block;overflow:visible;}
+  /* ---------- pour into booking ---------- */
+  .pour-layer{position:fixed;inset:0;width:100vw;height:100vh;z-index:70;pointer-events:none;}
+  form.book-form{position:relative;isolation:isolate;overflow:hidden;}
+  form.book-form > *{position:relative;z-index:1;}
+  form.book-form > .pour-fill{position:absolute;left:0;right:0;bottom:0;height:0;z-index:0;pointer-events:none;
+    background:linear-gradient(180deg,rgba(241,201,120,.55) 0%,rgba(214,134,30,.5) 18%,rgba(150,72,8,.55) 100%);}
+  .pour-fill svg{position:absolute;left:0;top:-15px;width:200%;height:16px;}
+  .pour-fill .foam{position:absolute;left:0;right:0;top:-6px;height:14px;background:linear-gradient(180deg,rgba(255,246,226,.85),rgba(255,240,210,.0));}
+  .pour-fill i{position:absolute;bottom:0;width:6px;height:6px;border-radius:50%;background:rgba(255,245,220,.75);}
+  html.pint-on .hero-ctas .btn-gold{display:none;}
+  .pint-cta{display:none;}
+  html.pint-on .hero-ctas .pint-cta{display:inline-flex;}
+  form.book-form.poured{box-shadow:0 0 0 1px rgba(228,206,147,.6),0 0 40px rgba(228,206,147,.25);}
+  /* ---------- 3D pint (switch on/off in admin) ---------- */
+  #pint3d{position:relative;padding:0;height:min(78vh,560px);min-height:420px;overflow:hidden;border-bottom:1px solid var(--line-dark);
+    background:radial-gradient(ellipse 60% 70% at 50% 60%,rgba(255,155,47,.16),transparent 70%),radial-gradient(ellipse at 50% 120%,#2a170b,transparent 60%),var(--black);}
+  #pint3d[hidden]{display:none;}
+  #pint3dStage{position:absolute;inset:0;}
+  #pint3dStage canvas{display:block;width:100%;height:100%;}
+  #pint3d::before{content:'';position:absolute;left:0;right:0;top:0;height:30%;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(12,11,9,.9) 0%,rgba(12,11,9,.5) 60%,rgba(12,11,9,0) 100%);}
+  #pint3d::after{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;box-shadow:inset 0 0 120px 30px rgba(0,0,0,.65);}
+  .p3-copy{position:absolute;left:0;right:0;top:26px;text-align:center;pointer-events:none;z-index:2;padding:0 20px;}
+  .p3-copy h2{font-size:clamp(26px,4vw,40px);color:var(--gold-light);margin:8px 0 0;text-shadow:0 2px 24px rgba(0,0,0,.6);}
+  .p3-cta{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);z-index:2;display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;width:max-content;max-width:calc(100% - 32px);}
+  .p3-pill{background:rgba(12,11,9,.72);border:1px solid var(--gold);color:var(--gold-light);border-radius:999px;padding:9px 16px;font-family:'Oswald',sans-serif;letter-spacing:.1em;text-transform:uppercase;font-size:12.5px;cursor:pointer;backdrop-filter:blur(4px);}
+  .p3-pill:hover{background:var(--gold);color:var(--black);}
+  .p3-hint{font-size:12.5px;color:rgba(241,232,214,.6);}
+  html.fx-no-shimmer .hero h1{animation:none;background-position:0 0;}
+  html.fx-no-shimmer .hero-medallion .ring::after,html.fx-no-shimmer .hero-medallion::after{animation:none;opacity:0;}
+  html.fx-no-tilt .lit:hover::after{opacity:0;} html.fx-no-tilt .lit:hover{box-shadow:none;}
+  html.fx-no-ambience #heroFx{display:none;}
+  /* ---------- Amber Hour ambience ---------- */
+  .hero{overflow:hidden;isolation:isolate;}
+  .hero>.wrap{position:relative;z-index:2;}
+  #heroFx{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none;}
+  .hero::after{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse 120% 90% at 50% 40%,transparent 55%,rgba(0,0,0,.55) 100%);}
+  .hero h1{background:linear-gradient(100deg,var(--gold-light) 0%,var(--gold-light) 42%,#FFF4D6 50%,var(--gold-light) 58%,var(--gold-light) 100%);background-size:260% 100%;background-position:100% 0;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:gild 8s ease-in-out 1.6s infinite;}
+  @keyframes gild{0%{background-position:100% 0}35%,100%{background-position:0 0}}
+  .hero-medallion .ring::after{content:'';position:absolute;inset:-2px;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 68%,rgba(255,236,190,.9) 78%,transparent 88%);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 2.5px));mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 2.5px));animation:ringSpin 9s linear infinite;}
+  .hero-medallion::after{content:'';position:absolute;inset:-26px;border-radius:50%;z-index:-1;background:radial-gradient(circle,rgba(242,163,58,.22),transparent 65%);animation:candle 3.2s ease-in-out infinite;}
+  @keyframes ringSpin{to{transform:rotate(360deg)}}
+  @keyframes candle{0%,100%{opacity:.75;transform:scale(1)}23%{opacity:.95;transform:scale(1.03)}41%{opacity:.7}63%{opacity:1;transform:scale(1.05)}82%{opacity:.82}}
+  .art .steam{filter:blur(.7px);}
+  /* warm spotlight + gentle lift on cards */
+  .mat,.offer,.menu-card,.highlight-card,.addr-card{position:relative;transition:transform .5s cubic-bezier(.2,.7,.2,1),box-shadow .5s;transform-style:preserve-3d;}
+  .mat::after,.offer::after,.menu-card::after,.highlight-card::after,.addr-card::after{content:'';position:absolute;inset:0;pointer-events:none;border-radius:inherit;opacity:0;transition:opacity .4s;background:radial-gradient(420px circle at var(--mx,50%) var(--my,50%),rgba(242,190,110,.16),transparent 45%);}
+  @media(hover:hover){.lit:hover{box-shadow:0 22px 50px rgba(0,0,0,.45),0 0 0 1px rgba(201,169,97,.35);} .lit:hover::after{opacity:1;}}
+  .ornate-rule .bar{transform-origin:center;}
+  .no-motion .hero h1,.no-motion .hero-medallion .ring::after,.no-motion .hero-medallion::after{animation:none;}
+  @media (prefers-reduced-motion:reduce){.hero h1,.hero-medallion .ring::after,.hero-medallion::after{animation:none;}}
+  /* ---------- Wok Toss game ---------- */
+  #play{background:radial-gradient(ellipse at 50% 0%,rgba(201,169,97,.16),transparent 60%),var(--black);}
+  .play-grid{display:grid;grid-template-columns:1fr minmax(300px,420px);gap:48px;align-items:center;}
+  @media(max-width:860px){.play-grid{grid-template-columns:1fr;gap:28px;}}
+  .play-copy h2{font-size:clamp(30px,4.2vw,46px);margin:14px 0 16px;color:var(--gold-light);}
+  .play-copy p{color:rgba(241,232,214,.82);margin:0 0 14px;}
+  .play-steps{list-style:none;padding:0;margin:20px 0 0;display:grid;gap:10px;}
+  .play-steps li{display:flex;gap:12px;align-items:flex-start;font-size:15.5px;}
+  .play-steps .k{flex:0 0 30px;height:30px;border:1px solid var(--gold-dark);border-radius:50%;display:grid;place-items:center;font-size:15px;}
+  .play-prize{display:inline-flex;align-items:center;gap:10px;margin-top:22px;padding:10px 16px;border:1px dashed var(--gold);color:var(--gold-light);font-family:'Oswald',sans-serif;letter-spacing:.1em;text-transform:uppercase;font-size:13px;}
+  .game-box{position:relative;width:100%;max-width:420px;margin:0 auto;aspect-ratio:400/560;border:1px solid var(--gold-dark);border-radius:4px;overflow:hidden;background:#120f0b;box-shadow:0 30px 80px rgba(0,0,0,.55),0 0 0 6px rgba(201,169,97,.06);}
+  .game-box canvas{display:block;width:100%;height:100%;touch-action:none;cursor:none;}
+  .g-over{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;text-align:center;padding:26px;background:rgba(12,11,9,.86);backdrop-filter:blur(2px);overflow-y:auto;}
+  .g-over[hidden]{display:none;}
+  .g-over>:first-child{margin-top:auto;} .g-over>:last-child{margin-bottom:auto;}
+  .g-over h3{font-size:28px;color:var(--gold-light);margin:6px 0 8px;}
+  .g-over p{margin:0 0 14px;font-size:15px;color:rgba(241,232,214,.85);}
+  .g-over .big{font-family:'Cinzel',serif;font-size:56px;color:var(--gold);line-height:1;margin:4px 0;}
+  .g-over .btn{margin:6px 4px;}
+  .g-legend{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;text-align:left;font-size:13.5px;margin:4px 0 18px;color:rgba(241,232,214,.85);}
+  .g-form{width:100%;max-width:300px;text-align:left;}
+  .g-form input{width:100%;margin:0 0 10px;padding:11px 12px;background:rgba(241,232,214,.06);border:1px solid var(--line-dark);color:var(--cream);font:inherit;font-size:15px;border-radius:2px;}
+  .g-form input:focus{outline:none;border-color:var(--gold);}
+  .g-err{color:#E9A091;font-size:13.5px;min-height:18px;}
+  .v-card img{width:auto;max-width:100%;max-height:min(330px,52vh);border:1px solid var(--gold-dark);border-radius:4px;margin:0 auto 10px;display:block;}
+  .v-code{font-family:'Oswald',sans-serif;font-size:18px;letter-spacing:.18em;color:var(--gold-light);}
+  .g-small{font-size:12.5px;color:rgba(241,232,214,.6);margin-top:8px;}
+  .g-link{background:none;border:none;color:var(--gold);text-decoration:underline;cursor:pointer;font:inherit;font-size:12.5px;}
+  .g-mute{position:absolute;top:10px;right:10px;z-index:2;width:34px;height:34px;border-radius:50%;border:1px solid var(--line-dark);background:rgba(12,11,9,.6);color:var(--cream);cursor:pointer;font-size:15px;}
+  .play-chip{display:inline-flex;align-items:center;gap:8px;margin-top:18px;padding:8px 14px;border:1px solid rgba(201,169,97,.5);border-radius:999px;font-family:'Oswald',sans-serif;letter-spacing:.12em;text-transform:uppercase;font-size:12px;color:var(--gold-light);background:rgba(201,169,97,.08);}
+  .play-chip[hidden],[data-play-link][hidden]{display:none !important;}
+  .play-chip:hover{background:rgba(201,169,97,.18);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav-inner">
+    <a class="brand" href="#top">
+      <img class="mark" src="logo.jpg" alt="The Black Horse / Drunken Wok logo">
+      <span>The Black Horse<span class="brand-sub">Drunken Wok</span></span>
+    </a>
+    <nav class="links">
+      <a href="#menu">Menu</a>
+      <a href="#food">Drunken Wok</a>
+      <a href="#sport">Live Sport</a>
+      <a href="#gallery" data-gallery-link hidden>Gallery</a>
+      <a href="#play" data-play-link hidden>Play &amp; Win</a>
+      <a href="#hire">Private Hire</a>
+      <a href="#hours">Hours</a>
+      <a href="#find">Find Us</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="phone-link" href="tel:02035182275">020 3518 2275</a>
+      <a class="btn btn-gold" href="#book">Book a Table</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <section class="hero" style="padding-top:96px;">
+    <div class="wrap">
+      <div class="hero-medallion">
+        <div class="ring"></div>
+        <img class="mark" src="logo.jpg" alt="The Black Horse / Drunken Wok logo">
+      </div>
+      <span class="eyebrow">Kingston upon Thames</span>
+      <h1>The Black Horse</h1>
+      <div class="ornate-rule"><span class="bar"></span><span class="diamonds">&#10022;</span><span class="bar"></span></div>
+      <p class="tagline" data-content="tagline">Good drinks. Live sport. Good times.</p>
+      <div>
+        <a class="kitchen-line" href="#food">
+          <img class="mark" src="logo.jpg" alt="Drunken Wok logo">
+          Drunken Wok
+        </a>
+      </div>
+      <div class="hero-ctas">
+        <a class="btn btn-gold" href="#book">Book a Table</a>
+        <a class="btn btn-outline-light" href="#menu">View Our Menu</a>
+        <a class="btn btn-gold pint-cta" href="#pint3d">🍺 Pour yourself a table</a>
+      </div>
+      <a class="play-chip" href="#play" data-play-link hidden>🎮 Play Wok Toss · win 25% off</a>
+    </div>
+  </section>
+  <div class="media-slot" data-place="hero-after" hidden><div class="wrap"><div class="media-grid"></div></div></div>
+
+  <!-- 3D PINT (switched on/off in the admin portal) -->
+  <section id="pint3d" hidden aria-label="Interactive 3D pint">
+    <div id="pint3dStage"></div>
+    <div class="p3-copy"><span class="eyebrow">Pull up a stool</span><h2>Your pint is poured</h2></div>
+    <div class="p3-cta"><button class="p3-pill" type="button" id="p3Book">🍺 Tap the pint — pour yourself a table</button><span class="p3-hint">Drag to turn it</span></div>
+  </section>
+
+
+  <section id="welcome">
+    <div class="wrap welcome-grid">
+      <div>
+        <span class="eyebrow">A Kingston local favourite</span>
+        <h2>Welcome to The Black Horse</h2>
+        <p data-content="welcome">Located on London Road, The Black Horse is a welcoming pub with plenty of space to relax, eat, drink and catch up with friends.</p>
+        <p>We're home to Drunken Wok, our resident Thai kitchen serving authentic Thai cuisine crafted with tradition — alongside a full bar, live sport and a relaxed atmosphere for everyone.</p>
+        <p>With an open-plan interior, central bar, lounge areas, fireplace and plenty of seating, we're the perfect place for everything from casual drinks to larger gatherings.</p>
+      </div>
+      <div class="addr-card">
+        <span class="eyebrow">Find us at</span>
+        <address>204 London Road<br>Kingston upon Thames<br>KT2 6QP</address>
+        <a class="btn btn-outline-light" href="https://www.google.com/maps/search/?api=1&query=204+London+Road+Kingston+upon+Thames+KT2+6QP" target="_blank" rel="noopener">Get Directions</a>
+      </div>
+    </div>
+  </section>
+  <div class="media-slot" data-place="welcome-after" hidden><div class="wrap"><div class="media-grid"></div></div></div>
+
+
+  <div class="divider"><img class="mark" src="logo.jpg" alt="" style="width:40px;height:40px;"></div>
+
+  <section id="food" class="section-panel">
+    <div class="wrap fd-grid">
+      <div>
+        <div class="kitchen-badge">
+          <img class="mark" src="logo.jpg" alt="Drunken Wok logo">
+        </div>
+        <h2>Our Kitchen Drunken Wok</h2>
+        <p data-content="food">Authentic Thai cuisine, crafted with tradition. Drunken Wok brings bold curries, wok-fired classics and comforting favourites to The Black Horse — perfect for a quick bite or settling in for the evening.</p>
+        <a class="btn btn-outline-light" href="#menu" style="margin-top:8px;">View Our Menu</a>
+      </div>
+      <div>
+        <span class="eyebrow">Something for every taste</span>
+        <h2 style="margin-top:14px;">Drinks</h2>
+        <p data-content="drinks">Enjoy a wide selection of drinks at the bar, including refreshing beers, cask ale and other favourites. Our welcoming bar is the perfect place to meet friends, enjoy a drink after work or settle in for an evening.</p>
+        <div class="highlight-card">
+          <h3>Cask Ale</h3>
+          <p style="margin:0;">For lovers of traditional British beer, we offer cask ale alongside our wider drinks selection.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  <div class="media-slot" data-place="kitchen-after" hidden><div class="wrap"><div class="media-grid"></div></div></div>
+
+
+  <!-- OFFERS (managed in admin) -->
+  <section id="offers" hidden>
+    <div class="wrap" style="text-align:center;">
+      <span class="eyebrow">This week at The Black Horse</span>
+      <h2 style="font-size:clamp(28px,4vw,42px);margin:14px 0 26px;color:var(--gold-light);">Offers &amp; Deals</h2>
+      <div class="offer-grid" id="offerGrid"></div>
+    </div>
+  </section>
+
+  <!-- PLAY & WIN (Wok Toss) -->
+  <section id="play" hidden>
+    <div class="wrap play-grid">
+      <div class="play-copy">
+        <span class="eyebrow">Play &amp; win</span>
+        <h2>Wok Toss</h2>
+        <p>Our chefs make it look easy. Your turn. Catch the ingredients, cook the dishes on the order ticket and keep that wok roaring — every player wins <b class="g-prize-txt">25% off food</b>.</p>
+        <ul class="play-steps">
+          <li><span class="k">🥢</span><span>Slide the wok with your finger, mouse or arrow keys.</span></li>
+          <li><span class="k">🧾</span><span>Catch the three ingredients on the ticket to serve a dish for a big bonus.</span></li>
+          <li><span class="k">🔥</span><span>Fill the Wok Hei meter to flambé — double points while the flames are up.</span></li>
+          <li><span class="k">🌶️</span><span>Dodge the ghost chillies. Three and you're out.</span></li>
+        </ul>
+        <div class="play-prize">🎟️ Everyone wins · <span class="g-prize-short">25% off food</span> · 30 days</div>
+      </div>
+      <div class="game-box" id="gameBox">
+        <canvas id="wokCanvas" width="400" height="560" aria-label="Wok Toss game"></canvas>
+        <button class="g-mute" id="gMute" type="button" aria-label="Sound on or off">🔊</button>
+        <div class="g-over" id="gStart">
+          <span class="eyebrow">The Black Horse presents</span>
+          <h3>Wok Toss</h3>
+          <div class="g-legend">
+            <span>🍤🥚🍜 &nbsp;+10</span><span>⭐ &nbsp;+50</span>
+            <span>🧾 Dish served &nbsp;+100</span><span>🌶️ &nbsp;lose a life</span>
+          </div>
+          <button class="btn btn-gold" id="gPlay" type="button">Start cooking</button>
+          <p class="g-small">40 seconds · no sign-up · works on your phone</p>
+        </div>
+        <div class="g-over" id="gEnd" hidden>
+          <span class="eyebrow" id="gEndEyebrow">Service!</span>
+          <div class="big" id="gScore">0</div>
+          <p id="gEndLine">points</p>
+          <div id="gClaimBox">
+            <p>You've won <b class="g-prize-txt">25% off food</b>.</p>
+            <form class="g-form" id="gForm" hidden novalidate>
+              <input id="gName" type="text" placeholder="Your name" autocomplete="name" maxlength="100">
+              <input id="gContact" type="text" placeholder="Phone or email" autocomplete="email" maxlength="150">
+            </form>
+            <button class="btn btn-gold" id="gClaim" type="button">Get my QR code</button>
+            <div class="g-err" id="gErr"></div>
+          </div>
+          <button class="g-link" id="gAgain" type="button">Play again</button>
+        </div>
+        <div class="g-over v-card" id="gVoucher" hidden>
+          <img id="vImg" alt="Your discount QR code">
+          <div class="v-code" id="vCode"></div>
+          <p class="g-small" id="vTerms"></p>
+          <div>
+            <a class="btn btn-gold" id="vSave" download="black-horse-discount.png" href="#">Save image</a>
+            <a class="btn btn-outline-light" href="#book" id="vBook">Book a table</a>
+          </div>
+          <p class="g-small">Show this QR code to staff when you pay. Screenshot works too.</p>
+          <button class="g-link" id="vReplay" type="button">Play again</button> · <button class="g-link" id="vNew" type="button">I've used this code</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MENU -->
+  <section id="menu">
+    <div class="wrap" style="text-align:center;">
+      <span class="eyebrow">Drunken Wok</span>
+      <h2 style="font-size:clamp(28px,4vw,42px);margin:14px 0 6px;color:var(--gold-light);">Our Menu</h2>
+      <p style="color:rgba(241,232,214,0.7);margin:0;">Authentic Thai cuisine, crafted with tradition.</p>
+      <div class="menu-launch">
+        <button class="menu-card" data-open="food"><span class="mc-k">À la carte</span><span class="mc-t">Food menu</span><span class="mc-s">Starters · Soups · Curries · Stir fries · Specials</span><span class="mc-go">View menu →</span></button>
+        <button class="menu-card" data-open="lunch"><span class="mc-k">12pm – 3pm</span><span class="mc-t">Lunch deal</span><span class="mc-s">Main £10.99 · Starter + main £15 · + drink £20</span><span class="mc-go">View lunch menu →</span></button>
+      </div>
+      <p class="menu-note">Please tell our staff about any allergies before ordering. Full allergen information is available on request.</p>
+    </div>
+  </section>
+  <div class="media-slot" data-place="menu-after" hidden><div class="wrap"><div class="media-grid"></div></div></div>
+
+
+  <section id="sport">
+    <div class="wrap" style="text-align:center;">
+      <span class="eyebrow">Don't miss the big game</span>
+      <h2 style="font-size:clamp(28px,4vw,42px);margin:16px auto 18px;max-width:16ch;color:var(--gold-light);">Live Sport at The Black Horse</h2>
+      <p style="max-width:56ch;margin:0 auto;color:rgba(241,232,214,0.75);">With Sky Sports and TNT Sports, you can enjoy the biggest sporting events in a lively pub atmosphere. Grab a drink, find your seat and enjoy the action.</p>
+      <div class="sport-badges">
+        <span class="sport-badge">Sky Sports</span>
+        <span class="sport-badge">TNT Sports</span>
+      </div>
+      <div class="sport-strap">Live Sport &nbsp;&middot;&nbsp; Great Drinks &nbsp;&middot;&nbsp; Great Atmosphere</div>
+    </div>
+  </section>
+  <div class="media-slot" data-place="sport-after" hidden><div class="wrap"><div class="media-grid"></div></div></div>
+
+
+  <section id="terrace" class="section-panel">
+    <div class="wrap terrace-grid">
+      <div>
+        <span class="eyebrow">Enjoy the outdoors</span>
+        <h2 style="font-size:clamp(28px,3.6vw,38px);margin:14px 0 18px;">Our Terrace</h2>
+        <p style="max-width:46ch;" data-content="terrace">Make the most of the warmer months on our large outdoor terrace. With comfortable seating, private booths and a gas fire pit, it's a great place to relax with friends and enjoy a drink outdoors. Our outdoor area also features a container bar, making it ideal for busy summer days and evenings.</p>
+      </div>
+      <div class="firepit">
+        <div class="glow"></div>
+        <h3>Gas fire pit</h3>
+        <ul>
+          <li>Comfortable seating and private booths</li>
+          <li>Container bar for warm-weather service</li>
+          <li>Open through the warmer months</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+  <div class="media-slot" data-place="terrace-after" hidden><div class="wrap"><div class="media-grid"></div></div></div>
+
+
+  <!-- GALLERY (filled from admin uploads) -->
+  <section id="gallery" hidden>
+    <div class="wrap" style="text-align:center;">
+      <span class="eyebrow">Take a look inside</span>
+      <h2 style="font-size:clamp(28px,4vw,42px);margin:14px 0 0;color:var(--gold-light);">Gallery</h2>
+      <div class="gallery-grid" id="galleryGrid"></div>
+    </div>
+  </section>
+
+  <div class="divider"><img class="mark" src="logo.jpg" alt="" style="width:40px;height:40px;"></div>
+
+  <section id="hire">
+    <div class="wrap hire-grid">
+      <div class="capacity-stat">
+        <div class="num" data-content="capacity">250</div>
+        <div class="label">Guest capacity</div>
+      </div>
+      <div>
+        <span class="eyebrow">Celebrate with us</span>
+        <h2 style="font-size:clamp(28px,3.6vw,38px);margin:14px 0 18px;">Private Hire &amp; Functions</h2>
+        <p style="color:rgba(241,232,214,0.78);" data-content="hire">Planning a birthday, celebration, party or private event? The Black Horse offers spaces suitable for gatherings of different sizes, with a total venue capacity of approximately 250 guests.</p>
+        <p style="color:rgba(241,232,214,0.78);">Our function spaces provide a relaxed setting for celebrations, get-togethers and special occasions — with Drunken Wok on hand for catering. Speak to our team about your requirements and we'll help you plan your event.</p>
+        <a class="btn btn-gold" href="#hire" data-enquiry="hire" style="margin-top:8px;">Enquire About Private Hire</a>
+      </div>
+    </div>
+  </section>
+  <div class="media-slot" data-place="hire-after" hidden><div class="wrap"><div class="media-grid"></div></div></div>
+
+
+  <section id="why" class="section-panel">
+    <div class="wrap" style="text-align:center;">
+      <span class="eyebrow">Your local. Your way.</span>
+      <h2 style="font-size:clamp(28px,3.6vw,38px);margin:14px 0 0;color:var(--gold-light);">Why The Black Horse?</h2>
+      <div class="why-grid" style="text-align:left;">
+        <div class="mat">
+          <svg class="art art-wok" viewBox="0 0 120 120" aria-hidden="true"><g class="steam" fill="none" stroke="#E4CE93" stroke-width="3" stroke-linecap="round" opacity=".8"><path d="M44 46c-6-8 6-12 0-20"/><path d="M60 44c-6-8 6-12 0-20"/><path d="M76 46c-6-8 6-12 0-20"/></g><path d="M24 62h72c0 18-16 30-36 30S24 80 24 62z" fill="#1d1a14" stroke="#C9A961" stroke-width="3"/><path d="M96 64l18-6" stroke="#C9A961" stroke-width="5" stroke-linecap="round"/><path class="noodle" d="M34 62c6-6 10 4 16-2s10 4 16-2 10 4 18-1" fill="none" stroke="#F3D58A" stroke-width="3" stroke-linecap="round"/><g class="flames"><path d="M42 104c-6-6 2-12 0-16 6 4 8 10 0 16z" fill="#E8632B"/><path d="M60 106c-8-8 3-15 0-20 8 5 10 13 0 20z" fill="#F2A33A"/><path d="M78 104c-6-6 2-12 0-16 6 4 8 10 0 16z" fill="#E8632B"/></g></svg>
+          <h3>Drunken Wok</h3>
+          <p>Our resident Thai kitchen — authentic cuisine, crafted with tradition.</p>
+        </div>
+        <div class="mat">
+          <svg class="art art-pint" viewBox="0 0 120 120" aria-hidden="true"><path d="M38 30h44l-6 74H44z" fill="#2a2216" stroke="#C9A961" stroke-width="3"/><path d="M41 44h38l-5 58H46z" fill="#D9932E"/><path d="M38 30c4-8 12-8 16-4 4-6 14-6 18 0 6-4 12 0 10 6v10H40z" fill="#F6EBD3"/><g class="bubbles" fill="#F6EBD3"><circle cx="52" cy="96" r="2.2"/><circle cx="62" cy="90" r="1.8"/><circle cx="70" cy="98" r="2"/><circle cx="58" cy="100" r="1.5"/></g></svg>
+          <h3>Great drinks</h3>
+          <p>Beers, cask ale and drinks for every occasion.</p>
+        </div>
+        <div class="mat">
+          <svg class="art art-tv" viewBox="0 0 120 120" aria-hidden="true"><rect x="14" y="24" width="92" height="60" rx="6" fill="#1d1a14" stroke="#C9A961" stroke-width="3"/><rect x="22" y="32" width="76" height="44" rx="2" fill="#24543B"/><path d="M60 32v44M22 54h76" stroke="#3F7A58" stroke-width="1.5"/><circle cx="60" cy="54" r="8" fill="none" stroke="#3F7A58" stroke-width="1.5"/><g class="ball"><circle cx="40" cy="62" r="6" fill="#F6EBD3"/><path d="M37 59l3 2 3-2-1 4h-4z" fill="#1d1a14"/></g><rect class="live" x="26" y="36" width="20" height="8" rx="2" fill="#C0392B"/><text x="36" y="42.5" font-size="6" font-family="Oswald,sans-serif" fill="#fff" text-anchor="middle">LIVE</text><path d="M46 96h28M60 84v12" stroke="#C9A961" stroke-width="3" stroke-linecap="round"/></svg>
+          <h3>Live sport</h3>
+          <p>Sky Sports and TNT Sports showing the biggest games.</p>
+        </div>
+        <div class="mat">
+          <svg class="art art-fire" viewBox="0 0 120 120" aria-hidden="true"><g class="glow"><circle cx="60" cy="74" r="34" fill="#F2A33A" opacity=".12"/></g><g class="fl"><path d="M60 30c14 16 20 28 12 44H48c-8-16 0-28 12-44z" fill="#E8632B"/><path d="M60 46c8 10 12 18 6 28H54c-6-10-2-18 6-28z" fill="#F2A33A"/><path d="M60 58c4 6 5 10 2 16h-4c-3-6-2-10 2-16z" fill="#FBE28F"/></g><g class="sparks" fill="#E4CE93"><circle cx="50" cy="34" r="1.6"/><circle cx="70" cy="30" r="1.4"/><circle cx="62" cy="22" r="1.2"/></g><path d="M26 78h68l-8 16H34z" fill="#3a3226" stroke="#C9A961" stroke-width="3"/><path d="M34 94l-6 10M86 94l6 10" stroke="#C9A961" stroke-width="3" stroke-linecap="round"/></svg>
+          <h3>Outdoor terrace</h3>
+          <p>A spacious terrace with booths and a fire pit.</p>
+        </div>
+        <div class="mat">
+          <svg class="art art-party" viewBox="0 0 120 120" aria-hidden="true"><path d="M30 100L50 40l30 30z" fill="#C9A961"/><path d="M38 76l8 4M43 61l12 7M34 88l5 2" stroke="#1d1a14" stroke-width="3" stroke-linecap="round"/><g class="confetti"><rect x="70" y="30" width="6" height="10" rx="1" fill="#E8632B"/><rect x="86" y="44" width="6" height="10" rx="1" fill="#E4CE93"/><circle cx="80" cy="22" r="3.5" fill="#6FB1E0"/><rect x="94" y="26" width="5" height="9" rx="1" fill="#8FD19E"/><circle cx="98" cy="58" r="3" fill="#E8632B"/><path d="M60 22c4 4 0 8 4 12" stroke="#E4CE93" stroke-width="2.5" fill="none" stroke-linecap="round"/></g></svg>
+          <h3>Private events</h3>
+          <p>Flexible spaces for parties and celebrations — just ask.</p>
+        </div>
+        <div class="mat">
+          <svg class="art art-lantern" viewBox="0 0 120 120" aria-hidden="true"><path d="M60 10v12" stroke="#C9A961" stroke-width="3"/><path d="M48 22h24l4 8H44z" fill="#C9A961"/><g class="halo"><circle cx="60" cy="62" r="30" fill="#F2A33A" opacity=".15"/></g><rect x="44" y="30" width="32" height="56" rx="4" fill="#2a2216" stroke="#C9A961" stroke-width="3"/><path class="flame" d="M60 46c7 9 8 16 0 22-8-6-7-13 0-22z" fill="#F2A33A"/><path class="flame2" d="M60 54c3 5 3 8 0 11-3-3-3-6 0-11z" fill="#FBE28F"/><path d="M44 86h32l-4 8H48z" fill="#C9A961"/></svg>
+          <h3>Relaxed atmosphere</h3>
+          <p>A welcoming pub for friends, families and locals.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"><img class="mark" src="logo.jpg" alt="" style="width:40px;height:40px;"></div>
+
+    <div class="media-slot" data-place="book-before" hidden><div class="wrap"><div class="media-grid"></div></div></div>
+
+  <section id="book">
+    <div class="wrap book-wrap">
+      <div class="book-copy">
+        <span class="eyebrow">Make it a Black Horse visit</span>
+        <h2>Book a Table</h2>
+        <p>Planning a meal or meeting friends? Book your table at The Black Horse and enjoy Drunken Wok's Thai kitchen, great drinks and a relaxed atmosphere.</p>
+        <p style="margin-top:22px;">Prefer to call? Ring us on <a href="tel:02035182275" style="color:var(--gold-light);font-weight:500;">020 3518 2275</a>.</p>
+        <div class="wine-bottle" aria-hidden="true"><svg viewBox="0 0 160 520">
+          <defs>
+            <linearGradient id="wbGlass" x1="0" x2="1"><stop offset="0" stop-color="#06120b"/><stop offset=".22" stop-color="#1d4a31"/><stop offset=".34" stop-color="#3d7a56"/><stop offset=".46" stop-color="#173b27"/><stop offset=".85" stop-color="#0a1e13"/><stop offset="1" stop-color="#030805"/></linearGradient>
+            <linearGradient id="wbWine" x1="0" x2="1"><stop offset="0" stop-color="#1a0306"/><stop offset=".4" stop-color="#4a0c14"/><stop offset="1" stop-color="#12020400"/></linearGradient>
+            <linearGradient id="wbFoil" x1="0" x2="1"><stop offset="0" stop-color="#6b5226"/><stop offset=".35" stop-color="#E4CE93"/><stop offset=".55" stop-color="#C9A961"/><stop offset="1" stop-color="#5a431c"/></linearGradient>
+            <linearGradient id="wbLabel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4ead2"/><stop offset="1" stop-color="#e2d2ad"/></linearGradient>
+            <linearGradient id="wbShine" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+            <clipPath id="wbClip"><path d="M64 6h32v118c0 22 46 46 46 92v276c0 14-10 22-24 22H42c-14 0-24-8-24-22V216c0-46 46-70 46-92z"/></clipPath>
+          </defs>
+          <path d="M64 6h32v118c0 22 46 46 46 92v276c0 14-10 22-24 22H42c-14 0-24-8-24-22V216c0-46 46-70 46-92z" fill="url(#wbGlass)"/>
+          <g clip-path="url(#wbClip)"><rect x="18" y="250" width="124" height="270" fill="url(#wbWine)" opacity=".55"/>
+            <rect class="wb-shine" x="-60" y="0" width="40" height="520" fill="url(#wbShine)" transform="skewX(-12)"/></g>
+          <path d="M60 2h40v58H60z" fill="url(#wbFoil)"/><path d="M60 54h40v6H60z" fill="#3b2a12" opacity=".6"/>
+          <rect x="30" y="270" width="100" height="150" rx="3" fill="url(#wbLabel)" stroke="#8B6F35" stroke-width="2"/>
+          <rect x="36" y="276" width="88" height="138" rx="2" fill="none" stroke="#C9A961" stroke-width=".8"/>
+          <image href="logo.jpg" x="62" y="284" width="36" height="36"/>
+          <text x="80" y="338" text-anchor="middle" font-family="Cinzel,serif" font-size="10.5" font-weight="600" fill="#2a1a0c">THE BLACK HORSE</text>
+          <text x="80" y="354" text-anchor="middle" font-family="Georgia,serif" font-style="italic" font-size="11" fill="#7a2a20">Réserve de la Maison</text>
+          <path d="M50 364h60" stroke="#C9A961" stroke-width=".8"/>
+          <text x="80" y="380" text-anchor="middle" font-family="Oswald,Arial,sans-serif" font-size="7" letter-spacing="1.6" fill="#5a4630">KINGSTON UPON THAMES</text>
+          <text x="80" y="398" text-anchor="middle" font-family="Cinzel,serif" font-size="9" fill="#2a1a0c">MMXXVI</text>
+          <path d="M40 150c6-12 18-22 24-28v-110h6v114c-6 8-20 18-26 30z" fill="#fff" opacity=".12"/>
+          <path d="M28 230c0-10 4-20 10-28v300c-6-2-10-6-10-12z" fill="#fff" opacity=".1"/>
+        </svg></div>
+      </div>
+      <form class="book-form" id="bookingForm" novalidate>
+        <div class="wine-head" aria-hidden="true"><div class="crest">❦ Réserve ❦</div><div class="sub">The Black Horse · Table Booking</div><div class="rule"></div></div>
+        <div class="form-row">
+          <div class="field"><label for="date">Date</label><input id="date" type="date" required></div>
+          <div class="field"><label for="guests">Guests <span class="g-hint">(any group size)</span></label>
+            <div class="stepper"><button type="button" class="st-btn" data-step="-1" aria-label="Fewer guests">−</button><input id="guests" type="number" min="1" max="999" value="2" inputmode="numeric" required><button type="button" class="st-btn" data-step="1" aria-label="More guests">+</button></div></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label for="time">Time</label><select id="time" class="sel" required><option value="">Choose a date first</option></select></div>
+          <div class="field" id="areaField" hidden><label for="area">Seating</label><select id="area" class="sel"><option value="">No preference</option></select></div>
+        </div>
+        <div class="avail" id="avail" aria-live="polite"></div>
+        <div class="field" id="extrasField" hidden>
+          <label>Make it special (optional)</label>
+          <div id="extrasOpts"></div>
+          <div class="extras-total" id="extrasTotal"></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label for="name">Name</label><input id="name" type="text" maxlength="100" autocomplete="name" placeholder="Your name" required></div>
+          <div class="field"><label for="phone">Phone</label><input id="phone" type="tel" maxlength="30" autocomplete="tel" placeholder="Your phone number" required></div>
+        </div>
+        <div class="field"><label for="email">Email</label><input id="email" type="email" maxlength="150" autocomplete="email" placeholder="Your email address" required></div>
+        <div class="field"><label for="notes">Special requests (optional)</label><textarea id="notes" maxlength="1000" placeholder="Allergies, high chair, birthday…"></textarea></div>
+        <button type="submit" class="btn btn-gold" id="bookBtn">Book now</button>
+        <p class="form-aside">Planning a party or event? <a href="#hire" data-enquiry="hire">Private hire is optional — enquire here</a>.</p>
+        <div id="book-confirm" role="status"></div>
+        <div id="book-error" role="alert"></div>
+      </form>
+    </div>
+  </section>
+
+  <section id="hours" class="section-panel" style="text-align:center;">
+    <div class="wrap">
+      <span class="eyebrow">Open all week</span>
+      <h2 style="font-size:clamp(28px,3.6vw,38px);margin:14px 0 0;color:var(--gold-light);">Opening Hours</h2>
+      <div class="hours-list" id="hoursList">
+        <div class="hours-row" data-day="1"><span class="day">Monday</span><span>12:00 PM &ndash; 11:00 PM</span></div>
+        <div class="hours-row" data-day="2"><span class="day">Tuesday</span><span>12:00 PM &ndash; 11:00 PM</span></div>
+        <div class="hours-row" data-day="3"><span class="day">Wednesday</span><span>12:00 PM &ndash; 11:00 PM</span></div>
+        <div class="hours-row" data-day="4"><span class="day">Thursday</span><span>12:00 PM &ndash; 11:00 PM</span></div>
+        <div class="hours-row" data-day="5"><span class="day">Friday</span><span>12:00 PM &ndash; Midnight</span></div>
+        <div class="hours-row" data-day="6"><span class="day">Saturday</span><span>12:00 PM &ndash; Midnight</span></div>
+        <div class="hours-row" data-day="0"><span class="day">Sunday</span><span>12:00 PM &ndash; 10:00 PM</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section id="contact" class="section-panel">
+    <div class="wrap">
+      <div style="text-align:center;margin-bottom:30px;">
+        <span class="eyebrow">Get in touch</span>
+        <h2 style="font-size:clamp(28px,3.6vw,38px);margin:14px 0 8px;color:var(--gold-light);">Send us a message</h2>
+        <p style="margin:0;">Questions, feedback or takeaway enquiries — we'll get back to you.</p>
+      </div>
+      <form class="contact-card" id="contactForm" novalidate>
+        <div class="form-row">
+          <div class="field"><label for="m-name">Name</label><input id="m-name" maxlength="100" required></div>
+          <div class="field"><label for="m-phone">Phone (optional)</label><input id="m-phone" type="tel" maxlength="30"></div>
+        </div>
+        <div class="field"><label for="m-email">Email</label><input id="m-email" type="email" maxlength="150" required></div>
+        <div class="field"><label for="m-msg">Message</label><textarea id="m-msg" maxlength="1500" required></textarea></div>
+        <button class="btn btn-gold" id="m-btn" type="submit" style="width:100%;justify-content:center;">Send message</button>
+        <div id="m-ok" style="display:none;margin-top:14px;padding:12px 14px;border-left:3px solid var(--gold);background:rgba(201,169,97,0.1);">Thanks — your message has been sent. We'll reply soon.</div>
+        <div id="m-err" style="display:none;margin-top:14px;padding:12px 14px;border-left:3px solid #C0584A;background:rgba(160,60,50,0.15);">Sorry, that didn't send. Please call 020 3518 2275.</div>
+      </form>
+    </div>
+  </section>
+  <div class="media-slot" data-place="contact-after" hidden><div class="wrap"><div class="media-grid"></div></div></div>
+
+
+  <section id="find">
+    <div class="wrap">
+      <div class="find-grid">
+        <div class="find-info">
+          <span class="eyebrow">Find us</span>
+          <h2>The Black Horse</h2>
+          <address>204 London Road<br>Kingston upon Thames<br>KT2 6QP<br>United Kingdom</address>
+          <a class="tel" href="tel:02035182275">Telephone: 020 3518 2275</a>
+          <a class="btn btn-outline-light" href="https://www.google.com/maps/search/?api=1&query=204+London+Road+Kingston+upon+Thames+KT2+6QP" target="_blank" rel="noopener">Get Directions</a>
+        </div>
+        <div class="map-embed">
+          <iframe title="Map showing The Black Horse, 204 London Road, Kingston upon Thames" src="https://www.google.com/maps?q=204+London+Road+Kingston+upon+Thames+KT2+6QP&output=embed" loading="lazy"></iframe>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- OUR PUB photos (staff add these in the admin portal) -->
+  <section id="pubphotos" class="media-slot" data-place="pub" hidden>
+    <div class="wrap">
+      <div style="text-align:center;margin-bottom:26px"><span class="eyebrow">Inside The Black Horse</span>
+        <h2 style="font-size:clamp(28px,4vw,40px);margin:12px 0 0;color:var(--gold-light);">Our Pub</h2></div>
+      <div class="media-grid"></div>
+    </div>
+  </section>
+</main>
+<div id="siteOff" hidden role="alert"><div class="box"><img src="logo.jpg" alt="The Black Horse"><span class="eyebrow">The Black Horse · Kingston</span>
+  <h1 id="offTitle">We'll be back soon</h1><p id="offMsg">Our website is being updated. Please check back shortly.</p>
+  <a class="tel" href="tel:02035182275">020 3518 2275</a></div></div>
+
+<footer>
+  <div class="wrap">
+    <a class="brand" href="#top">
+      <img class="mark" src="logo.jpg" alt="The Black Horse / Drunken Wok logo">
+      The Black Horse
+    </a>
+    <p class="tagline">Drunken Wok — authentic Thai cuisine, crafted with tradition.</p>
+    <nav>
+      <a href="#menu">Menu</a>
+      <a href="#food">Drunken Wok</a>
+      <a href="#sport">Live Sport</a>
+      <a href="#hire">Private Hire</a>
+      <a href="#book">Book a Table</a>
+      <a href="#contact">Contact</a>
+      <a href="#find">Find Us</a>
+    </nav>
+    <div class="fine">&copy; <span id="yr">2026</span> The Black Horse &nbsp;&middot;&nbsp; 204 London Road, Kingston upon Thames, KT2 6QP &nbsp;&middot;&nbsp; 020 3518 2275</div>
+    <div class="credit">Website by <a href="https://stashlo.com" target="_blank" rel="noopener">Stashlo</a> &nbsp;&middot;&nbsp; <a href="#staff" id="staffLink" rel="nofollow">Staff login</a></div>
+    <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
+  </div>
+</footer>
+
+<div class="menu-modal" id="menuModal" hidden role="dialog" aria-modal="true" aria-label="Menu">
+  <div class="mm-head">
+    <div class="mm-top"><span class="mm-title">Drunken Wok · Menu</span><button class="mm-close" id="menuClose" aria-label="Close menu">&times;</button></div>
+    <div class="menu-tabs mm-tabs" id="menuTabs">
+        <button class="active" data-menu="food">Food menu</button>
+        <button data-menu="lunch">Lunch deal · 12–3pm</button>
+        <button data-menu="pages" id="pagesTab" hidden>Printed menu</button>
+      </div>
+    <div class="cat-btns mm-cats" id="catBtns"></div>
+  </div>
+  <div class="mm-body" id="mmBody">
+    <div id="menuText"></div>
+    <div class="menu-pages" id="menuPages" hidden></div>
+    <p class="menu-note">Please tell our staff about any allergies before ordering. Full allergen information is available on request.</p>
+    <div style="text-align:center;margin:10px 0 30px"><a class="btn btn-gold" href="#book" id="mmBook">Book a table</a></div>
+  </div>
+</div>
+<div class="hire-modal" id="hireModal" hidden role="dialog" aria-modal="true" aria-labelledby="hireTitle">
+  <form class="hire-card" id="hireForm" novalidate>
+    <div class="hm-head"><h3 id="hireTitle">Private hire enquiry</h3><button type="button" class="mm-close" id="hireClose" aria-label="Close">&times;</button></div>
+    <p class="hm-sub">Up to 250 guests · Drunken Wok catering available · No obligation</p>
+    <div class="form-row">
+      <div class="field"><label for="h-name">Name</label><input id="h-name" maxlength="100" autocomplete="name" required></div>
+      <div class="field"><label for="h-phone">Phone</label><input id="h-phone" type="tel" maxlength="30" autocomplete="tel" required></div>
+    </div>
+    <div class="field"><label for="h-email">Email</label><input id="h-email" type="email" maxlength="150" autocomplete="email" required></div>
+    <div class="form-row">
+      <div class="field"><label for="h-date">Preferred date</label><input id="h-date" type="date"></div>
+      <div class="field"><label for="h-guests">Guests (approx.)</label><input id="h-guests" type="number" min="1" max="500" value="30" inputmode="numeric"></div>
+    </div>
+    <div class="field"><label for="h-type">Type of event</label><input id="h-type" maxlength="100" placeholder="Birthday, work party, wake…"></div>
+    <div class="field"><label for="h-msg">Anything else? (optional)</label><textarea id="h-msg" maxlength="1500"></textarea></div>
+    <button class="btn btn-gold" id="h-btn" type="submit" style="width:100%;justify-content:center;">Send enquiry</button>
+    <div id="h-ok" class="note-ok" hidden>Thanks — we've received your enquiry and will be in touch shortly.</div>
+    <div id="h-err" class="note-err" hidden></div>
+  </form>
+</div>
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer">
+  <button class="lb-close" aria-label="Close">&times;</button>
+  <button class="lb-prev" aria-label="Previous">&lsaquo;</button>
+  <img alt="">
+  <div class="lb-cap"></div>
+  <button class="lb-next" aria-label="Next">&rsaquo;</button>
+</div>
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+const esc = s => s==null ? '' : String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+/* ================= LIGHTBOX ================= */
+const lb = $('lightbox'); let lbList = [], lbIdx = 0;
+function openLb(list, i){ lbList=list; lbIdx=i; showLb(); lb.classList.add('open'); document.body.style.overflow='hidden'; }
+function showLb(){ const it=lbList[lbIdx]; lb.querySelector('img').src=it.src; lb.querySelector('.lb-cap').textContent=it.cap||'';
+  lb.querySelector('.lb-prev').style.display=lb.querySelector('.lb-next').style.display = lbList.length>1?'':'none'; }
+function closeLb(){ lb.classList.remove('open'); document.body.style.overflow=''; }
+lb.querySelector('.lb-close').onclick=closeLb;
+lb.querySelector('.lb-prev').onclick=e=>{ e.stopPropagation(); lbIdx=(lbIdx-1+lbList.length)%lbList.length; showLb(); };
+lb.querySelector('.lb-next').onclick=e=>{ e.stopPropagation(); lbIdx=(lbIdx+1)%lbList.length; showLb(); };
+lb.onclick=e=>{ if(e.target===lb) closeLb(); };
+document.addEventListener('keydown',e=>{ if(!lb.classList.contains('open')) return;
+  if(e.key==='Escape') closeLb(); if(e.key==='ArrowLeft') lb.querySelector('.lb-prev').click(); if(e.key==='ArrowRight') lb.querySelector('.lb-next').click(); });
+let tx=0; lb.addEventListener('touchstart',e=>tx=e.touches[0].clientX,{passive:true});
+lb.addEventListener('touchend',e=>{ const dx=e.changedTouches[0].clientX-tx; if(Math.abs(dx)>50) lb.querySelector(dx>0?'.lb-prev':'.lb-next').click(); });
+
+/* ================= MENU ================= */
+const V='Veg & Tofu / Chicken / Beef / Prawn';
+let FOOD=[
+ {t:'Starters', items:[
+  ['Chicken Satay','£8.50','Succulent chicken marinated in Thai spices with a rich peanut sauce'],
+  ['Fish Cake','£7.99','Spicy fish cake with Thai spices, served with sweet chilli sauce'],
+  ['Veg Spring Roll','£7.25','Deep-fried mixed vegetable spring roll with sweet chilli sauce'],
+  ['Duck Spring Roll','£8.99','Deep-fried aromatic duck spring roll with hoisin sauce'],
+  ['Prawn Popcorn','£9.99','Popcorn tempura shrimp with spicy creamy mayo'],
+  ['Chicken Wing','£8.50','Crispy chicken wings tossed in hot & honey sauce with spring onion'],
+  ['Crispy Tofu','£7.99','Deep-fried tofu with sweet & spicy peanut sauce'],
+  ['Edamame Beans','£5.99','Steamed edamame beans with rock salt'],
+  ['Prawn Crackers','£4.99','Light, crispy Asian snack made from ground shrimp, garlic and pepper']]},
+ {t:'Soups', sub:'Mushroom / Chicken / Prawn', items:[
+  ['Tom Yum','£7.99 / £8.99','Thai hot & sour creamy soup with mushroom, lemongrass, galangal and kaffir lime',1],
+  ['Tom Ka','£7.99 / £8.99','Thai coconut milk soup with mushroom, Thai herbs, fresh chilli and chilli oil']]},
+ {t:'Salads', items:[
+  ['Beef Salad','£9.99','British beef slices with green salad, cherry tomato and mint, in a chilli-lime dressing'],
+  ['Raw Papaya Salad (Veg / Prawn)','£8.99 / £10.99','Green papaya with cherry tomato, green beans, carrot and peanut in a chilli-tamarind dressing',1]]},
+ {t:'Curries', sub:V, items:[
+  ['Green Curry','£13.99 / £14.99 / £15.99','Thai green curry with pea aubergine, Thai aubergine, bamboo shoot and sweet basil',1],
+  ['Panang Curry','£13.99 / £14.99 / £15.99','Rich, creamy red curry with pea & Thai aubergine, sweet basil and kaffir lime']]},
+ {t:'Stir Fried', sub:V, items:[
+  ['Chilli Basil','£13.99 / £14.99 / £15.99','Fresh chilli, garlic, French beans and holy basil in our house sauce'],
+  ['Cashew Nut','£13.99 / £14.99 / £15.99','Mushroom, mixed pepper, onion and cashew nuts with spring onion in our house sauce'],
+  ['Garlic','£13.99 / £14.99 / £15.99','Mixed pepper, onion and garlic in our house sauce'],
+  ['Pad Thai','£13.99 / £15.99','Flat rice noodles with Thai chives, bean sprouts, shallots, crushed peanut, egg and our special sauce']]},
+ {t:'House Specials', items:[
+  ['Red Curry Duck','£17.99','Rich red curry with roasted duck, pineapple, lychee, grapes, cherry tomato and sweet basil'],
+  ['Crispy Chilli Chicken','£15.99','Crispy chicken fillet in a tangy, sweet & spicy sauce with onion, pepper and a hint of basil'],
+  ['Special Fried Rice','£15.99','Fried rice with chicken & king prawn, egg and mixed vegetables in special house spice'],
+  ['Drunken Noodles','£15.99','Fresh rice noodles with vegetables, chicken & prawn in a chilli-garlic savoury sauce',1]]},
+ {t:'Sides', items:[
+  ['Steamed Jasmine Rice','£3.99',''],['Egg Fried Rice','£4.50',''],['Steamed Brown & Wild Rice','£4.99',''],
+  ['Stir-Fried Egg Noodle','£5.99','Yellow egg noodles with house spice and spring onion'],
+  ['Steamed Broccoli','£4.99',''],['Stir-Fried Asian Greens','£6.99','Asian greens with garlic, bean sprouts and house sauce']]},
+ {t:'Kids Menu', items:[
+  ['Kids Fried Rice','£6.99','Fried rice with chicken, egg and spring onion'],
+  ['Kids Egg Noodle','£6.99','Stir-fried noodles with egg, chicken and spring onion'],
+  ['Chicken Nuggets & Fries','£6.99','']]}
+];
+let LUNCH=[
+ {t:'Starters', items:[['Chicken Wing','','Crispy chicken wings in hot & honey sauce with spring onion'],['Fish Cake','','Spicy Thai fish cake with sweet chilli sauce'],
+   ['Veg Spring Roll','','Mixed vegetable spring roll with sweet chilli sauce'],['Edamame Beans','','Steamed with rock salt'],['Prawn Crackers','','Light and crispy']]},
+ {t:'Mains', sub:V+' · served with jasmine rice', items:[['Green Curry','','Pea aubergine, Thai aubergine, bamboo shoot and sweet basil',1],['Panang Curry','','Rich, creamy red curry with sweet basil and kaffir lime'],
+   ['Chilli Basil Stir Fry','','Fresh chilli, garlic, French beans and holy basil'],['Cashew Nut Stir Fry','','Mushroom, onion and cashew nuts with spring onion'],['Pad Thai (no beef)','','Flat rice noodles, chives, bean sprouts, peanut and egg']]},
+ {t:'Add-ons', items:[['Beef','+ £2.00',''],['Prawn','+ £2.50','']]}
+];
+const item=it=>`<div class="mi"><div class="mi-top"><span class="mi-name">${esc(it[0])}${it[3]?'<span class="mi-hot" title="Spicy">🌶</span>':''}</span>${it[1]?'<span class="mi-dots"></span><span class="mi-price">'+esc(it[1])+'</span>':''}</div>${it[2]?'<div class="mi-desc">'+esc(it[2])+'</div>':''}</div>`;
+const cats=list=>list.map(c=>`<div class="menu-cat"><h3>${esc(c.t)}</h3>${c.sub?'<div class="sub">'+esc(c.sub)+'</div>':'<div class="rule"></div>'}<div class="menu-items">${c.items.map(item).join('')}</div></div>`).join('');
+const DEAL_DEF={time:'Lunch deal · 12pm – 3pm', main:'£10.99', two:'£15.00', three:'£20.00', drink:'Drink: glass of house red or white (125ml), a pint of beer, or a soft drink / juice'};
+const dealHtml=d=>`<div class="deal-box"><div class="deal-time">${esc(d.time)}</div>
+  <div class="deal-grid"><div><b>${esc(d.main)}</b><span>Main</span></div><div><b>${esc(d.two)}</b><span>Starter + main</span></div><div><b>${esc(d.three)}</b><span>Starter + main + drink</span></div></div>
+  ${d.drink?`<div class="mi-desc" style="margin-top:12px">${esc(d.drink)}</div>`:''}</div>`;
+let DEAL=dealHtml(DEAL_DEF);
+/* The built-in menu, for staff tools when no edited menu has been saved yet. */
+window.bhMenuDefault=(()=>{ const conv=l=>l.map(c=>({t:c.t,sub:c.sub||'',items:c.items.map(i=>({n:i[0],p:i[1]||'',d:i[2]||'',hot:!!i[3],off:false}))}));
+  const snap=JSON.stringify({food:conv(FOOD),lunch:conv(LUNCH),deal:DEAL_DEF}); return ()=>JSON.parse(snap); })();
+/* Menu edited in the admin portal replaces the built-in one (items hidden there are left out). */
+window.bhSetMenu=m=>{ if(!m) return;
+  const conv=l=>Array.isArray(l)&&l.length ? l.map(c=>({t:String(c.t||''),sub:String(c.sub||''),items:(c.items||[]).filter(i=>i&&i.n&&!i.off).map(i=>[String(i.n),String(i.p||''),String(i.d||''),i.hot?1:0])})).filter(c=>c.t&&c.items.length) : null;
+  FOOD=conv(m.food)||FOOD; LUNCH=conv(m.lunch)||LUNCH; if(m.deal) DEAL=dealHtml({...DEAL_DEF,...m.deal});
+  if(!document.getElementById('menuModal').hidden) renderMenu(); };
+window.MENU_PAGES=[]; window.currentMenu='food';
+function renderMenu(){
+  const t=$('menuText'), p=$('menuPages'), cb=$('catBtns'), m=window.currentMenu;
+  $('menuTabs').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x.dataset.menu===m));
+  if(m==='pages'){ t.hidden=true; cb.hidden=true; p.hidden=false;
+    p.innerHTML=window.MENU_PAGES.map((x,i)=>`<figure data-i="${i}"><img src="${x.src}" alt="${esc(x.cap)}" loading="lazy"><figcaption>${esc(x.cap)}</figcaption></figure>`).join(''); return; }
+  p.hidden=true; t.hidden=false; cb.hidden=false;
+  const list = m==='lunch' ? LUNCH : FOOD;
+  cb.innerHTML = list.map((c,i)=>`<button type="button" data-ci="${i}" class="${i===0?'on':''}">${esc(c.t)}</button>`).join('');
+  t.innerHTML = (m==='lunch'?DEAL:'') + list.map((c,i)=>`<div class="menu-cat" id="mcat-${i}"><h3>${esc(c.t)}</h3>${c.sub?'<div class="sub">'+esc(c.sub)+'</div>':'<div class="rule"></div>'}<div class="menu-items">${c.items.map(item).join('')}</div></div>`).join('');
+  $('mmBody').scrollTop=0;
+}
+$('catBtns').onclick=e=>{ const b=e.target.closest('button[data-ci]'); if(!b) return;
+  const el=document.getElementById('mcat-'+b.dataset.ci), body=$('mmBody');
+  if(el) body.scrollTo({top:el.offsetTop-body.offsetTop-6,behavior:'smooth'}); };
+$('mmBody').addEventListener('scroll',()=>{ const body=$('mmBody'); let cur=0;
+  document.querySelectorAll('#menuText .menu-cat').forEach((c,i)=>{ if(c.offsetTop-body.offsetTop-40<=body.scrollTop) cur=i; });
+  $('catBtns').querySelectorAll('button').forEach((x,i)=>{ const on=i===cur; if(on!==x.classList.contains('on')){ x.classList.toggle('on',on); if(on) x.scrollIntoView({block:'nearest',inline:'center'}); } });
+},{passive:true});
+$('menuTabs').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; window.currentMenu=b.dataset.menu; renderMenu(); };
+$('menuPages').onclick=e=>{ const f=e.target.closest('figure'); if(f) openLb(window.MENU_PAGES, Number(f.dataset.i)); };
+let lastFocus=null;
+function openMenu(which){ window.currentMenu=which||'food'; renderMenu(); lastFocus=document.activeElement; $('menuModal').hidden=false; document.body.classList.add('menu-open'); $('menuClose').focus();
+  if(location.hash!=='#menu') history.pushState({menu:1},'','#menu'); }
+function closeMenu(fromPop){ if($('menuModal').hidden) return; $('menuModal').hidden=true; document.body.classList.remove('menu-open'); if(lastFocus) lastFocus.focus();
+  if(!fromPop && history.state && history.state.menu) history.back(); }
+window.openMenu=openMenu;
+$('menuClose').onclick=()=>closeMenu();
+window.addEventListener('popstate',()=>closeMenu(true));
+document.addEventListener('keydown',e=>{ if(e.key==='Escape' && !$('menuModal').hidden && !document.getElementById('lightbox').classList.contains('open')) closeMenu(); });
+document.querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>openMenu(b.dataset.open)));
+document.querySelectorAll('a[href="#menu"]').forEach(a=>a.addEventListener('click',e=>{ e.preventDefault(); openMenu('food'); }));
+$('mmBook').addEventListener('click',e=>{ e.preventDefault(); closeMenu(); setTimeout(()=>document.getElementById('book').scrollIntoView({behavior:'smooth'}),60); });
+renderMenu();
+
+
+window.openLb = openLb; window.renderMenu = renderMenu;
 })();
+</script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, doc, getDoc, getDocs, setDoc, query, where, writeBatch, addDoc, serverTimestamp, Timestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { firebaseConfig } from "./firebase-config.js";
+
+const db = getFirestore(initializeApp(firebaseConfig));
+const $ = id => document.getElementById(id);
+const esc = s => s==null ? '' : String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money = n => '£' + Number(n||0).toFixed(2).replace(/\.00$/,'');
+const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const todayISO = () => { const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
+
+/* ================= PHOTOS & VIDEOS (placed by admin) ================= */
+function placeOf(g){ return g.place || (g.kind==='menu' ? 'menupages' : 'gallery'); }
+function videoEmbed(url){
+  let m;
+  if((m=url.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{6,})/))) return `<iframe src="https://www.youtube-nocookie.com/embed/${m[1]}" title="Video" loading="lazy" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+  if((m=url.match(/vimeo\.com\/(?:video\/)?(\d+)/))) return `<iframe src="https://player.vimeo.com/video/${m[1]}" title="Video" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
+  if(/^https:\/\/.+\.(mp4|webm)(\?.*)?$/i.test(url)) return `<video src="${esc(url)}" controls preload="metadata" playsinline></video>`;
+  return '';
+}
+function renderGrid(grid, items){
+  const photos = items.filter(g=>g.img).map(g=>({src:g.img, cap:g.caption||''}));
+  grid.classList.toggle('one', items.length===1);
+  grid.innerHTML = items.map(g => g.url
+      ? `<figure><div class="vid">${videoEmbed(g.url)}</div>${g.caption?`<figcaption>${esc(g.caption)}</figcaption>`:''}</figure>`
+      : `<figure class="ph" data-pi="${photos.findIndex(p=>p.src===g.img)}"><img src="${g.img}" alt="${esc(g.caption||'The Black Horse')}" loading="lazy">${g.caption?`<figcaption>${esc(g.caption)}</figcaption>`:''}</figure>`).join('');
+  grid.onclick=e=>{ const f=e.target.closest('figure.ph'); if(f) window.openLb(photos, Number(f.dataset.pi)); };
+}
+async function loadGallery(){
+  try{
+    const snap = await getDocs(collection(db,'gallery'));
+    const all = snap.docs.map(d=>d.data()).filter(g=>g.img || (g.url && videoEmbed(g.url))).sort((a,b)=>(a.order||0)-(b.order||0));
+    const by = {}; all.forEach(g=>{ (by[placeOf(g)] ||= []).push(g); });
+    if(by.menupages){ window.MENU_PAGES = by.menupages.filter(g=>g.img).map((m,i)=>({src:m.img, cap:m.caption||('Page '+(i+1))})); $('pagesTab').hidden = !window.MENU_PAGES.length; }
+    if(by.gallery){ renderGrid($('galleryGrid'), by.gallery); $('gallery').hidden=false; document.querySelectorAll('[data-gallery-link]').forEach(a=>a.hidden=false); }
+    document.querySelectorAll('.media-slot[data-place]').forEach(sl=>{
+      const items = by[sl.dataset.place]; if(!items || !items.length){ sl.hidden=true; sl.querySelector('.media-grid').innerHTML=''; return; }
+      renderGrid(sl.querySelector('.media-grid'), items); sl.hidden=false;
+    });
+    window.dispatchEvent(new Event('bh-gallery'));
+  }catch(e){ console.warn('Gallery', e); }
+}
+
+/* ================= EMAIL ALERTS ================= */
+let notify = {email:'contact@drunkenwok.co.uk', bookings:true, hire:true, messages:true};
+getDoc(doc(db,'site','notify')).then(s=>{ if(s.exists()) notify={...notify,...s.data()}; }).catch(()=>{});
+function emailAlert(kind, subject, fields, replyTo){
+  if(notify[kind]===false) return;
+  // WhatsApp / automation (n8n): simple form post, no preflight needed
+  if(notify.webhook && /^https:\/\//.test(notify.webhook)){
+    const f=new URLSearchParams({type:kind, title:subject, site:'The Black Horse', ...Object.fromEntries(Object.entries(fields).map(([k,v])=>[k,String(v)]))});
+    fetch(notify.webhook,{method:'POST',mode:'no-cors',body:f,keepalive:true}).catch(()=>{});
+  }
+  if(!notify.email) return;
+  const body = {_subject:subject, _template:'table', _captcha:'false', ...(replyTo?{_replyto:replyTo}:{}), ...fields};
+  fetch('https://formsubmit.co/ajax/'+encodeURIComponent(notify.email), {method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify(body)}).catch(()=>{});
+}
+
+/* ================= HOURS + CONTENT ================= */
+let hours = null;
+function fmt12(t){ if(!t) return ''; if(t==='00:00'||t==='24:00') return 'Midnight'; let [h,m]=t.split(':').map(Number); const ap=h>=12?'PM':'AM'; h=h%12||12; return `${h}:${String(m).padStart(2,'0')} ${ap}`; }
+async function loadHours(){
+  try{
+    const s = await getDoc(doc(db,'site','hours'));
+    if(s.exists()){
+      hours = {...DEFAULT_HOURS, ...s.data()};
+      const order=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+      $('hoursList').innerHTML = order.map((d,i)=>{ const h=hours[d]; if(!h) return '';
+        return `<div class="hours-row" data-day="${(i+1)%7}"><span class="day">${d}</span><span>${h.closed?'Closed':fmt12(h.open)+' &ndash; '+fmt12(h.close)}</span></div>`; }).join('');
+    }
+  }catch(e){ console.warn('Hours', e); }
+  const row=document.querySelector('.hours-row[data-day="'+new Date().getDay()+'"]'); if(row) row.classList.add('today');
+}
+window.bhReloadHours=()=>loadHours();
+window.bhReloadContent=()=>loadContent();
+async function loadContent(){
+  try{ const s=await getDoc(doc(db,'site','content')); if(!s.exists()) return; const c=s.data();
+    document.querySelectorAll('[data-content]').forEach(el=>{ const v=c[el.dataset.content]; if(v!==undefined && v!==null && String(v).trim()!=='') el.textContent=v; });
+  }catch(e){ console.warn('Content', e); }
+}
+
+/* ================= BOOKING ================= */
+const form = $('bookingForm');
+const DEFAULT_SETTINGS = { tables: Array.from({length:10},(_,i)=>({id:'T'+(i+1),name:'Table '+(i+1),seats:4})), maxGuests:40, extras:[], duration:120, lastBefore:60 };
+const DEFAULT_HOURS = { Monday:{open:'12:00',close:'23:00'}, Tuesday:{open:'12:00',close:'23:00'}, Wednesday:{open:'12:00',close:'23:00'}, Thursday:{open:'12:00',close:'23:00'},
+  Friday:{open:'12:00',close:'00:00'}, Saturday:{open:'12:00',close:'00:00'}, Sunday:{open:'12:00',close:'22:00'} };
+let settings = DEFAULT_SETTINGS;
+const toMin = t => { const [h,m]=t.split(':').map(Number); return h*60+m; };
+const fromMin = m => String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+function dayWindow(date){
+  const h=(hours||DEFAULT_HOURS)[DAYS[new Date(date+'T00:00').getDay()]] || DEFAULT_HOURS.Monday;
+  if(h.closed || !h.open || !h.close) return null;
+  let o=toMin(h.open), c=toMin(h.close); if(c<=o) c+=1440; return {o,c};
+}
+function timesFor(date){
+  const w=dayWindow(date); if(!w) return null;
+  const last=w.c-(Number(settings.lastBefore)||60); let start=w.o;
+  if(date===todayISO()){ const n=new Date(); start=Math.max(start, Math.ceil((n.getHours()*60+n.getMinutes()+30)/15)*15); }
+  const out=[]; for(let m=start; m<=last && m<1440; m+=15) out.push(fromMin(m)); return out;
+}
+function blocksFor(date,time,dur){
+  const w=dayWindow(date)||{c:1440}; const t=toMin(time); const end=Math.min(t+dur, w.c, 1440);
+  const out=[]; for(let b=Math.floor(t/30)*30; b<Math.max(end, Math.floor(t/30)*30+30); b+=30) out.push(fromMin(b)); return out;
+}
+let taken=new Set(), takenFor='';
+async function loadTaken(date, force){
+  if(!force && takenFor===date) return;
+  try{ taken=new Set((await getDocs(query(collection(db,'tableLocks'), where('date','==',date)))).docs.map(d=>{ const x=d.data(); return x.time+'_'+x.tableId; })); takenFor=date; }
+  catch(e){ console.warn(e); taken=new Set(); takenFor=''; }
+}
+
+/* Pick tables for a group: one table if it fits, otherwise join the fewest tables (same seating area first). */
+function pickTables(free, g, maxTables){
+  const seats=l=>l.reduce((a,t)=>a+(Number(t.seats)||0),0);
+  const one=free.filter(t=>t.seats>=g).sort((a,b)=>a.seats-b.seats)[0]; if(one) return [one];
+  const build=list=>{ const s=[...list].sort((a,b)=>b.seats-a.seats), pick=[]; let sum=0;
+    for(const t of s){ if(sum>=g) break; pick.push(t); sum+=t.seats; } if(sum<g || pick.length>maxTables) return null;
+    const last=pick.pop(), need=g-seats(pick), swap=s.filter(t=>!pick.includes(t) && t.seats>=need).sort((a,b)=>a.seats-b.seats)[0];
+    pick.push(swap||last); return pick; };
+  const groups={}; free.forEach(t=>(groups[t.area||'']||=[]).push(t));
+  let best=null;
+  Object.values(groups).forEach(l=>{ const p=build(l); if(p && (!best || p.length<best.length || (p.length===best.length && seats(p)<seats(best)))) best=p; });
+  return best || build(free);
+}
+const MAX_LOCKS=96;
+const MAX_GROUP=999;
+/* Groups up to this size get tables automatically; bigger groups are still welcome and are sent as a large-group request. */
+function autoLimit(){ const seats=settings.tables.reduce((a,t)=>a+(Number(t.seats)||0),0); return Math.max(1, Math.min(Number(settings.maxGuests)||40, seats||1)); }
+function inArea(){ const want=$('area').value; return settings.tables.filter(t=>!want||(t.area||'')===want); }
+function seatsTotal(){ return inArea().reduce((a,t)=>a+(Number(t.seats)||0),0); }
+function fitsFor(guests){ return seatsTotal()>=guests ? [true] : []; }
+/* Returns {id,name,area,tables:[...]} for one table or a set of joined tables, or null. */
+function freeTableAt(date,time,guests){
+  const bl=blocksFor(date,time,Number(settings.duration)||120);
+  const free=inArea().filter(t=>bl.every(b=>!taken.has(b+'_'+t.id)));
+  const list=pickTables(free, guests, Math.max(1,Math.floor(MAX_LOCKS/Math.max(1,bl.length)))); if(!list) return null;
+  const areas=[...new Set(list.map(t=>t.area||''))].filter(Boolean);
+  return {id:list.map(t=>t.id).join('+'), name:list.map(t=>t.name).join(' + '), area:areas.join(' & '), tables:list};
+}
+async function loadSettings(){
+  try{ const s=await getDoc(doc(db,'site','booking')); if(s.exists()) settings={...DEFAULT_SETTINGS,...s.data()}; }catch(e){ console.warn(e); }
+  $('extrasField').hidden = !settings.extras.length;
+  const areas=[...new Set(settings.tables.map(t=>(t.area||'').trim()).filter(Boolean))];
+  $('areaField').hidden = areas.length<2;
+  $('area').innerHTML = '<option value="">No preference</option>'+areas.map(a=>`<option>${esc(a)}</option>`).join('');
+  $('extrasOpts').innerHTML = settings.extras.map(x=>`<label class="extra-opt"><input type="checkbox" value="${esc(x.id)}">
+    <span><b>${esc(x.name)}</b>${x.desc?`<small>${esc(x.desc)}</small>`:''}</span><span class="price">+ ${money(x.price)}</span></label>`).join('');
+  $('guests').max = MAX_GROUP;
+  updateExtras(); refreshTimes();
+}
+function chosenExtras(){ return [...$('extrasOpts').querySelectorAll('input:checked')].map(i=>settings.extras.find(x=>x.id===i.value)).filter(Boolean); }
+function updateExtras(){ const t=chosenExtras().reduce((s,x)=>s+Number(x.price||0),0); $('extrasTotal').textContent = t ? `Extras: ${money(t)} — payable at the venue` : ''; }
+$('extrasOpts').addEventListener('change', updateExtras);
+function validDate(iso){ if(!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false; const t=todayISO(); const max=new Date(); max.setFullYear(max.getFullYear()+1); return iso>=t && iso<=max.toISOString().slice(0,10); }
+const pretty = t => { const m=toMin(t); const h=Math.floor(m/60), mm=m%60; return (h%12||12)+(mm?':'+String(mm).padStart(2,'0'):'')+(h<12?'am':'pm'); };
+let req=0;
+async function refreshTimes(){
+  const date=$('date').value, sel=$('time'), keep=sel.value, av=$('avail');
+  if(!date){ sel.innerHTML='<option value="">Choose a date first</option>'; av.innerHTML=''; return; }
+  if(!validDate(date)){ sel.innerHTML='<option value="">—</option>'; av.innerHTML='<span class="no">Please choose a date from today onwards (up to a year ahead).</span>'; return; }
+  const list=timesFor(date);
+  if(list===null){ sel.innerHTML='<option value="">Closed</option>'; av.innerHTML="<span class=\"no\">Sorry, we're closed that day.</span>"; return; }
+  if(!list.length){ sel.innerHTML='<option value="">—</option>'; av.innerHTML='<span class="no">No more booking times today — please choose another date.</span>'; return; }
+  const def = list.includes(keep) ? keep : (list.find(t=>t>='19:00') || list[0]);
+  sel.innerHTML = list.map(t=>`<option value="${t}" ${t===def?'selected':''}>${pretty(t)}</option>`).join('');
+  const my=++req; av.innerHTML='Checking availability…'; await loadTaken(date); if(my!==req) return; checkAvail();
+}
+function checkAvail(){
+  const date=$('date').value, time=$('time').value, guests=Number($('guests').value)||0, av=$('avail');
+  if(!date||!time) return;
+  if(!Number.isInteger(guests) || guests < 1) return av.innerHTML='<span class="no">How many guests? Choose at least 1.</span>';
+  if(guests > autoLimit()) return av.innerHTML=`<span class="ok">✓ Large group of ${guests} — we'll arrange the seating and call you to confirm.</span><div class="join-note">Book below and we'll be in touch. Planning a private event? <a href="#hire" data-enquiry="hire" style="color:var(--gold-light)">Private hire</a> is also available.</div>`;
+  if(!fitsFor(guests).length) return av.innerHTML = $('area').value ? `<span class="no">No ${esc($('area').value)} table fits ${guests} — try "No preference".</span>` : `<span class="ok">✓ Large group of ${guests} — we'll arrange the seating and call you to confirm.</span>`;
+  const t=freeTableAt(date,time,guests);
+  if(t){ av.innerHTML=`<span class="ok">✓ Available — ${pretty(time)} for ${guests}${t.area?' · '+esc(t.area):''}</span>`+(t.tables.length>1?`<div class="join-note">We'll join ${t.tables.length} tables together for your group.</div>`:''); return; }
+  const all=timesFor(date)||[], tm=toMin(time);
+  const alts=all.filter(x=>x!==time && freeTableAt(date,x,guests)).sort((a,b)=>Math.abs(toMin(a)-tm)-Math.abs(toMin(b)-tm)).slice(0,5).sort();
+  av.innerHTML = `<span class="ok">✓ ${pretty(time)} is busy, but you can still book — we'll arrange a table for you and confirm.</span>` + (alts.length ? `<div class="join-note">Or pick a quieter time:</div><div class="chips">${alts.map(x=>`<button type="button" data-t="${x}">${pretty(x)}</button>`).join('')}</div>` : '');
+}
+$('avail').addEventListener('click',e=>{ const b=e.target.closest('button[data-t]'); if(b){ $('time').value=b.dataset.t; checkAvail(); } });
+$('date').addEventListener('change',refreshTimes);
+$('time').addEventListener('change',checkAvail);
+$('area').addEventListener('change',checkAvail);
+let gTimer; $('guests').addEventListener('input',()=>{ clearTimeout(gTimer); gTimer=setTimeout(checkAvail,250); });
+$('guests').addEventListener('keydown',e=>{ if(['.',',','e','E','-','+'].includes(e.key)) e.preventDefault(); });
+$('guests').addEventListener('input',()=>{ const g=$('guests'), v=g.value.replace(/\D/g,'').slice(0,4); if(v!==g.value) g.value=v; });
+$('guests').addEventListener('change',()=>{ const g=$('guests'); g.value=Math.max(1,Math.min(MAX_GROUP,Math.round(Number(g.value))||1)); checkAvail(); });
+/* The Book button only works when the chosen date, time and group size are actually available. */
+function syncBook(){ const ok=!!$('avail').querySelector('.ok'), b=$('bookBtn'); if(b.dataset.busy) return; b.disabled=!ok; b.textContent= ok ? 'Book now' : 'Choose an available date & time'; }
+new MutationObserver(syncBook).observe($('avail'),{childList:true,subtree:true,characterData:true}); syncBook();
+function dateBounds(){ const d=$('date'); d.min=todayISO(); const mx=new Date(); mx.setFullYear(mx.getFullYear()+1); d.max=mx.toISOString().slice(0,10); }
+dateBounds(); $('date').addEventListener('focus',dateBounds);
+document.querySelectorAll('.st-btn').forEach(b=>{ let hold, rep;
+  const step=()=>{ const g=$('guests'); g.value=Math.max(1,Math.min(Number(g.max)||999,(Math.round(Number(g.value))||0)+Number(b.dataset.step))); clearTimeout(gTimer); gTimer=setTimeout(checkAvail,200); };
+  b.addEventListener('click',step);
+  b.addEventListener('pointerdown',()=>{ hold=setTimeout(()=>{ rep=setInterval(step,90); },450); });
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>{ clearTimeout(hold); clearInterval(rep); }));
+});
+$('date').min=todayISO();
+{ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); $('date').value=d.toISOString().slice(0,10); }
+
+function showOk(html){ $('book-confirm').innerHTML=html; $('book-confirm').style.display='block'; }
+function showErr(html){ $('book-error').innerHTML=html; $('book-error').style.display='block'; }
+form.addEventListener('submit', async e=>{
+  e.preventDefault(); $('book-confirm').style.display='none'; $('book-error').style.display='none';
+  const name=$('name').value.trim(), phone=$('phone').value.trim(), email=$('email').value.trim(), date=$('date').value, guests=Number($('guests').value), time=$('time').value;
+  if(!name||!phone||!email||!date||!guests||!time) return showErr('Please fill in the date, time, guests, your name, phone and email.');
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return showErr('Please check your email address.');
+  if(!validDate(date)) return showErr('Please choose a date from today onwards.');
+  if(!/^[0-9 +()-]{7,20}$/.test(phone)) return showErr('Please check your phone number.');
+  if(!/^\d+$/.test($('guests').value) || !Number.isInteger(guests) || guests<1) return showErr('Please choose how many guests.');
+  if(guests>MAX_GROUP) return showErr('For groups this large, please call 020 3518 2275.');
+  const slots=timesFor(date);
+  if(slots===null) return showErr("Sorry, we're closed that day — please choose another date.");
+  if(!slots.includes(time)) return showErr('Please choose one of the times in the list.');
+  $('bookBtn').dataset.busy='1'; $('bookBtn').disabled=true;
+  try{
+    await loadTaken(date, true);
+    const big = guests>autoLimit() || !fitsFor(guests).length;
+    const table = big ? {id:'request', name:'Large group — to arrange', area:'', tables:[]}
+      : (freeTableAt(date,time,guests) || {id:'request', name:'Busy time — to arrange', area:'', tables:[]});
+    const dur=Number(settings.duration)||120, locks=table.tables.flatMap(tb=>blocksFor(date,time,dur).map(b=>`${date}_${b}_${tb.id}`));
+    const ex=chosenExtras(), total=ex.reduce((s,x)=>s+Number(x.price||0),0);
+    const ref=doc(collection(db,'bookings')), b=writeBatch(db);
+    b.set(ref,{name,email,phone,guests,date,time,duration:dur,locks,tableId:table.id,tableName:table.name,area:table.area||'',
+      extras:ex.map(x=>({id:x.id,name:x.name,price:Number(x.price)})),extrasTotal:total,notes:$('notes').value.trim(),status:'pending',source:'website',seen:false,createdAt:serverTimestamp()});
+    locks.forEach(k=>{ const [, bt, tid]=k.split('_'); b.set(doc(db,'tableLocks',k),{date,time:bt,tableId:tid,bookingId:ref.id}); });
+    await b.commit();
+    const nice=new Date(date+'T00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+    emailAlert('bookings', `${table.id==='request'?'NEEDS A TABLE — ':''}New table booking — ${name}, ${date} ${time} (${guests})`, {Name:name, Phone:phone, Email:email, Date:date, Time:time, Guests:guests, Table:table.name+(table.area?' · '+table.area:''), Extras:ex.map(x=>x.name+' £'+x.price).join(', ')||'-', 'Extras total':'£'+total, Notes:$('notes').value.trim()||'-'}, email);
+    showOk(table.id==='request' ? `<b>Booking received</b> — ${esc(nice)} at ${pretty(time)} for ${guests} guests. ${table.name.startsWith('Busy')?'That time is busy, so we':'We'}'ll arrange your table and call you on ${esc(phone)} to confirm.` : `<b>Your table is reserved</b> — ${esc(nice)} at ${pretty(time)} for ${guests}.${total?` Extras: ${money(total)}, payable at the venue.`:''}<br>We'll contact you to confirm. Need to change it? Call 020 3518 2275.`);
+    ['name','phone','email','notes'].forEach(i=>$(i).value=''); $('extrasOpts').querySelectorAll('input').forEach(i=>i.checked=false); updateExtras();
+    taken.clear(); takenFor=''; refreshTimes();
+  }catch(err){
+    console.error(err);
+    if(err.code==='permission-denied'){ showErr('Sorry, someone has just booked that table. Please choose another time.'); takenFor=''; refreshTimes(); }
+    else showErr('Sorry, we couldn\'t send your request just now. Please call us on <a href="tel:02035182275" style="color:var(--gold-light);">020 3518 2275</a>.');
+  }finally{ delete $('bookBtn').dataset.busy; syncBook(); }
+});
+
+/* ================= PRIVATE HIRE (optional enquiry) ================= */
+let hireReturn=null;
+function openHire(){ hireReturn=document.activeElement; $('h-ok').hidden=true; $('h-err').hidden=true; $('hireModal').hidden=false; document.body.classList.add('menu-open'); $('h-name').focus(); }
+function closeHire(){ $('hireModal').hidden=true; document.body.classList.remove('menu-open'); if(hireReturn) hireReturn.focus(); }
+document.addEventListener('click',e=>{ const a=e.target.closest('[data-enquiry="hire"]'); if(a){ e.preventDefault(); openHire(); } });
+$('hireClose').onclick=closeHire;
+$('hireModal').addEventListener('click',e=>{ if(e.target.id==='hireModal') closeHire(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape' && !$('hireModal').hidden) closeHire(); });
+$('h-date').min=todayISO();
+$('hireForm').addEventListener('submit', async e=>{
+  e.preventDefault(); $('h-ok').hidden=true; $('h-err').hidden=true;
+  const name=$('h-name').value.trim(), phone=$('h-phone').value.trim(), email=$('h-email').value.trim();
+  if(!name||!phone||!email){ $('h-err').textContent='Please add your name, phone and email.'; $('h-err').hidden=false; return; }
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ $('h-err').textContent='Please check your email address.'; $('h-err').hidden=false; return; }
+  const guests=Math.max(1,Math.min(500,Number($('h-guests').value)||1)), date=$('h-date').value||'', type=$('h-type').value.trim(), message=$('h-msg').value.trim();
+  $('h-btn').disabled=true;
+  try{
+    await addDoc(collection(db,'hireEnquiries'),{name,email,phone,guests,date,type,message,status:'new',source:'website',seen:false,createdAt:serverTimestamp()});
+    emailAlert('hire', `New private hire enquiry — ${name} (${guests} guests)`, {Name:name, Phone:phone, Email:email, 'Event type':type||'-', Guests:guests, 'Preferred date':date||'-', Message:message||'-'}, email);
+    $('hireForm').reset(); $('h-guests').value=30; $('h-ok').hidden=false;
+  }catch(err){ console.error(err); $('h-err').innerHTML='Sorry, that didn\'t send. Please call <a href="tel:02035182275" style="color:var(--gold-light)">020 3518 2275</a>.'; $('h-err').hidden=false; }
+  finally{ $('h-btn').disabled=false; }
+});
+
+/* ================= OFFERS ================= */
+async function loadOffers(){
+  try{
+    const t=todayISO();
+    const list=(await getDocs(collection(db,'offers'))).docs.map(d=>d.data())
+      .filter(o=>o.active!==false && (!o.from||o.from<=t) && (!o.to||o.to>=t)).sort((a,b)=>(a.order||0)-(b.order||0));
+    if(!list.length){ $('offers').hidden=true; $('offerGrid').innerHTML=''; return; }
+    $('offerGrid').innerHTML=list.map(o=>`<article class="offer reveal">${o.badge?`<span class="badge">${esc(o.badge)}</span>`:''}<h3>${esc(o.title)}</h3>${o.text?`<p>${esc(o.text)}</p>`:''}${o.when?`<div class="when">${esc(o.when)}</div>`:''}</article>`).join('');
+    $('offers').hidden=false; window.dispatchEvent(new Event('content-added'));
+  }catch(e){ console.warn('Offers',e); }
+}
+
+/* ================= CONTACT ================= */
+$('contactForm').addEventListener('submit', async e=>{
+  e.preventDefault(); $('m-ok').style.display='none'; $('m-err').style.display='none';
+  const name=$('m-name').value.trim(), email=$('m-email').value.trim(), message=$('m-msg').value.trim();
+  if(!name||!email||!message){ $('m-err').textContent='Please add your name, email and a message.'; $('m-err').style.display='block'; return; }
+  $('m-btn').disabled=true;
+  try{ await addDoc(collection(db,'messages'),{name,email,phone:$('m-phone').value.trim(),message,seen:false,createdAt:serverTimestamp()});
+    emailAlert('messages', `New website message — ${name}`, {Name:name, Email:email, Phone:$('m-phone').value.trim()||'-', Message:message}, email);
+    $('contactForm').reset(); $('m-ok').style.display='block'; }
+  catch(err){ console.error(err); $('m-err').textContent="Sorry, that didn't send. Please call 020 3518 2275."; $('m-err').style.display='block'; }
+  finally{ $('m-btn').disabled=false; }
+});
+
+/* ================= WEBSITE ON / OFF (switched in admin) ================= */
+async function loadStatus(){
+  try{ const s=await getDoc(doc(db,'site','status')); const d=s.exists()?s.data():{};
+    if(d.offline && !/[?&]preview\b/.test(location.search)){
+      if(d.title) $('offTitle').textContent=d.title; if(d.message) $('offMsg').textContent=d.message;
+      $('siteOff').hidden=false; document.documentElement.classList.add('site-off'); document.title=(d.title||"We'll be back soon")+' — The Black Horse'; }
+  }catch(e){ console.warn('Status',e); }
+  document.documentElement.classList.remove('checking');
+}
+
+/* ================= ANIMATIONS & 3D (switched on/off in admin) ================= */
+const FX_DEF={pint3d:true, ambience:true, shimmer:true, tilt:true, motion:true, splash:false, splashKind:'water'};
+function gotoBook(){ document.getElementById('book').scrollIntoView({behavior:'smooth'}); setTimeout(()=>{ const g=$('guests'); if(g) g.focus({preventScroll:true}); },900); }
+async function applyPint(on){
+  const sec=$('pint3d'), reduce=matchMedia('(prefers-reduced-motion: reduce)').matches, saveData=navigator.connection && navigator.connection.saveData;
+  const html=document.documentElement;
+  if(!on || reduce || saveData){ sec.hidden=true; html.classList.remove('pint-on'); window.bhCine && window.bhCine(); window.BHPint && window.BHPint.unmount(); return; }
+  sec.hidden=false; html.classList.add('pint-on'); window.bhImmersive && window.bhImmersive(true); window.bhCine && window.bhCine();
+  const loadJs=src=>new Promise((ok,no)=>{ const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=()=>{ s.remove(); no(new Error('load '+src)); }; document.head.appendChild(s); });
+  try{ if(!window.BHPint) await loadJs('fx3d.js').catch(()=>loadJs('Fx3d.js'));
+    if(!window.BHPint.supported()) throw new Error('no-webgl');
+    await window.BHPint.mount($('pint3dStage'), {onPour:(x,y)=>pourToBooking(x,y)}); }
+  catch(e){ console.warn('3D pint', e); sec.hidden=true; html.classList.remove('pint-on'); window.bhCine && window.bhCine(); }
+}
+document.querySelectorAll('a[href="#book"]').forEach(l=>l.addEventListener('click',e=>{ if(!document.documentElement.classList.contains('pint-on') || l.closest('#menuModal,#play,#pint3d,#book')) return; e.preventDefault(); document.getElementById('pint3d').scrollIntoView({behavior:'smooth', block:'center'}); }));
+document.querySelectorAll('.pint-cta').forEach(l=>l.addEventListener('click',e=>{ e.preventDefault(); document.getElementById('pint3d').scrollIntoView({behavior:'smooth', block:'center'}); }));
+$('p3Book').onclick=()=>{ if(window.BHPint && $('pint3dStage').querySelector('canvas')) window.BHPint.pour(); else gotoBook(); };
+/* ---------- tap the pint: the ale pours down the page into the booking form ---------- */
+window.bhPour=(x,y)=>pourToBooking(x,y);
+/* Tap the pint: the ale runs down the page — the page follows it — and fills the booking form. Scrolling or tapping skips ahead. */
+function pourToBooking(x0,y0){
+  const form=document.querySelector('form.book-form'), reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!form || reduce || typeof anime==='undefined' || document.documentElement.classList.contains('fx-no-motion')) return gotoBook();
+  if(document.querySelector('.pour-layer')) return;
+  const dpr=Math.min(devicePixelRatio||1,2), cv=document.createElement('canvas'); cv.className='pour-layer'; document.body.appendChild(cv);
+  const ctx=cv.getContext('2d'); const fit=()=>{ cv.width=innerWidth*dpr; cv.height=innerHeight*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); }; fit(); addEventListener('resize',fit);
+  const html=document.documentElement, prevSB=html.style.scrollBehavior; html.style.scrollBehavior='auto';
+  const startScroll=scrollY, srcDocY=y0+scrollY, srcX=x0;
+  const formDocTop=()=>form.getBoundingClientRect().top+scrollY+18;
+  const finalScroll=()=>Math.max(0, form.getBoundingClientRect().top+scrollY-110);
+  const dist=Math.max(200, formDocTop()-srcDocY), travel=Math.min(5.6, Math.max(3.4, dist/430));   // seconds for the ale to reach the form
+  const S={p:0, flowing:true, tailDoc:srcDocY, landed:false, splash:[], skip:false, t:0};
+  const skip=()=>{ if(S.landed) return; S.skip=true; };
+  const stopKeys=e=>{ if(['ArrowDown','ArrowUp','PageDown','PageUp','Space',' ','End','Home'].includes(e.key)) skip(); };
+  addEventListener('wheel',skip,{passive:true}); addEventListener('touchstart',skip,{passive:true}); addEventListener('keydown',stopKeys);
+  const cleanupInput=()=>{ removeEventListener('wheel',skip); removeEventListener('touchstart',skip); removeEventListener('keydown',stopKeys); };
+  const easeIO=k=>k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+  let last=performance.now(), raf;
+  function draw(now){ raf=requestAnimationFrame(draw); const dt=Math.min(.05,(now-last)/1000); last=now; S.t+=dt;
+    if(!S.landed){ S.p = S.skip ? 1 : Math.min(1, S.p+dt/travel); }
+    const landDoc=formDocTop(), headDoc=srcDocY+(landDoc-srcDocY)*easeIO(S.p);
+    // the page follows the ale down, keeping it a little below the middle of the screen
+    const want=Math.min(finalScroll(), Math.max(startScroll, headDoc-innerHeight*.58));
+    if(S.skip && !S.landed) scrollTo(0,finalScroll()); else if(!S.landed) scrollTo(0, scrollY+(want-scrollY)*Math.min(1,dt*3.2));
+    const fr=form.getBoundingClientRect(), tx=fr.left+fr.width*.5, landY=fr.top+18;
+    const srcY=Math.max(-24, srcDocY-scrollY), headY=Math.min(headDoc-scrollY, landY);
+    const tailY=S.flowing ? srcY : Math.max(srcY, S.tailDoc-scrollY);
+    if(!S.flowing) S.tailDoc+=(380+S.t*900)*dt;
+    ctx.clearRect(0,0,innerWidth,innerHeight);
+    if(headY>tailY+2){
+      const steps=Math.max(14,Math.round((headY-tailY)/12)), pts=[], span=Math.max(1,(landDoc-scrollY)-(srcDocY-scrollY));
+      for(let i=0;i<=steps;i++){ const y=tailY+(headY-tailY)*i/steps, k=Math.min(1,Math.max(0,(y-(srcDocY-scrollY))/span)), sm=k*k*(3-2*k);
+        pts.push([srcX+(tx-srcX)*sm+Math.sin(y*.016+S.t*6)*3.2*(1-k*.5), y]); }
+      const g=ctx.createLinearGradient(0,tailY,0,headY); g.addColorStop(0,'rgba(236,160,52,.96)'); g.addColorStop(1,'rgba(170,84,10,.96)');
+      const line=(w,style)=>{ ctx.beginPath(); pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.lineWidth=w; ctx.strokeStyle=style; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.stroke(); };
+      ctx.shadowColor='rgba(255,170,60,.6)'; ctx.shadowBlur=22; line(14,g); ctx.shadowBlur=0;
+      ctx.save(); ctx.translate(-3.5,0); line(3,'rgba(255,238,196,.7)'); ctx.restore();
+      for(let i=0;i<pts.length;i+=2){ const [x,y]=pts[i]; ctx.fillStyle='rgba(255,242,210,.55)'; ctx.beginPath(); ctx.arc(x+Math.sin(S.t*9+i)*3.5,y+Math.sin(S.t*5+i)*2,1.5,0,7); ctx.fill(); }
+      if(!S.landed){ const [hx,hy]=pts[pts.length-1]; const hg=ctx.createRadialGradient(hx,hy,0,hx,hy,16); hg.addColorStop(0,'rgba(255,214,140,.9)'); hg.addColorStop(1,'rgba(214,128,24,0)'); ctx.fillStyle=hg; ctx.beginPath(); ctx.arc(hx,hy,16,0,7); ctx.fill(); } }
+    if(S.p>=1 && !S.landed){ S.landed=true; cleanupInput(); scrollTo(0,finalScroll()); land(); }
+    if(S.landed && S.flowing) for(let i=0;i<2;i++) S.splash.push({x:tx+(Math.random()-.5)*12,y:landY,vx:(Math.random()-.5)*200,vy:-110-Math.random()*190,l:1});
+    S.splash.forEach(p=>{ p.vy+=880*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.l-=dt*1.4; if(p.l>0){ ctx.fillStyle=`rgba(226,148,40,${p.l})`; ctx.beginPath(); ctx.arc(p.x,p.y,2.6,0,7); ctx.fill(); } });
+    S.splash=S.splash.filter(p=>p.l>0&&p.y<innerHeight+20);
+    if(!S.flowing && tailY>=headY-2 && !S.splash.length){ cancelAnimationFrame(raf); cv.remove(); removeEventListener('resize',fit); html.style.scrollBehavior=prevSB; }
+  }
+  raf=requestAnimationFrame(draw);
+  function land(){
+    const fill=document.createElement('div'); fill.className='pour-fill';
+    fill.innerHTML='<svg viewBox="0 0 200 16" preserveAspectRatio="none"><path d="M0 8 Q12.5 0 25 8 T50 8 T75 8 T100 8 T125 8 T150 8 T175 8 T200 8 V16 H0Z" fill="rgba(255,244,222,.9)"/></svg><div class="foam"></div>'+
+      Array.from({length:22},()=>`<i style="left:${4+Math.random()*92}%;"></i>`).join('');
+    form.prepend(fill);
+    anime({targets:fill.querySelector('svg'), translateX:['0%','-50%'], duration:1300, loop:true, easing:'linear'});
+    anime({targets:fill.querySelectorAll('i'), translateY:()=>[0,-anime.random(90,300)], opacity:[.9,0], scale:[.6,1.2], delay:anime.stagger(110), duration:1700, loop:true, easing:'easeOutSine'});
+    anime.timeline({easing:'easeOutCubic'})
+      .add({targets:fill, height:['0%','100%'], duration:2400, easing:'easeInOutSine'})
+      .add({targets:{}, duration:700, begin:()=>{ S.flowing=false; S.t=0; S.tailDoc=Math.max(srcDocY, scrollY-30); }})
+      .add({targets:fill, opacity:[1,0], duration:1400, easing:'easeInQuad', complete:()=>{ anime.remove(fill.querySelectorAll('i')); anime.remove(fill.querySelector('svg')); fill.remove(); }})
+      .add({targets:form, boxShadow:['0 0 0 1px rgba(228,206,147,0), 0 0 0px rgba(228,206,147,0)','0 0 0 1px rgba(228,206,147,.7), 0 0 46px rgba(228,206,147,.35)'], duration:800,
+            begin:()=>form.classList.add('poured'), complete:()=>{ const g=$('guests'); if(g) g.focus({preventScroll:true}); }}, '-=700');
+  }
+}
+async function loadEffects(){
+  let fx={...FX_DEF};
+  try{ const s=await getDoc(doc(db,'site','effects')); if(s.exists()) fx={...fx,...s.data()}; }catch(e){}
+  window.bhEffects=fx; const h=document.documentElement;
+  h.classList.toggle('fx-no-ambience', !fx.ambience); h.classList.toggle('fx-no-shimmer', !fx.shimmer); h.classList.toggle('fx-no-tilt', !fx.tilt); h.classList.toggle('fx-no-motion', !fx.motion);
+  window.dispatchEvent(new Event('bh-effects'));
+  applyPint(!!fx.pint3d);
+  applySplash(fx);
+}
+/* ---- "splash in the face": loaded only when the main admin switches it on ---- */
+let splashReady=null;
+function loadSplash(){ return splashReady || (splashReady=new Promise((ok,no)=>{ if(window.BHSplash) return ok(); const s=document.createElement('script'); s.src='./splash.js'; s.onload=ok; s.onerror=no; document.head.appendChild(s); })); }
+function playSplash(){ const fx=window.bhEffects||{}; if(!fx.splash) return; loadSplash().then(()=>window.BHSplash.play(fx.splashKind||'water')).catch(()=>{}); }
+function applySplash(fx){
+  let b=$('splashBtn');
+  if(!fx.splash){ if(b) b.hidden=true; return; }
+  if(!b){ document.body.insertAdjacentHTML('beforeend','<button id="splashBtn" class="splash-btn" type="button" aria-label="Cheers! Play the splash">💦<span>Cheers!</span></button>'); b=$('splashBtn'); b.onclick=playSplash; }
+  b.hidden=false;
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches) { b.hidden=true; return; }
+  loadSplash().catch(()=>{});
+  let seen=false; try{ seen=sessionStorage.getItem('bh_splashed')==='1'; }catch(e){}
+  if(!seen){ setTimeout(()=>{ if(document.hidden || document.documentElement.classList.contains('site-off') || document.querySelector('#siteOff:not([hidden])')) return;
+    try{ sessionStorage.setItem('bh_splashed','1'); }catch(e){} playSplash(); }, 1900); }
+}
+
+/* ================= MENU (edited in admin) ================= */
+async function loadMenu(){ try{ const s=await getDoc(doc(db,'site','menu')); if(s.exists() && window.bhSetMenu) window.bhSetMenu(s.data()); }catch(e){ console.warn('Menu',e); } }
+
+/* ================= WOK TOSS — discount codes ================= */
+const PROMO_DEF={enabled:false, appliesTo:'food', requireDetails:false, percent:25};
+async function loadPromo(){
+  let cfg={...PROMO_DEF};
+  try{ const s=await getDoc(doc(db,'site','promo')); if(s.exists()) cfg={...cfg,...s.data()}; }catch(e){ console.warn('Promo',e); }
+  window.bhPromo=cfg;
+  $('play').hidden=!cfg.enabled;
+  document.querySelectorAll('[data-play-link]').forEach(a=>a.hidden=!cfg.enabled);
+  window.dispatchEvent(new Event('bh-promo'));
+  return cfg;
+}
+const pct=n=>{ n=Math.round(Number(n)); return n>=5&&n<=50 ? n : 25; };
+const CODE_CHARS='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function newCode(){ const a=new Uint8Array(8); crypto.getRandomValues(a); return Array.from(a,x=>CODE_CHARS[x%32]).join(''); }
+window.bhCreateVoucher=async(score, det={})=>{
+  let cfg=window.bhPromo||PROMO_DEF;
+  for(let i=0;i<3;i++){
+    const code=newCode(), exp=Date.now()+30*864e5;
+    const data={code, score:Math.max(0,Math.min(100000,Math.round(Number(score)||0))), appliesTo:cfg.appliesTo==='bill'?'bill':'food',
+      percent:pct(cfg.percent), used:false, createdAt:serverTimestamp(), expiresAt:Timestamp.fromMillis(exp)};
+    if(det.name) data.name=String(det.name).slice(0,100);
+    if(det.phone) data.phone=String(det.phone).slice(0,30);
+    if(det.email) data.email=String(det.email).slice(0,150);
+    try{ await setDoc(doc(db,'vouchers',code), data); return {code, expiresAt:exp, appliesTo:data.appliesTo, percent:data.percent}; }
+    catch(e){ if(i===2 || e.code!=='permission-denied') throw e; cfg=await loadPromo(); if(!cfg.enabled) throw e; }
+  }
+};
+
+/* ================= START ================= */
+loadStatus(); loadEffects(); loadContent(); loadGallery(); loadOffers(); loadPromo(); loadMenu();
+window.bhReloadGallery=()=>loadGallery(); window.bhReloadOffers=()=>loadOffers();
+
+/* ================= STAFF LOGIN (staff tools open inside the website) ================= */
+let staffMod=null; const loadStaff=()=> staffMod ||= import('./staff.js');
+$('staffLink').addEventListener('click',e=>{ e.preventDefault(); loadStaff().then(m=>m.openLogin()).catch(err=>{ console.error(err); alert('Staff login could not load — please check your connection.'); }); });
+try{ if(localStorage.getItem('bh_staff')==='1') loadStaff(); else if(location.hash==='#staff') loadStaff().then(m=>m.openLogin()); }catch(e){}
+loadHours().then(loadSettings);
+</script>
+
+
+<script>
+/* ================= WOK TOSS (game) ================= */
+(function(){
+  const cv=document.getElementById('wokCanvas'); if(!cv) return;
+  const ctx=cv.getContext('2d'), W=400, H=560, WOK_Y=H-92;
+  const $=id=>document.getElementById(id);
+  const DPR=Math.min(window.devicePixelRatio||1,2); cv.width=W*DPR; cv.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
+  const DISHES=[
+    {n:'Pad Thai', i:['🍜','🍤','🥜']},
+    {n:'Green Curry', i:['🍗','🥥','🌿']},
+    {n:'Thai Fried Rice', i:['🍚','🥚','🧄']},
+    {n:'Drunken Noodles', i:['🍜','🥩','🌿']},
+    {n:'Tom Yum', i:['🦐','🍋','🍄']}
+  ];
+  const POOL=[...new Set(DISHES.flatMap(d=>d.i))];
+  const store={get(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}}, set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}, del(k){try{localStorage.removeItem(k);}catch(e){}}};
+  let muted=!!store.get('bh_mute'); $('gMute').textContent=muted?'🔇':'🔊';
+  $('gMute').onclick=()=>{ muted=!muted; store.set('bh_mute',muted); $('gMute').textContent=muted?'🔇':'🔊'; };
+
+  /* --- tiny sound kit --- */
+  let ac;
+  function tone(f, d=.12, type='triangle', vol=.12, slide=0){
+    if(muted) return; try{ ac=ac||new (window.AudioContext||window.webkitAudioContext)(); const t=ac.currentTime, o=ac.createOscillator(), g=ac.createGain();
+      o.type=type; o.frequency.setValueAtTime(f,t); if(slide) o.frequency.exponentialRampToValueAtTime(f*slide,t+d);
+      g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.001,t+d); o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t+d);}catch(e){} }
+  function sizzle(d=.5){ if(muted) return; try{ ac=ac||new (window.AudioContext||window.webkitAudioContext)(); const n=ac.sampleRate*d, b=ac.createBuffer(1,n,ac.sampleRate), x=b.getChannelData(0);
+      for(let i=0;i<n;i++) x[i]=(Math.random()*2-1)*(1-i/n); const s=ac.createBufferSource(), f=ac.createBiquadFilter(), g=ac.createGain();
+      f.type='highpass'; f.frequency.value=2500; g.gain.value=.08; s.buffer=b; s.connect(f); f.connect(g); g.connect(ac.destination); s.start();}catch(e){} }
+
+  /* --- backdrop (drawn once) --- */
+  const bg=document.createElement('canvas'); bg.width=W*DPR; bg.height=H*DPR; const b=bg.getContext('2d'); b.scale(DPR,DPR);
+  (function(){
+    const g=b.createLinearGradient(0,0,0,H); g.addColorStop(0,'#1d1710'); g.addColorStop(.7,'#120f0b'); g.addColorStop(1,'#0a0907'); b.fillStyle=g; b.fillRect(0,0,W,H);
+    b.strokeStyle='rgba(201,169,97,.05)'; b.lineWidth=1;
+    for(let y=120;y<H-60;y+=26){ b.beginPath(); b.moveTo(0,y); b.lineTo(W,y); b.stroke(); for(let x=(y/26%2)*30;x<W;x+=60){ b.beginPath(); b.moveTo(x,y); b.lineTo(x,y+26); b.stroke(); } }
+    [[60,92],[200,80],[340,92]].forEach(([x,y])=>{ const r=b.createRadialGradient(x,y,2,x,y,70); r.addColorStop(0,'rgba(228,206,147,.28)'); r.addColorStop(1,'rgba(228,206,147,0)'); b.fillStyle=r; b.fillRect(x-70,y-70,140,140);
+      b.strokeStyle='rgba(201,169,97,.4)'; b.beginPath(); b.moveTo(x,0); b.lineTo(x,y-12); b.stroke(); b.fillStyle='#b5452f'; b.beginPath(); b.ellipse(x,y,10,13,0,0,7); b.fill(); b.fillStyle='#E4CE93'; b.fillRect(x-6,y-15,12,3); b.fillRect(x-6,y+12,12,3); });
+    b.fillStyle='#0b0a08'; b.fillRect(0,H-46,W,46); b.fillStyle='rgba(201,169,97,.25)'; b.fillRect(0,H-46,W,1);
+  })();
+
+  const EF='"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', SPR={};
+  function sprite(em,sz){ const k=em+sz; if(SPR[k]) return SPR[k]; const c=document.createElement('canvas'), n=Math.ceil(sz*1.5); c.width=n*DPR; c.height=n*DPR;
+    const x=c.getContext('2d'); x.scale(DPR,DPR); x.textAlign='center'; x.textBaseline='middle'; x.font=sz+'px '+EF; x.fillText(em,n/2,n/2+sz*.06); return SPR[k]={c,n}; }
+  function emoji(em,x,y,sz,rot){ const s=sprite(em,sz); if(rot){ ctx.save(); ctx.translate(x,y); ctx.rotate(rot); ctx.drawImage(s.c,-s.n/2,-s.n/2,s.n,s.n); ctx.restore(); } else ctx.drawImage(s.c,x-s.n/2,y-s.n/2,s.n,s.n); }
+  /* --- state --- */
+  let S=null, raf=0, last=0, keys={};
+  const ROUND=()=>window.__bhRound||40;
+  function newTicket(prev){ let d; do{ d=DISHES[Math.floor(Math.random()*DISHES.length)]; }while(prev && d===prev.dish && DISHES.length>1); return {dish:d, got:d.i.map(()=>false)}; }
+  function reset(){ S={t:ROUND(), el:0, score:0, lives:3, combo:0, hei:0, fl:0, items:[], parts:[], floats:[], spawn:.4, served:0, best:0,
+      ticket:newTicket(), wok:{x:W/2, tx:W/2, shake:0, toss:0}, flash:0}; }
+  function spawn(){
+    const e=S.el, r=Math.random(), t=S.ticket;
+    let kind='ing', em;
+    const pChilli=Math.min(.12+e*.004,.26);
+    if(r<pChilli){ kind='chilli'; em='🌶️'; }
+    else if(r<pChilli+.05){ kind='star'; em='⭐'; }
+    else{ const need=t.dish.i.filter((x,i)=>!t.got[i]); em = (need.length && Math.random()<.5) ? need[Math.floor(Math.random()*need.length)] : POOL[Math.floor(Math.random()*POOL.length)]; }
+    S.items.push({x:30+Math.random()*(W-60), y:-24, vy:140+e*5+Math.random()*60, vx:(Math.random()-.5)*30, rot:0, vr:(Math.random()-.5)*3, em, kind});
+  }
+  function float(x,y,txt,col='#E4CE93',size=18){ S.floats.push({x,y,txt,col,size,life:1}); }
+  function burst(x,y,cols,n=10,up=1){ for(let i=0;i<n;i++) S.parts.push({x,y,vx:(Math.random()-.5)*220,vy:-(80+Math.random()*220)*up,life:.6+Math.random()*.5,c:cols[i%cols.length],r:2+Math.random()*3}); }
+
+  function catchIt(it){
+    const w=S.wok; w.toss=.25;
+    if(it.kind==='chilli'){
+      S.lives--; S.combo=0; w.shake=.45; S.flash=.35; float(it.x,WOK_Y-30,'Too hot!','#ff7a5c',22); burst(it.x,WOK_Y,['#ff5a3c','#ffb347'],14); tone(110,.35,'sawtooth',.14,.5);
+      if(navigator.vibrate) try{navigator.vibrate(120);}catch(e){}
+      return;
+    }
+    S.combo++;
+    let pts = it.kind==='star' ? 50 : 10;
+    const t=S.ticket, idx=t.dish.i.findIndex((x,i)=>x===it.em && !t.got[i]);
+    if(idx>=0){ t.got[idx]=true; pts+=5; }
+    pts += Math.floor(S.combo/5)*2;
+    if(S.fl>0) pts*=2;
+    S.score+=pts; S.hei=Math.min(1,S.hei+(it.kind==='star'?.25:.1));
+    float(it.x,WOK_Y-34,'+'+pts, S.fl>0?'#ffb347':'#E4CE93');
+    burst(it.x,WOK_Y-6,['#E4CE93','#C9A961','#fff2c9'],8);
+    S.parts.push({x:w.x,y:WOK_Y-10,vx:(Math.random()-.5)*60,vy:-260,life:.55,em:it.em,r:0});
+    tone(440+Math.min(S.combo,20)*30,.09,'triangle',.1);
+    if(t.got.every(Boolean)){
+      const bonus=S.fl>0?200:100; S.score+=bonus; S.served++;
+      float(W/2,170,t.dish.n+' served! +'+bonus,'#ffd66b',22); burst(W/2,150,['#ffd66b','#E4CE93','#ff8a5c'],26);
+      [523,659,784].forEach((f,i)=>setTimeout(()=>tone(f,.14,'square',.06),i*90));
+      S.ticket=newTicket(t);
+    }
+    if(S.hei>=1 && S.fl<=0){ S.fl=6; S.hei=0; float(W/2,240,'FLAMBÉ! ×2','#ff8a3c',28); sizzle(.9); tone(220,.5,'sawtooth',.06,2); }
+  }
+
+  function update(dt){
+    S.t-=dt; S.el+=dt; S.fl=Math.max(0,S.fl-dt); S.flash=Math.max(0,S.flash-dt);
+    const w=S.wok;
+    if(keys.l) w.tx-=420*dt; if(keys.r) w.tx+=420*dt;
+    w.tx=Math.max(48,Math.min(W-48,w.tx)); w.x+= (w.tx-w.x)*Math.min(1,dt*16);
+    w.shake=Math.max(0,w.shake-dt); w.toss=Math.max(0,w.toss-dt);
+    S.spawn-=dt; if(S.spawn<=0){ spawn(); S.spawn=Math.max(.34,.78-S.el*.012)*(.7+Math.random()*.6); }
+    for(const it of S.items){
+      it.y+=it.vy*dt; it.x+=it.vx*dt; it.rot+=it.vr*dt; if(it.x<20||it.x>W-20) it.vx*=-1;
+      if(!it.done && it.y>=WOK_Y-14 && it.y<=WOK_Y+16 && Math.abs(it.x-w.x)<54){ it.done=true; catchIt(it); }
+      if(!it.done && it.y>H-40){ it.done=true; if(it.kind!=='chilli'){ S.combo=0; } }
+    }
+    S.items=S.items.filter(i=>!i.done);
+    for(const p of S.parts){ p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=(p.em?900:600)*dt; p.life-=dt; if(p.em && p.vy>0 && p.y>WOK_Y-8) p.life=0; }
+    S.parts=S.parts.filter(p=>p.life>0);
+    for(const f of S.floats){ f.y-=40*dt; f.life-=dt*.9; }
+    S.floats=S.floats.filter(f=>f.life>0);
+    if(S.fl>0 && Math.random()<.6) S.parts.push({x:w.x+(Math.random()-.5)*70,y:WOK_Y+18,vx:(Math.random()-.5)*30,vy:-90-Math.random()*80,life:.45,c:Math.random()<.5?'#ff8a3c':'#ffd66b',r:3+Math.random()*4});
+    if(S.t<=0 || S.lives<=0) end();
+  }
+
+  function drawWok(){
+    const w=S.wok, sx=w.shake>0?Math.sin(S.el*90)*6*w.shake/.45:0, x=w.x+sx, y=WOK_Y, tilt=w.toss>0?-Math.sin((w.toss/.25)*Math.PI)*.18:0;
+    // burner flames
+    const fh = S.fl>0 ? 34+Math.random()*14 : 10+Math.random()*4;
+    for(let i=-3;i<=3;i++){ const fx=x+i*11, g=ctx.createLinearGradient(fx,y+30,fx,y+30-fh);
+      g.addColorStop(0,S.fl>0?'rgba(255,90,40,.95)':'rgba(70,140,255,.9)'); g.addColorStop(1,'rgba(255,214,107,0)');
+      ctx.fillStyle=g; ctx.beginPath(); ctx.moveTo(fx-6,y+30); ctx.quadraticCurveTo(fx,y+30-fh*1.3,fx+6,y+30); ctx.fill(); }
+    ctx.save(); ctx.translate(x,y); ctx.rotate(tilt);
+    ctx.strokeStyle='#2a241c'; ctx.lineWidth=7; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(48,-2); ctx.lineTo(86,-14); ctx.stroke();
+    ctx.strokeStyle='#7a4a24'; ctx.lineWidth=9; ctx.beginPath(); ctx.moveTo(70,-9); ctx.lineTo(92,-16); ctx.stroke();
+    const g=ctx.createLinearGradient(0,-4,0,28); g.addColorStop(0,'#3b352c'); g.addColorStop(1,'#0f0d0a');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.moveTo(-54,-4); ctx.quadraticCurveTo(0,52,54,-4); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='#C9A961'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(-55,-4); ctx.lineTo(55,-4); ctx.stroke();
+    ctx.strokeStyle='rgba(255,255,255,.12)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(-36,6); ctx.quadraticCurveTo(-10,24,14,18); ctx.stroke();
+    ctx.restore();
+  }
+  function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+  function draw(){
+    ctx.drawImage(bg,0,0,W,H);
+    if(S.fl>0){ const g=ctx.createRadialGradient(W/2,H,20,W/2,H,H); g.addColorStop(0,'rgba(255,110,40,.28)'); g.addColorStop(1,'rgba(255,110,40,0)'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H); }
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    for(const it of S.items){
+      ctx.save(); ctx.translate(it.x,it.y); ctx.rotate(it.rot);
+      if(it.kind==='chilli'){ ctx.fillStyle='rgba(255,60,40,.22)'; ctx.beginPath(); ctx.arc(0,0,22,0,7); ctx.fill(); }
+      if(it.kind==='star'){ const g=ctx.createRadialGradient(0,0,4,0,0,26); g.addColorStop(0,'rgba(255,214,107,.55)'); g.addColorStop(1,'rgba(255,214,107,0)'); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,26,0,7); ctx.fill(); }
+      ctx.restore(); emoji(it.em,it.x,it.y,32,it.rot);
+    }
+    drawWok();
+    for(const p of S.parts){ ctx.globalAlpha=Math.max(0,Math.min(1,p.life*2));
+      if(p.em){ emoji(p.em,p.x,p.y,26,0); }
+      else{ ctx.fillStyle=p.c; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7); ctx.fill(); } }
+    ctx.globalAlpha=1;
+    for(const f of S.floats){ ctx.globalAlpha=Math.min(1,f.life*1.6); ctx.fillStyle=f.col; ctx.font=`600 ${f.size}px Oswald, sans-serif`; ctx.fillText(f.txt,f.x,f.y); }
+    ctx.globalAlpha=1;
+    // HUD
+    ctx.fillStyle='rgba(12,11,9,.72)'; ctx.fillRect(0,0,W,44); ctx.fillStyle='rgba(201,169,97,.35)'; ctx.fillRect(0,44,W,1);
+    ctx.font='600 20px Oswald, sans-serif'; ctx.textAlign='left'; ctx.fillStyle='#E4CE93'; ctx.fillText(S.score,14,23);
+    ctx.textAlign='center'; ctx.fillStyle=S.t<6?'#ff8a6c':'#F1E8D6'; ctx.fillText('⏱ '+Math.max(0,Math.ceil(S.t)),W/2,23);
+    for(let i=0;i<3;i++){ ctx.globalAlpha=i<S.lives?1:.25; emoji('❤️',W-128+i*22,22,17,0); } ctx.globalAlpha=1;
+    // ticket
+    const t=S.ticket; rr(W/2-120,54,240,50,4); ctx.fillStyle='#F1E8D6'; ctx.fill();
+    ctx.textAlign='left'; ctx.fillStyle='#8B6F35'; ctx.font='600 10px Oswald, sans-serif'; ctx.fillText('ORDER',W/2-108,68);
+    ctx.fillStyle='#221D14'; ctx.font='600 15px Oswald, sans-serif'; ctx.fillText(t.dish.n,W/2-108,88);
+    t.dish.i.forEach((em,i)=>{ const x=W/2+34+i*32; ctx.globalAlpha=t.got[i]?.3:1; ctx.textAlign='center'; emoji(em,x,79,22,0);
+      if(t.got[i]){ ctx.globalAlpha=1; ctx.fillStyle='#2C5642'; ctx.font='700 18px sans-serif'; ctx.fillText('✓',x,80); } ctx.globalAlpha=1; });
+    if(S.combo>=3){ ctx.textAlign='center'; ctx.fillStyle='#ffd66b'; ctx.font='600 14px Oswald, sans-serif'; ctx.fillText('COMBO ×'+S.combo,W/2,122); }
+    // wok hei meter
+    ctx.textAlign='left'; ctx.fillStyle='rgba(241,232,214,.7)'; ctx.font='600 11px Oswald, sans-serif'; ctx.fillText(S.fl>0?'FLAMBÉ ×2':'WOK HEI',16,H-22);
+    rr(92,H-30,W-108,14,7); ctx.fillStyle='rgba(241,232,214,.08)'; ctx.fill();
+    const pct=S.fl>0?S.fl/6:S.hei; if(pct>0){ rr(92,H-30,Math.max(14,(W-108)*pct),14,7); const g=ctx.createLinearGradient(92,0,W-16,0); g.addColorStop(0,'#C9A961'); g.addColorStop(1,'#ff6a2c'); ctx.fillStyle=g; ctx.fill(); }
+    if(S.flash>0){ ctx.fillStyle=`rgba(255,60,40,${S.flash*.6})`; ctx.fillRect(0,0,W,H); }
+  }
+  function loop(ts){
+    if(!S||!S.running) return;
+    const dt=Math.min(.05,(ts-last)/1000||0); last=ts;
+    update(dt); if(S.running) draw(); raf=requestAnimationFrame(loop);
+  }
+  function startGame(){
+    reset(); S.running=true; if(window.__bhRound) window.__bhS=S; $('gStart').hidden=true; $('gEnd').hidden=true; $('gVoucher').hidden=true;
+    last=performance.now(); cancelAnimationFrame(raf); raf=requestAnimationFrame(loop); tone(330,.12); setTimeout(()=>tone(494,.14),110);
+    cv.focus({preventScroll:true});
+  }
+  function end(){
+    S.running=false; cancelAnimationFrame(raf); draw();
+    const best=Math.max(store.get('bh_best')||0,S.score); store.set('bh_best',best);
+    $('gScore').textContent=S.score;
+    $('gEndEyebrow').textContent = S.lives<=0 ? 'Too hot to handle!' : 'Service!';
+    $('gEndLine').textContent = `points · ${S.served} dish${S.served===1?'':'es'} served · best ${best}`;
+    $('gErr').textContent=''; $('gEnd').hidden=false;
+    sizzle(.4);
+    window.__bhLastScore=S.score;
+  }
+  window.bhGameEnd=()=>{ if(S&&S.running) end(); };
+
+  /* --- input --- */
+  function px(e){ const r=cv.getBoundingClientRect(); return (e.clientX-r.left)/r.width*W; }
+  cv.addEventListener('pointerdown',e=>{ if(S&&S.running){ S.wok.tx=px(e); try{cv.setPointerCapture(e.pointerId);}catch(_){} } });
+  cv.addEventListener('pointermove',e=>{ if(S&&S.running) S.wok.tx=px(e); });
+  cv.tabIndex=0;
+  window.addEventListener('keydown',e=>{ if(!S||!S.running) return; if(e.key==='ArrowLeft'||e.key==='a'){keys.l=1;e.preventDefault();} if(e.key==='ArrowRight'||e.key==='d'){keys.r=1;e.preventDefault();} });
+  window.addEventListener('keyup',e=>{ if(e.key==='ArrowLeft'||e.key==='a') keys.l=0; if(e.key==='ArrowRight'||e.key==='d') keys.r=0; });
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) last=performance.now(); });
+  $('gPlay').onclick=startGame; $('gAgain').onclick=startGame; $('vReplay').onclick=startGame;
+
+  /* --- prize wording & claim --- */
+  function promo(){ return window.bhPromo||{enabled:false,appliesTo:'food',requireDetails:false,percent:25}; }
+  const prizeTxt=(a,n)=> (n||25)+'% off '+(a==='bill' ? 'your bill' : 'food');
+  function applyPromo(){ const p=promo(); document.querySelectorAll('.g-prize-txt,.g-prize-short').forEach(el=>el.textContent=prizeTxt(p.appliesTo,p.percent)); document.querySelectorAll('.play-chip').forEach(el=>el.textContent='🎮 Play Wok Toss · win '+(p.percent||25)+'% off'); }
+  window.addEventListener('bh-promo',applyPromo); applyPromo();
+  function saved(){ const v=store.get('bh_voucher'); return v && v.code && v.expiresAt>Date.now() ? v : null; }
+
+  $('gClaim').onclick=async()=>{
+    const err=$('gErr'); err.textContent='';
+    const have=saved(); if(have) return showVoucher(have);
+    const p=promo(), det={};
+    if(p.requireDetails){
+      if($('gForm').hidden){ $('gForm').hidden=false; $('gName').focus(); return; }
+      const name=$('gName').value.trim(), c=$('gContact').value.trim();
+      if(!name) return err.textContent='Please add your name.';
+      if(c.includes('@')){ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c)) return err.textContent='Please check your email address.'; det.email=c; }
+      else{ if(c.replace(/\D/g,'').length<7) return err.textContent='Please add your phone number or email.'; det.phone=c; }
+      det.name=name;
+    }
+    if(typeof window.bhCreateVoucher!=='function') return err.textContent="Sorry, we couldn't make your code just now. Please refresh and try again.";
+    const btn=$('gClaim'); btn.disabled=true; btn.textContent='Making your code…';
+    try{ const v=await window.bhCreateVoucher(window.__bhLastScore||0, det); store.set('bh_voucher',v); await showVoucher(v); }
+    catch(e){ console.warn(e); err.textContent="Sorry, we couldn't make your code. Check your connection and try again."; }
+    finally{ btn.disabled=false; btn.textContent='Get my QR code'; }
+  };
+  $('vNew').onclick=()=>{ store.del('bh_voucher'); $('gVoucher').hidden=true; $('gEnd').hidden=true; $('gStart').hidden=false; };
+
+  function loadQR(){ return window.qrcode ? Promise.resolve() : new Promise((ok,no)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js'; s.onload=ok; s.onerror=no; document.head.appendChild(s); }); }
+  async function showVoucher(v){
+    const until=new Date(v.expiresAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+    const terms=`${prizeTxt(v.appliesTo,v.percent)} · valid until ${until} · one use`;
+    $('vCode').textContent=v.code; $('vTerms').textContent=terms;
+    const url=location.origin+'/admin#v='+v.code;
+    const c=document.createElement('canvas'); c.width=600; c.height=860; const x=c.getContext('2d');
+    try{ await document.fonts.ready; }catch(e){}
+    x.fillStyle='#0C0B09'; x.fillRect(0,0,600,860);
+    x.strokeStyle='#C9A961'; x.lineWidth=3; x.strokeRect(18,18,564,824); x.strokeStyle='rgba(201,169,97,.4)'; x.lineWidth=1; x.strokeRect(28,28,544,804);
+    x.textAlign='center'; x.textBaseline='alphabetic';
+    x.fillStyle='#E4CE93'; x.font='600 40px Cinzel, serif'; x.fillText('THE BLACK HORSE',300,96);
+    x.fillStyle='#C9A961'; x.font='600 17px Oswald, sans-serif'; x.fillText('DRUNKEN WOK  ·  KINGSTON UPON THAMES',300,128);
+    x.fillStyle='#C9A961'; x.font='600 92px Cinzel, serif'; x.fillText((v.percent||25)+'% OFF',300,236);
+    x.fillStyle='#F1E8D6'; x.font='600 26px Oswald, sans-serif'; x.fillText(v.appliesTo==='bill'?'YOUR WHOLE BILL':'YOUR FOOD',300,276);
+    x.fillStyle='#fff'; x.fillRect(160,306,280,280);
+    try{ await loadQR(); const q=window.qrcode(0,'M'); q.addData(url); q.make(); const n=q.getModuleCount(), s=Math.floor(248/n), o=160+(280-s*n)/2, oy=306+(280-s*n)/2;
+      x.fillStyle='#0C0B09'; for(let r=0;r<n;r++) for(let k=0;k<n;k++) if(q.isDark(r,k)) x.fillRect(o+k*s,oy+r*s,s,s); }
+    catch(e){ x.fillStyle='#0C0B09'; x.font='600 22px Oswald, sans-serif'; x.fillText('Show this code',300,450); }
+    x.fillStyle='#E4CE93'; x.font='600 46px Oswald, sans-serif'; x.fillText(v.code.split('').join(' '),300,654);
+    x.fillStyle='#F1E8D6'; x.font='400 20px "Work Sans", sans-serif'; x.fillText('Valid until '+until+'  ·  one use',300,704);
+    x.fillText('Show at the till when you pay',300,736);
+    x.fillStyle='rgba(241,232,214,.6)'; x.font='400 16px "Work Sans", sans-serif'; x.fillText('204 London Road, KT2 6QP  ·  020 3518 2275',300,800);
+    const data=c.toDataURL('image/png'); $('vImg').alt='Your '+(v.percent||25)+'% off QR code, code '+v.code; $('vImg').src=data; $('vSave').href=data; $('vSave').download=`black-horse-discount-${v.code}.png`;
+    $('gStart').hidden=true; $('gEnd').hidden=true; $('gVoucher').hidden=false;
+  }
+  window.bhShowVoucher=showVoucher;
+
+  // idle preview frame
+  reset(); S.items=[{x:120,y:220,em:'🍤',kind:'ing',rot:.2},{x:280,y:300,em:'🥜',kind:'ing',rot:-.3},{x:200,y:180,em:'⭐',kind:'star',rot:0},{x:330,y:380,em:'🌶️',kind:'chilli',rot:.4}]; draw();
+})();
+</script>
+<script>
+/* ================= AMBER HOUR — hero light, bokeh & embers ================= */
+(function(){
+  const hero=document.querySelector('.hero'); if(!hero) return;
+  const cv=document.createElement('canvas'); cv.id='heroFx'; cv.setAttribute('aria-hidden','true'); hero.prepend(cv);
+  const ctx=cv.getContext('2d'); const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let W=0,H=0,DPR=1, bokeh=[], embers=[], t=0, last=0, run=false, mx=0, my=0, pmx=0, pmy=0;
+  const R=(a,b)=>a+Math.random()*(b-a);
+  const WARM=[[242,163,58],[228,206,147],[232,136,90],[255,214,140]];
+  function sprite(rgb, soft){ const s=128, c=document.createElement('canvas'); c.width=c.height=s; const x=c.getContext('2d'), g=x.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
+    const [r,gg,b]=rgb; g.addColorStop(0,`rgba(${r},${gg},${b},1)`); g.addColorStop(soft?.35:.62,`rgba(${r},${gg},${b},${soft?.45:.85})`); g.addColorStop(soft?.75:.8,`rgba(${r},${gg},${b},${soft?.12:.25})`); g.addColorStop(1,`rgba(${r},${gg},${b},0)`);
+    x.fillStyle=g; x.fillRect(0,0,s,s); return c; }
+  const SOFT=WARM.map(c=>sprite(c,true)), RIM=WARM.map(c=>sprite(c,false)), EMB=sprite([255,170,80],true);
+  function size(){ const r=hero.getBoundingClientRect(); DPR=Math.min(devicePixelRatio||1, W*H>900000?1.25:1.75); W=r.width; H=r.height; cv.width=W*DPR; cv.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
+    const n=Math.round(Math.min(34, W/34));
+    bokeh=Array.from({length:n},()=>{ const z=Math.random(); return {x:R(0,W), y:R(0,H*.85), z, r:8+z*z*46, a:.05+ (1-z)*.12, ci:Math.floor(R(0,4)), rim:Math.random()<.35, ph:R(0,6.3), sp:R(.3,1.1), vx:R(-4,4), vy:R(-3,1)}; });
+    embers=[]; }
+  function ember(){ return {x:R(W*.1,W*.9), y:H+R(0,30), vx:R(-8,8), vy:-R(26,60), r:R(.8,2.4), life:0, max:R(4,8), ph:R(0,6.3), hot:Math.random()}; }
+  function flick(p){ return .62+.18*Math.sin(t*1.7+p)+.12*Math.sin(t*4.3+p*2)+.08*Math.sin(t*11.1+p*3); }
+  function frame(dt){
+    t+=dt; pmx+=(mx-pmx)*Math.min(1,dt*2.5); pmy+=(my-pmy)*Math.min(1,dt*2.5);
+    ctx.clearRect(0,0,W,H);
+    // lamp pools that breathe like candle light
+    ctx.globalCompositeOperation='lighter';
+    [[.18,.08,.55],[.82,.1,.5],[.5,-.06,.75]].forEach(([fx,fy,s],i)=>{ const k=flick(i*2.1), rad=Math.max(W,H)*s*.6;
+      const g=ctx.createRadialGradient(W*fx,H*fy,0,W*fx,H*fy,rad); g.addColorStop(0,`rgba(242,163,58,${.11*k})`); g.addColorStop(.5,`rgba(201,140,60,${.045*k})`); g.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=g; ctx.fillRect(0,0,W,H); });
+    // bokeh: far = small & crisp, near = big & soft, parallax by depth
+    for(const b of bokeh){
+      b.x+=b.vx*dt*b.sp; b.y+=b.vy*dt*b.sp; if(b.x<-60) b.x=W+60; if(b.x>W+60) b.x=-60; if(b.y<-60) b.y=H*.9; if(b.y>H+60) b.y=-40;
+      const px=b.x+pmx*(4+b.z*26), py=b.y+pmy*(3+b.z*18), tw=.55+.45*Math.sin(t*b.sp*1.3+b.ph);
+      ctx.globalAlpha=b.a*tw; const img=b.rim?RIM[b.ci]:SOFT[b.ci]; ctx.drawImage(img,px-b.r,py-b.r,b.r*2,b.r*2);
+    }
+    // embers rising through turbulent air
+    if(!reduce && embers.length<Math.min(46,W/22) && Math.random()<dt*9) embers.push(ember());
+    for(const e of embers){ e.life+=dt; const curl=Math.sin(e.y*.018+t*1.3+e.ph)*14+Math.sin(e.y*.05+e.ph*2)*5;
+      e.x+=(e.vx+curl)*dt; e.y+=e.vy*dt; e.vy*=1-dt*.05;
+      const f=e.life/e.max, a=f<.12?f/.12:1-((f-.12)/.88), fl=.7+.3*Math.sin(t*18+e.ph);
+      ctx.globalAlpha=Math.max(0,a)*fl*.9; const s=e.r*7; ctx.drawImage(EMB,e.x-s,e.y-s,s*2,s*2);
+      ctx.globalAlpha=Math.max(0,a); ctx.fillStyle=e.hot>.5?'#FFE3A6':'#FFB45C'; ctx.beginPath(); ctx.arc(e.x,e.y,e.r*.6,0,7); ctx.fill(); }
+    embers=embers.filter(e=>e.life<e.max && e.y>-20);
+    ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
+  }
+  function loop(ts){ if(!run) return; const dt=Math.min(.05,((ts-last)/1000)||.016); last=ts; frame(dt); requestAnimationFrame(loop); }
+  const fxOn=()=>!document.documentElement.classList.contains('fx-no-ambience');
+  window.addEventListener('bh-effects',()=>play(fxOn() && hero.getBoundingClientRect().bottom>0));
+  function play(on){ if(reduce) return; if(on && !fxOn()) on=false; if(on&&!run){ run=true; last=performance.now(); requestAnimationFrame(loop); } else if(!on) run=false; }
+  size(); if(reduce){ t=1; frame(0); } else { for(let i=0;i<40;i++){ const e=ember(); e.y=R(H*.2,H); e.life=R(0,e.max*.6); embers.push(e); } }
+  let rt; addEventListener('resize',()=>{ clearTimeout(rt); rt=setTimeout(()=>{ size(); if(reduce) frame(0); },150); });
+  new IntersectionObserver(es=>play(es[0].isIntersecting && !document.hidden)).observe(hero);
+  document.addEventListener('visibilitychange',()=>play(!document.hidden && hero.getBoundingClientRect().bottom>0));
+  addEventListener('pointermove',e=>{ mx=(e.clientX/innerWidth-.5)*2; my=(e.clientY/innerHeight-.5)*2; },{passive:true});
+  addEventListener('scroll',()=>{ my=Math.min(1,scrollY/400)*-1.2; },{passive:true});
+  if(!reduce) play(true);
+
+  /* warm spotlight that follows the cursor across cards, with a slight lift */
+  const fine=matchMedia('(hover:hover) and (pointer:fine)').matches;
+  function lightUp(root){ (root||document).querySelectorAll('.mat,.offer,.menu-card,.highlight-card,.addr-card').forEach(el=>{
+    if(el.classList.contains('lit')) return; el.classList.add('lit'); if(!fine) return;
+    el.addEventListener('pointermove',e=>{ const r=el.getBoundingClientRect(), x=(e.clientX-r.left)/r.width, y=(e.clientY-r.top)/r.height;
+      el.style.setProperty('--mx',x*100+'%'); el.style.setProperty('--my',y*100+'%');
+      if(!reduce && !document.documentElement.classList.contains('fx-no-tilt')) el.style.transform=`perspective(900px) rotateX(${(.5-y)*3}deg) rotateY(${(x-.5)*4}deg) translateY(-3px)`; });
+    el.addEventListener('pointerleave',()=>{ el.style.transform=''; }); }); }
+  lightUp(); addEventListener('content-added',()=>lightUp());
+})();
+</script>
+
+<script>
+/* ================= IMMERSIVE PUB: the whole site sits inside a vintage pub (only while the 3D pint is on) ================= */
+(function(){
+  let painted=false, raf=0;
+  function paint(cv, glow){
+    const dpr=Math.min(devicePixelRatio||1,1.5), W=Math.max(innerWidth,800), H=Math.round(innerHeight*1.15);
+    cv.width=W*dpr; cv.height=H*dpr; glow.width=W*dpr; glow.height=innerHeight*dpr;
+    const x=cv.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); const R=(a,b)=>a+Math.random()*(b-a);
+    // brick wall
+    x.fillStyle='#1b0f09'; x.fillRect(0,0,W,H);
+    const bw=86, bh=34, wallB=H*.58;
+    for(let row=0,y=0;y<wallB;row++,y+=bh) for(let xx=(row%2)*bw/2-bw/2;xx<W;xx+=bw){ x.fillStyle=`rgb(${R(66,104)|0},${R(28,46)|0},${R(18,30)|0})`; x.fillRect(xx+2,y+2,bw-4,bh-4); }
+    const soot=x.createLinearGradient(0,0,0,wallB); soot.addColorStop(0,'rgba(0,0,0,.6)'); soot.addColorStop(1,'rgba(0,0,0,.2)'); x.fillStyle=soot; x.fillRect(0,0,W,wallB);
+    // back-bar shelves full of bottles
+    const shelf=y=>{ x.fillStyle='#3a2210'; x.fillRect(0,y,W,12); x.fillStyle='#C9A961'; x.fillRect(0,y,W,2);
+      const cols=[['#5a2a06','#c27a1c'],['#0e3b20','#2f8a4c'],['#cfc9bc','#ffffff'],['#4a0f12','#a3343a'],['#6b4a0a','#e2b04a'],['#1a2c3d','#4f7ca8']];
+      for(let bx=8;bx<W-20;){ const k=Math.random(), w=k<.3?R(20,26):k<.6?R(15,19):R(24,32), h=k<.3?R(80,100):k<.6?R(100,124):R(64,82), [c0,c1]=cols[Math.floor(Math.random()*cols.length)], top=y-h, n=w*.32;
+        const g=x.createLinearGradient(bx,0,bx+w,0); g.addColorStop(0,c0); g.addColorStop(.35,c1); g.addColorStop(.62,c0); g.addColorStop(1,'#000'); x.fillStyle=g;
+        x.beginPath(); x.moveTo(bx,y); x.lineTo(bx,top+h*.4); x.quadraticCurveTo(bx,top+h*.27,bx+w/2-n/2,top+h*.2); x.lineTo(bx+w/2-n/2,top); x.lineTo(bx+w/2+n/2,top); x.lineTo(bx+w/2+n/2,top+h*.2); x.quadraticCurveTo(bx+w,top+h*.27,bx+w,top+h*.4); x.lineTo(bx+w,y); x.closePath(); x.fill();
+        x.fillStyle='rgba(255,255,255,.3)'; x.fillRect(bx+w*.2,top+h*.42,2,h*.48); if(Math.random()<.8){ x.fillStyle=['#efe4cc','#d8c9a6','#1d1a16','#C9A961'][Math.floor(Math.random()*4)]; x.fillRect(bx+2,top+h*.56,w-4,h*.2); }
+        bx+=w+R(3,10); } };
+    shelf(H*.22); shelf(H*.38);
+    // gilded mirror sign
+    const mw=Math.min(560,W*.42), mh=mw*.26, mx=W/2-mw/2, my=H*.025; x.fillStyle='#17120d'; x.fillRect(mx,my,mw,mh); x.strokeStyle='#8B6F35'; x.lineWidth=9; x.strokeRect(mx,my,mw,mh); x.strokeStyle='#E4CE93'; x.lineWidth=2; x.strokeRect(mx+10,my+10,mw-20,mh-20);
+    x.textAlign='center'; x.textBaseline='middle'; x.fillStyle='#E4CE93'; x.font=`600 ${mw*.085}px Cinzel, Georgia, serif`; x.fillText('THE BLACK HORSE', W/2, my+mh*.44); x.font=`600 ${mw*.033}px Oswald, Arial`; x.fillStyle='#C9A961'; x.fillText('FINE ALES  ·  SPIRITS  ·  THAI KITCHEN', W/2, my+mh*.76);
+    // panelling, the bar counter, beer taps and stools in the foreground
+    const wd=x.createLinearGradient(0,wallB,0,H); wd.addColorStop(0,'#26140a'); wd.addColorStop(1,'#0c0603'); x.fillStyle=wd; x.fillRect(0,wallB,W,H-wallB);
+    const top=H*.72; const ct=x.createLinearGradient(0,top-14,0,top+10); ct.addColorStop(0,'#5a3418'); ct.addColorStop(.4,'#8a5a2c'); ct.addColorStop(1,'#2a160a'); x.fillStyle=ct; x.fillRect(0,top-14,W,24);
+    x.fillStyle='rgba(255,210,150,.25)'; x.fillRect(0,top-14,W,2);
+    for(let i=0;i<W;i+=150){ x.strokeStyle='rgba(0,0,0,.5)'; x.lineWidth=5; x.strokeRect(i+12,top+24,126,H-top-60); x.strokeStyle='rgba(201,169,97,.12)'; x.lineWidth=1.5; x.strokeRect(i+18,top+30,114,H-top-72); }
+    x.fillStyle='#C9A961'; x.fillRect(0,H-46,W,5); x.fillStyle='rgba(255,230,180,.4)'; x.fillRect(0,H-46,W,1);
+    for(let i=0;i<9;i++){ const tx=W*.18+i*(W*.64/8); x.fillStyle='#b8954d'; x.fillRect(tx-4,top-70,8,58); x.fillStyle='#d9c08a'; x.beginPath(); x.ellipse(tx,top-74,12,20,0,0,7); x.fill(); x.fillStyle=['#7a1f1f','#1f3d6b','#d9a23a','#2f6b3a','#222'][i%5]; x.fillRect(tx-10,top-96,20,16); }
+    [[W*.12,1],[W*.36,.9],[W*.64,.9],[W*.88,1]].forEach(([sx,s])=>{ x.fillStyle='rgba(8,5,3,.92)'; x.beginPath(); x.ellipse(sx,H-120*s,48*s,12*s,0,0,7); x.fill(); x.fillRect(sx-4*s,H-118*s,8*s,118*s); x.fillRect(sx-30*s,H-56*s,60*s,5*s); });
+    // soften, and darken so the website text always reads clearly
+    if('filter' in x){ const tmp=document.createElement('canvas'); tmp.width=cv.width; tmp.height=cv.height; const t=tmp.getContext('2d'); t.filter='blur(2.5px)'; t.drawImage(cv,0,0); x.setTransform(1,0,0,1,0,0); x.clearRect(0,0,cv.width,cv.height); x.drawImage(tmp,0,0); x.setTransform(dpr,0,0,dpr,0,0); }
+    x.fillStyle='rgba(8,6,4,.42)'; x.fillRect(0,0,W,H);
+    const v=x.createRadialGradient(W/2,H*.4,H*.2,W/2,H*.4,W*.75); v.addColorStop(0,'rgba(0,0,0,0)'); v.addColorStop(1,'rgba(0,0,0,.75)'); x.fillStyle=v; x.fillRect(0,0,W,H);
+    // Edison bulbs: their warm glow lives on its own flickering layer
+    const g=glow.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,W,innerHeight);
+    const n=Math.max(4,Math.round(W/260)); for(let i=0;i<n;i++){ const bx=(i+.5)*W/n, by=60+(i%2)*40;
+      g.strokeStyle='rgba(20,12,6,.9)'; g.lineWidth=2; g.beginPath(); g.moveTo(bx,0); g.lineTo(bx,by-16); g.stroke();
+      const h=g.createRadialGradient(bx,by,2,bx,by,190); h.addColorStop(0,'rgba(255,200,120,.5)'); h.addColorStop(.25,'rgba(255,150,60,.16)'); h.addColorStop(1,'rgba(255,140,50,0)'); g.fillStyle=h; g.fillRect(bx-190,by-190,380,380);
+      g.fillStyle='rgba(255,226,170,.95)'; g.beginPath(); g.ellipse(bx,by,8,12,0,0,7); g.fill(); g.fillStyle='#3b2a1a'; g.fillRect(bx-5,by-20,10,8); }
+    painted=true;
+  }
+  function parallax(){ const cv=document.getElementById('pubScene'); if(!cv) return; const max=innerHeight*.15, doc=Math.max(1,document.documentElement.scrollHeight-innerHeight);
+    cv.style.transform=`translate3d(0,${-(scrollY/doc)*max}px,0)`; }
+  window.bhImmersive=on=>{
+    let cv=document.getElementById('pubScene'), glow=document.getElementById('pubGlow');
+    if(on && !cv){ cv=document.createElement('canvas'); cv.id='pubScene'; cv.setAttribute('aria-hidden','true'); glow=document.createElement('canvas'); glow.id='pubGlow'; glow.setAttribute('aria-hidden','true'); document.body.prepend(glow); document.body.prepend(cv); }
+    if(on){ if(!painted) paint(cv,glow); parallax(); }
+  };
+  let rt; addEventListener('resize',()=>{ clearTimeout(rt); rt=setTimeout(()=>{ const cv=document.getElementById('pubScene'); if(cv && document.documentElement.classList.contains('pint-on')){ painted=false; paint(cv, document.getElementById('pubGlow')); parallax(); } },300); });
+  addEventListener('scroll',()=>{ if(!document.documentElement.classList.contains('pint-on')) return; cancelAnimationFrame(raf); raf=requestAnimationFrame(parallax); },{passive:true});
+  /* cinematic sections: each one swings up into place in 3D as it scrolls into view */
+  const cine=()=>{ const h=document.documentElement; const on=h.classList.contains('pint-on') && !h.classList.contains('fx-no-motion') && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+    h.classList.toggle('cine', on);
+    document.querySelectorAll('main > section:not(.hero):not(#pint3d)').forEach(s=>{ if(!on){ s.style.transform=''; s.style.opacity=''; return; }
+      const r=s.getBoundingClientRect(); if(r.top>innerHeight*1.2 || r.bottom<-50){ return; }
+      const p=Math.max(0,Math.min(1,(innerHeight-r.top)/(innerHeight*.55)));
+      if(p>=1){ if(s.style.transform){ s.style.transform=''; s.style.opacity=''; } return; }
+      const e=1-Math.pow(1-p,3); s.style.transform=`perspective(1400px) rotateX(${(1-e)*16}deg) translateY(${(1-e)*70}px) scale(${.92+.08*e})`; s.style.opacity=(.2+.8*e).toFixed(3); }); };
+  let cr; addEventListener('scroll',()=>{ cancelAnimationFrame(cr); cr=requestAnimationFrame(cine); },{passive:true}); addEventListener('bh-effects',()=>setTimeout(cine,50)); addEventListener('resize',cine);
+  window.bhCine=cine;
+  /* the bottle catches the light now and then */
+  addEventListener('load',()=>{ if(typeof anime==='undefined') return; anime({targets:'.wb-shine', translateX:[0,260], duration:2200, delay:1500, endDelay:3500, loop:true, easing:'easeInOutSine'}); });
+})();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js" defer></script>
+<script>
+/* ================= MOTION (anime.js) ================= */
+window.addEventListener('DOMContentLoaded',()=>{ setTimeout(startMotion, 50); });
+function startMotion(){
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce || typeof anime==='undefined'){ document.documentElement.classList.add('no-motion'); return; }
+  // hero entrance
+  anime.timeline({easing:'easeOutExpo'})
+    .add({targets:'.hero-medallion', scale:[.6,1], opacity:[0,1], rotate:[-12,0], duration:1100})
+    .add({targets:'.hero h1', translateY:[30,0], opacity:[0,1], duration:900}, '-=700')
+    .add({targets:'.ornate-rule .bar', scaleX:[0,1], duration:900, easing:'easeOutQuart'}, '-=500')
+    .add({targets:'.hero .tagline, .hero .ornate-rule, .kitchen-line, .hero-ctas .btn', translateY:[18,0], opacity:[0,1], delay:anime.stagger(90), duration:800}, '-=600');
+  // floating sparks around the medallion
+  const med=document.querySelector('.hero-medallion');
+  if(med){ for(let i=0;i<10;i++){ const d=document.createElement('span'); d.className='hero-spark'; med.appendChild(d); }
+    anime({targets:'.hero-spark', loop:true, easing:'easeOutSine', duration:()=>anime.random(2600,4200), delay:anime.stagger(380),
+      translateX:()=>[anime.random(40,110), anime.random(-20,130)], translateY:()=>[anime.random(70,130), anime.random(-40,10)],
+      opacity:[{value:.9,duration:400},{value:0,duration:1600,delay:600}], scale:[.4,1.1]}); }
+  // illustrated badges
+  anime({targets:'.art-wok .steam path', translateY:[0,-8], opacity:[.85,0], duration:1800, delay:anime.stagger(300), loop:true, easing:'easeOutSine'});
+  anime({targets:'.art-wok .flames path, .art-fire .fl path', scaleY:[1,1.18], scaleX:[1,.92], transformOrigin:['50% 100%','50% 100%'], direction:'alternate', loop:true, duration:420, delay:anime.stagger(120), easing:'easeInOutSine'});
+  anime({targets:'.art-wok .noodle', strokeDashoffset:[anime.setDashoffset,0], duration:1600, direction:'alternate', loop:true, easing:'easeInOutSine'});
+  anime({targets:'.art-pint .bubbles circle', translateY:[0,-48], opacity:[1,0], duration:2200, delay:anime.stagger(450), loop:true, easing:'easeInQuad'});
+  anime({targets:'.art-tv .ball', translateX:[0,38], translateY:[{value:-14,duration:400},{value:0,duration:400}], rotate:360, duration:1600, direction:'alternate', loop:true, easing:'easeInOutQuad'});
+  anime({targets:'.art-tv .live', opacity:[1,.25], duration:700, direction:'alternate', loop:true, easing:'linear'});
+  anime({targets:'.art-fire .glow circle, .art-lantern .halo circle', scale:[1,1.15], opacity:[.12,.24], transformOrigin:'50% 50%', direction:'alternate', loop:true, duration:900, easing:'easeInOutSine'});
+  anime({targets:'.art-fire .sparks circle', translateY:[0,-26], opacity:[1,0], duration:1400, delay:anime.stagger(350), loop:true, easing:'easeOutQuad'});
+  anime({targets:'.art-party .confetti > *', translateY:[0,10], translateX:()=>anime.random(-6,6), rotate:()=>anime.random(-40,40), direction:'alternate', loop:true, duration:900, delay:anime.stagger(110), easing:'easeInOutSine'});
+  anime({targets:'.art-lantern .flame, .art-lantern .flame2', scaleY:[1,1.12], transformOrigin:'50% 100%', direction:'alternate', loop:true, duration:500, easing:'easeInOutSine'});
+  // ================= richer scroll motion (admin switch: "Scroll animations") =================
+  const H=document.documentElement, motionOn=()=>!H.classList.contains('fx-no-motion');
+  // gold reading-progress line + header that tightens when scrolling
+  const bar=document.createElement('div'); bar.id='scrollBar'; document.body.appendChild(bar);
+  const head=document.querySelector('header'); let ticking=false;
+  const onScroll=()=>{ if(ticking) return; ticking=true; requestAnimationFrame(()=>{ ticking=false;
+    const max=document.documentElement.scrollHeight-innerHeight; bar.style.transform=`scaleX(${max>0?Math.min(1,scrollY/max):0})`;
+    if(head) head.classList.toggle('scrolled', scrollY>40);
+    if(motionOn()) document.querySelectorAll('.art').forEach(a=>{ const r=a.getBoundingClientRect(); if(r.bottom<0||r.top>innerHeight) return; a.style.transform=`translateY(${((r.top+r.height/2)/innerHeight-.5)*-14}px)`; });
+  }); };
+  addEventListener('scroll',onScroll,{passive:true}); onScroll();
+  // headings rise in word by word
+  const splitWords=el=>{ if(el.dataset.split||el.children.length) return false; const words=el.textContent.trim().split(/\s+/);
+    el.innerHTML=words.map(w=>`<span class="w-split"><span>${w.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}</span></span>`).join(' '); el.dataset.split='1'; return true; };
+  const heads=[...document.querySelectorAll('main section:not(.hero) h2')].filter(splitWords);
+  // what reveals, and how
+  const groups=['.why-grid .mat','.offer-grid .offer','.menu-card','.highlight-card','.hours-row','.find-grid > *','.contact-card','.addr-card','.capacity-stat','.firepit','.book-form','.play-copy','.game-box','.media-grid figure','.gallery-grid figure','main section:not(.hero) .eyebrow','main section:not(.hero) .ornate-rule'];
+  const mark=()=>{ document.querySelectorAll(groups.join(',')).forEach(el=>{ if(!el.classList.contains('reveal')) el.classList.add('reveal'); });
+    heads.forEach(h=>h.classList.add('reveal')); };
+  mark();
+  const play=(el,i)=>{ const d=i*85;
+    if(el.dataset.split){ el.style.opacity=1; anime({targets:el.querySelectorAll('.w-split>span'), translateY:['105%','0%'], rotate:[4,0], opacity:[0,1], duration:900, delay:anime.stagger(70,{start:d}), easing:'easeOutExpo'}); return; }
+    if(el.matches('.eyebrow')) return anime({targets:el, opacity:[0,1], letterSpacing:['.6em','.22em'], duration:1100, delay:d, easing:'easeOutExpo'});
+    if(el.matches('.ornate-rule')){ el.style.opacity=1; anime({targets:el.querySelectorAll('.bar'), scaleX:[0,1], duration:900, delay:d, easing:'easeOutQuart'}); return anime({targets:el.querySelector('.diamonds'), rotate:[180,0], scale:[0,1], opacity:[0,1], duration:900, delay:d+150, easing:'easeOutBack'}); }
+    if(el.matches('.hours-row')) return anime({targets:el, opacity:[0,1], translateX:[-28,0], duration:700, delay:d, easing:'easeOutCubic', complete:()=>{ if(el.classList.contains('today')) anime({targets:el, backgroundColor:['rgba(201,169,97,0)','rgba(201,169,97,.14)','rgba(201,169,97,.06)'], duration:1600, easing:'easeInOutSine'}); }});
+    if(el.matches('.mat,.offer,.menu-card,.highlight-card,figure')) return anime({targets:el, opacity:[0,1], translateY:[46,0], scale:[.94,1], rotateX:[12,0], duration:1000, delay:d, easing:'easeOutExpo'});
+    anime({targets:el, opacity:[0,1], translateY:[30,0], duration:900, delay:d, easing:'easeOutCubic'});
+  };
+  const io=new IntersectionObserver(entries=>{ let i=0; entries.forEach(en=>{ if(!en.isIntersecting) return; io.unobserve(en.target); en.target.classList.add('in');
+      if(!motionOn()){ en.target.style.opacity=1; return; } play(en.target, i++); }); }, {rootMargin:'0px 0px -10% 0px'});
+  const watch=()=>{ mark(); document.querySelectorAll('.reveal:not(.in)').forEach(el=>io.observe(el)); };
+  watch(); window.addEventListener('content-added', watch); window.addEventListener('bh-gallery', ()=>setTimeout(watch,60));
+  // safety sweep: anything already on screen (or scrolled past) is always revealed, even if the observer missed it
+  const sweep=()=>{ let i=0; document.querySelectorAll('.reveal:not(.in)').forEach(el=>{ if(!el.offsetParent) return; const r=el.getBoundingClientRect(); if(r.top<innerHeight*.98 && (r.width||r.height)){ io.unobserve(el); el.classList.add('in'); if(motionOn()) play(el,i++); else el.style.opacity=1; } }); };
+  let sw; addEventListener('scroll',()=>{ clearTimeout(sw); sw=setTimeout(sweep,140); },{passive:true}); setInterval(sweep,1500); setTimeout(sweep,600);
+  window.addEventListener('bh-effects',()=>{ if(!motionOn()) document.querySelectorAll('.reveal').forEach(el=>{ el.classList.add('in'); el.style.opacity=1; el.querySelectorAll('.w-split>span').forEach(s=>{ s.style.transform='none'; s.style.opacity=1; }); }); });
+  // "Book a Table" buttons breathe a warm glow now and then
+  anime({targets:'.hero-ctas .btn-gold, .nav-cta .btn-gold', boxShadow:['0 0 0 0 rgba(228,206,147,0)','0 0 0 10px rgba(228,206,147,.0)','0 0 26px 2px rgba(228,206,147,.55)','0 0 0 0 rgba(228,206,147,0)'],
+    duration:2600, delay:2400, endDelay:5200, loop:true, easing:'easeInOutSine', update:a=>{ if(!motionOn()) a.pause(); }});
+  // menu opens with its categories cascading in
+  const mm=document.getElementById('menuModal');
+  if(mm) new MutationObserver(()=>{ if(mm.hidden || !motionOn()) return; anime({targets:'#menuModal .menu-cat, #catBtns button', opacity:[0,1], translateY:[24,0], duration:600, delay:anime.stagger(35,{start:80}), easing:'easeOutCubic'}); }).observe(mm,{attributes:true,attributeFilter:['hidden']});
+  // gentle count-up on the capacity number
+  const cap=document.querySelector('.capacity-stat .num');
+  if(cap){ const io2=new IntersectionObserver(es=>{ if(!es[0].isIntersecting) return; io2.disconnect(); const target=parseInt(cap.textContent)||250, o={v:0};
+    anime({targets:o, v:target, round:1, duration:1600, easing:'easeOutExpo', update:()=>cap.textContent=o.v}); }); io2.observe(cap); }
+}
+</script>
+</body>
+</html>
