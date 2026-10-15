@@ -510,6 +510,7 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
         <div class="fx-row"><div><b>3D pint glass</b><p>A real-time 3D pint under the top banner — glowing beer, foam, bubbles and condensation on a Black Horse coaster. Customers can turn it, and tapping it takes them to Book a Table.</p></div><label class="tgl"><input type="checkbox" data-fx="pint3d"><span></span></label></div>
         <div class="fx-row"><div><b>Pub lights &amp; embers</b><p>Warm out-of-focus lights and rising embers behind the top banner.</p></div><label class="tgl"><input type="checkbox" data-fx="ambience"><span></span></label></div>
         <div class="fx-row"><div><b>Gold shimmer</b><p>A slow gold sheen across "The Black Horse" title and a glint around the logo.</p></div><label class="tgl"><input type="checkbox" data-fx="shimmer"><span></span></label></div>
+        <div class="fx-row"><div><b>Scroll animations</b><p>Headings rise in word by word, cards cascade in, opening hours slide in, a gold progress line runs along the top, and the Book a Table buttons glow now and then.</p></div><label class="tgl"><input type="checkbox" data-fx="motion"><span></span></label></div>
         <div class="fx-row"><div><b>Card spotlight &amp; tilt</b><p>Cards catch a warm light and tilt slightly under the mouse (computers only).</p></div><label class="tgl"><input type="checkbox" data-fx="tilt"><span></span></label></div>
       </div>
       <div class="msg" id="fxMsg"></div>
@@ -1628,8 +1629,8 @@ $('ppGrid').addEventListener('click',async e=>{ if(!e.target.matches('[data-ppde
 
 
 /* ---------- animations & 3D ---------- */
-const FX_DEF={pint3d:true, ambience:true, shimmer:true, tilt:true}; let fxCfg={...FX_DEF};
-const FX_NAMES={pint3d:'3D pint', ambience:'Pub lights & embers', shimmer:'Gold shimmer', tilt:'Card spotlight & tilt'};
+const FX_DEF={pint3d:true, ambience:true, shimmer:true, tilt:true, motion:true}; let fxCfg={...FX_DEF};
+const FX_NAMES={pint3d:'3D pint', ambience:'Pub lights & embers', shimmer:'Gold shimmer', tilt:'Card spotlight & tilt', motion:'Scroll animations'};
 function renderFx(){ document.querySelectorAll('[data-fx]').forEach(i=>i.checked=!!fxCfg[i.dataset.fx]); }
 async function loadFx(){ try{ const s=await getDoc(doc(db,'site','effects')); if(s.exists()) fxCfg={...FX_DEF,...s.data()}; }catch(e){} renderFx(); }
 $('fxAllOff').onclick=()=>{ document.querySelectorAll('[data-fx]').forEach(i=>i.checked=false); flash('fxMsg','All switched off — press Save to apply.'); };
