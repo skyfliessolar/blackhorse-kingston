@@ -390,6 +390,16 @@
   .glow-cta{position:relative;}
   html.fx-no-motion .reveal{opacity:1 !important;transform:none !important;}
   html.fx-no-motion #scrollBar{display:none;}
+  /* ---------- pour into booking ---------- */
+  .pour-layer{position:fixed;inset:0;width:100vw;height:100vh;z-index:70;pointer-events:none;}
+  form.book-form{position:relative;isolation:isolate;overflow:hidden;}
+  form.book-form > *{position:relative;z-index:1;}
+  form.book-form > .pour-fill{position:absolute;left:0;right:0;bottom:0;height:0;z-index:0;pointer-events:none;
+    background:linear-gradient(180deg,rgba(241,201,120,.55) 0%,rgba(214,134,30,.5) 18%,rgba(150,72,8,.55) 100%);}
+  .pour-fill svg{position:absolute;left:0;top:-15px;width:200%;height:16px;}
+  .pour-fill .foam{position:absolute;left:0;right:0;top:-6px;height:14px;background:linear-gradient(180deg,rgba(255,246,226,.85),rgba(255,240,210,.0));}
+  .pour-fill i{position:absolute;bottom:0;width:6px;height:6px;border-radius:50%;background:rgba(255,245,220,.75);}
+  form.book-form.poured{box-shadow:0 0 0 1px rgba(228,206,147,.6),0 0 40px rgba(228,206,147,.25);}
   /* ---------- 3D pint (switch on/off in admin) ---------- */
   #pint3d{position:relative;padding:0;height:min(78vh,560px);min-height:420px;overflow:hidden;border-bottom:1px solid var(--line-dark);
     background:radial-gradient(ellipse 60% 70% at 50% 60%,rgba(255,155,47,.16),transparent 70%),radial-gradient(ellipse at 50% 120%,#2a170b,transparent 60%),var(--black);}
@@ -515,7 +525,7 @@
   <section id="pint3d" hidden aria-label="Interactive 3D pint">
     <div id="pint3dStage"></div>
     <div class="p3-copy"><span class="eyebrow">Pull up a stool</span><h2>Your pint is poured</h2></div>
-    <div class="p3-cta"><button class="p3-pill" type="button" id="p3Book">🍺 Tap the pint to book a table</button><span class="p3-hint">Drag to turn it</span></div>
+    <div class="p3-cta"><button class="p3-pill" type="button" id="p3Book">🍺 Tap the pint — pour yourself a table</button><span class="p3-hint">Drag to turn it</span></div>
   </section>
 
 
@@ -1359,10 +1369,63 @@ async function applyPint(on){
   const loadJs=src=>new Promise((ok,no)=>{ const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=()=>{ s.remove(); no(new Error('load '+src)); }; document.head.appendChild(s); });
   try{ if(!window.BHPint) await loadJs('fx3d.js').catch(()=>loadJs('Fx3d.js'));
     if(!window.BHPint.supported()) throw new Error('no-webgl');
-    await window.BHPint.mount($('pint3dStage'), gotoBook); }
+    await window.BHPint.mount($('pint3dStage'), {onPour:(x,y)=>pourToBooking(x,y)}); }
   catch(e){ console.warn('3D pint', e); sec.hidden=true; }
 }
-$('p3Book').onclick=gotoBook;
+$('p3Book').onclick=()=>{ if(window.BHPint && $('pint3dStage').querySelector('canvas')) window.BHPint.pour(); else gotoBook(); };
+/* ---------- tap the pint: the ale pours down the page into the booking form ---------- */
+window.bhPour=(x,y)=>pourToBooking(x,y);
+function pourToBooking(x0,y0){
+  const form=document.querySelector('form.book-form'), reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!form || reduce || typeof anime==='undefined' || document.documentElement.classList.contains('fx-no-motion')) return gotoBook();
+  if(document.querySelector('.pour-layer')) return;
+  const dpr=Math.min(devicePixelRatio||1,2), cv=document.createElement('canvas'); cv.className='pour-layer'; document.body.appendChild(cv);
+  const ctx=cv.getContext('2d'); const fit=()=>{ cv.width=innerWidth*dpr; cv.height=innerHeight*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); }; fit();
+  const html=document.documentElement, prevSB=html.style.scrollBehavior; html.style.scrollBehavior='auto';
+  const startScroll=scrollY, targetScroll=Math.max(0, form.getBoundingClientRect().top+scrollY-110);
+  const S={head:y0, v:120, flowing:true, tail:y0, landed:false, splash:[], t0:performance.now(), done:false};
+  // glide the page down to the booking form while the ale runs
+  const sc={y:startScroll}; anime({targets:sc, y:targetScroll, duration:1700, delay:300, easing:'easeInOutCubic', update:()=>scrollTo(0,sc.y)});
+  let last=performance.now(), raf;
+  function draw(now){ raf=requestAnimationFrame(draw); const dt=Math.min(.05,(now-last)/1000); last=now; const t=(now-S.t0)/1000;
+    const fr=form.getBoundingClientRect(), tx=fr.left+fr.width*.5, landY=fr.top+18;
+    const srcY=Math.max(-20, y0-(scrollY-startScroll)), srcX=x0;
+    S.v+=1900*dt; S.head=Math.min(S.head+S.v*dt, landY);
+    if(!S.flowing){ S.tail+= (S.tail<srcY?0:0) + 1400*dt*(1+t*.2); } else S.tail=srcY;
+    ctx.clearRect(0,0,innerWidth,innerHeight);
+    const top=Math.max(S.tail,srcY), bottom=S.head; if(bottom>top+2){
+      const steps=Math.max(12,Math.round((bottom-top)/14)), pts=[];
+      for(let i=0;i<=steps;i++){ const y=top+(bottom-top)*i/steps, k=Math.min(1,Math.max(0,(y-srcY)/Math.max(1,landY-srcY)));
+        const x=srcX+(tx-srcX)*(k*k*(3-2*k))+Math.sin(y*.018+t*7)*3*(1-k*.6); pts.push([x,y]); }
+      const g=ctx.createLinearGradient(0,top,0,bottom); g.addColorStop(0,'rgba(232,150,40,.95)'); g.addColorStop(1,'rgba(176,90,12,.95)');
+      const line=(w,style)=>{ ctx.beginPath(); pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.lineWidth=w; ctx.strokeStyle=style; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.stroke(); };
+      ctx.shadowColor='rgba(255,170,60,.55)'; ctx.shadowBlur=18; line(13,g); ctx.shadowBlur=0;
+      ctx.save(); ctx.translate(-3,0); line(3,'rgba(255,236,190,.65)'); ctx.restore();
+      for(let i=0;i<pts.length;i+=3){ const [x,y]=pts[i]; ctx.fillStyle='rgba(255,240,205,.5)'; ctx.beginPath(); ctx.arc(x+Math.sin(t*9+i)*3,y,1.4,0,7); ctx.fill(); } }
+    if(S.head>=landY-1 && !S.landed){ S.landed=true; land(); }
+    if(S.landed && S.flowing) for(let i=0;i<3;i++) S.splash.push({x:tx+(Math.random()-.5)*10,y:landY,vx:(Math.random()-.5)*220,vy:-120-Math.random()*200,l:1});
+    S.splash.forEach(p=>{ p.vy+=900*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.l-=dt*1.6; if(p.l>0){ ctx.fillStyle=`rgba(226,148,40,${p.l})`; ctx.beginPath(); ctx.arc(p.x,p.y,2.6,0,7); ctx.fill(); } });
+    S.splash=S.splash.filter(p=>p.l>0&&p.y<innerHeight+20);
+    if(!S.flowing && S.tail>=S.head-2 && !S.splash.length){ cancelAnimationFrame(raf); cv.remove(); html.style.scrollBehavior=prevSB; }
+  }
+  raf=requestAnimationFrame(draw);
+  function land(){
+    // the form fills with ale, a foamy head rides on top, bubbles rise, then it drains to a gold glow
+    const fill=document.createElement('div'); fill.className='pour-fill';
+    fill.innerHTML='<svg viewBox="0 0 200 16" preserveAspectRatio="none"><path d="M0 8 Q12.5 0 25 8 T50 8 T75 8 T100 8 T125 8 T150 8 T175 8 T200 8 V16 H0Z" fill="rgba(255,244,222,.9)"/></svg><div class="foam"></div>'+
+      Array.from({length:18},(_,i)=>`<i style="left:${4+Math.random()*92}%;"></i>`).join('');
+    form.prepend(fill);
+    anime({targets:fill.querySelector('svg'), translateX:['0%','-50%'], duration:1100, loop:true, easing:'linear'});
+    anime({targets:fill.querySelectorAll('i'), translateY:()=>[0,-anime.random(80,260)], opacity:[.9,0], scale:[.6,1.2], delay:anime.stagger(90), duration:1400, loop:true, easing:'easeOutSine'});
+    anime.timeline({easing:'easeOutCubic'})
+      .add({targets:fill, height:['0%','100%'], duration:1300})
+      .add({targets:{}, duration:350, begin:()=>{ S.flowing=false; }})
+      .add({targets:fill, opacity:[1,0], duration:900, easing:'easeInQuad', complete:()=>{ anime.remove(fill.querySelectorAll('i')); anime.remove(fill.querySelector('svg')); fill.remove(); }})
+      .add({targets:form, boxShadow:['0 0 0 1px rgba(228,206,147,0), 0 0 0px rgba(228,206,147,0)','0 0 0 1px rgba(228,206,147,.7), 0 0 46px rgba(228,206,147,.35)'], duration:700,
+            begin:()=>form.classList.add('poured'), complete:()=>{ const g=$('guests'); if(g) g.focus({preventScroll:true}); }}, '-=500');
+  }
+}
+
 async function loadEffects(){
   let fx={...FX_DEF};
   try{ const s=await getDoc(doc(db,'site','effects')); if(s.exists()) fx={...fx,...s.data()}; }catch(e){}
