@@ -1,7 +1,9 @@
 /* The Black Horse — "splash in the face".
    A drink is thrown at the visitor: it flies at the screen, smacks onto the glass,
    runs down in rivulets and fades as "Cheers!" appears. Plain 2D canvas, no libraries.
-   window.BHSplash.play(kind)  kind: 'water' | 'ale' | 'wine' | 'prosecco'   */
+   window.BHSplash.play(kind, opts)    one splash. opts: {cheers:true, at:{x,y}, size:1, onImpact(fn({x,y}))}
+   window.BHSplash.series(kind, n)     2–3 splashes from different angles, "Cheers!" on the last
+   kind: 'water' | 'ale' | 'wine' | 'prosecco'   */
 (function(){
   'use strict';
   if(window.BHSplash) return;
@@ -13,11 +15,12 @@
   };
   const rnd=(a,b)=>a+Math.random()*(b-a), clamp=(v,a,b)=>v<a?a:v>b?b:v;
   const gauss=()=>{ let u=0,v=0; while(!u) u=Math.random(); while(!v) v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); };
-  let running=false;
+  let live=0;
 
-  function play(kindName){
-    if(running || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const K=KINDS[kindName]||KINDS.water; running=true;
+  function play(kindName, opts){
+    opts=opts||{};
+    if(live>=4 || matchMedia('(prefers-reduced-motion: reduce)').matches){ opts.onImpact&&opts.onImpact({x:innerWidth/2,y:innerHeight*.4}); return; }
+    const K=KINDS[kindName]||KINDS.water; live++;
     const dpr=Math.min(2, window.devicePixelRatio||1), W=innerWidth, H=innerHeight, S=Math.min(W,H);
     const mk=()=>{ const c=document.createElement('canvas'); c.width=W*dpr; c.height=H*dpr; const x=c.getContext('2d'); x.scale(dpr,dpr); return [c,x]; };
     const [cv,ctx]=mk(), [bodyC,bc]=mk(), [rimC,rc]=mk();
@@ -26,10 +29,10 @@
     blur.style.cssText='position:fixed;inset:0;z-index:8999;pointer-events:none;opacity:0;-webkit-backdrop-filter:blur(3px) saturate(1.3) brightness(1.08);backdrop-filter:blur(3px) saturate(1.3) brightness(1.08);';
     const cheers=document.createElement('div'); cheers.className='bh-cheers'; cheers.setAttribute('aria-hidden','true');
     cheers.innerHTML='<b>Cheers!</b><span>Welcome to The Black Horse</span>';
-    document.body.append(blur, cv, cheers);
+    document.body.append(blur, cv); if(opts.cheers!==false) document.body.append(cheers);
 
     /* ---------- the splat: an irregular sheet, tapered fingers, flung drops ---------- */
-    const cx=W*rnd(.40,.60), cy=H*rnd(.34,.46), R=S*(W<700?rnd(.2,.24):rnd(.12,.15));
+    const cx=opts.at?opts.at.x:W*rnd(.40,.60), cy=opts.at?opts.at.y:H*rnd(.34,.46), R=S*(W<700?rnd(.2,.24):rnd(.12,.15))*(opts.size||1);
     const core={pts:[], cx, cy, sag:0, shrink:1};
     const N=56, ph=[rnd(0,6),rnd(0,6),rnd(0,6)];
     for(let i=0;i<N;i++){ const a=i/N*6.283;
@@ -163,7 +166,7 @@
       ctx.clearRect(0,0,W,H);
       if(t<FLY+.08) drawFlight(t);
       if(t>=FLY){
-        if(!hit){ hit=true; flashA=1; shake(); try{ navigator.vibrate&&navigator.vibrate(30); }catch(e){} }
+        if(!hit){ hit=true; flashA=1; shake(); try{ navigator.vibrate&&navigator.vibrate(30); }catch(e){} opts.onImpact&&opts.onImpact({x:cx,y:cy}); }
         const tt=t-FLY; step(tt,dt);
         const alpha = t<T_FADE ? 1 : clamp(1-(t-T_FADE)/(T_END-T_FADE),0,1);
         drawLiquid(tt, alpha);
@@ -175,7 +178,7 @@
       }
       requestAnimationFrame(frame);
     }
-    function cleanup(){ cv.remove(); blur.remove(); setTimeout(()=>cheers.remove(),900); removeEventListener('pointerdown',wipe); removeEventListener('keydown',wipe); running=false; }
+    function cleanup(){ cv.remove(); blur.remove(); setTimeout(()=>cheers.remove(),900); removeEventListener('pointerdown',wipe); removeEventListener('keydown',wipe); live=Math.max(0,live-1); }
     requestAnimationFrame(frame);
   }
 
@@ -185,5 +188,11 @@
   .bh-cheers b{display:block;font-family:'Playfair Display','Fraunces',Georgia,serif;font-style:italic;font-size:clamp(46px,11vw,110px);line-height:1.05;background:linear-gradient(100deg,#8a6a2c,#f6e3a8 40%,#fff6d6 50%,#d9b25c 60%,#8a6a2c);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 4px 18px rgba(0,0,0,.7));}
   .bh-cheers span{display:block;margin-top:8px;font-family:'Oswald',sans-serif;letter-spacing:.32em;text-transform:uppercase;font-size:clamp(11px,2.6vw,14px);color:#f1e8d6;text-shadow:0 2px 10px rgba(0,0,0,.9);}`;
   document.head.appendChild(st);
-  window.BHSplash={play};
+  // a round of splashes: left, right, then the big one in the middle with "Cheers!"
+  function series(kind, n){
+    n=Math.max(1,Math.min(3,Math.round(n)||1)); const W=innerWidth, H=innerHeight;
+    const spots=[{x:W*.28,y:H*.34,size:.75},{x:W*.72,y:H*.30,size:.8},{x:W*.5,y:H*.42,size:1.05}].slice(3-n);
+    spots.forEach((sp,i)=>setTimeout(()=>play(kind,{at:{x:sp.x+(Math.random()-.5)*W*.06,y:sp.y+(Math.random()-.5)*H*.06}, size:sp.size, cheers:i===spots.length-1}), i*850));
+  }
+  window.BHSplash={play, series};
 })();
