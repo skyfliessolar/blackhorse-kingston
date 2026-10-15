@@ -62,8 +62,8 @@
 
     /* soft out-of-focus pub lights far behind */
     const bk=new THREE.Group(); scene.add(bk); const btex=[bokeh('rgba(255,190,110,1)'),bokeh('rgba(255,150,60,1)'),bokeh('rgba(255,230,190,1)')];
-    for(let i=0;i<(mobile?10:18);i++){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:btex[i%3], transparent:true, opacity:.08+Math.random()*.14, depthWrite:false, blending:THREE.AdditiveBlending, fog:false}));
-      const s=.4+Math.random()*1.1; sp.scale.set(s,s,1); sp.position.set((Math.random()-.5)*12, Math.random()*4-.3, -5-Math.random()*4); sp.userData={ph:Math.random()*6, sp:.3+Math.random()*.6, o:sp.material.opacity}; bk.add(sp); }
+    for(let i=0;i<(mobile?10:18);i++){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:btex[i%3], transparent:true, opacity:.035+Math.random()*.05, depthWrite:false, blending:THREE.AdditiveBlending, fog:false}));
+      const s=.3+Math.random()*.7; sp.scale.set(s,s,1); const side=Math.random()<.5?-1:1; sp.position.set(side*(2.6+Math.random()*4.5), Math.random()*2.4-.6, -8-Math.random()*4); sp.userData={ph:Math.random()*6, sp:.3+Math.random()*.6, o:sp.material.opacity}; bk.add(sp); }
 
     const pint=new THREE.Group(); scene.add(pint);
     /* thick glass: outer skin, inner skin, heavy base and rolled lip */
@@ -79,9 +79,9 @@
     /* the beer: darker at the bottom, glowing gold near the top */
     const beerTop=.86, foamTop=1.16, bottom=-1.02, liquidH=beerTop-bottom;
     const beerGeo=lathe([[0,bottom],...profile(bottom,beerTop,.038,.05),[0,beerTop]],80);
-    { const pos=beerGeo.attributes.position, col=new Float32Array(pos.count*3), a=new THREE.Color(0x5e2a03), b=new THREE.Color(0xe19a2a), c=new THREE.Color();
+    { const pos=beerGeo.attributes.position, col=new Float32Array(pos.count*3), a=new THREE.Color(0x3f1801), b=new THREE.Color(0xc8740f), c=new THREE.Color();
       for(let i=0;i<pos.count;i++){ const t=clamp((pos.getY(i)-bottom)/liquidH,0,1); c.copy(a).lerp(b, Math.pow(t,.8)); col.set([c.r,c.g,c.b],i*3); } beerGeo.setAttribute('color',new THREE.BufferAttribute(col,3)); }
-    const beer=new THREE.Mesh(beerGeo, new THREE.MeshPhysicalMaterial({vertexColors:true, emissive:0x6a2a00, emissiveIntensity:.42, roughness:.12, metalness:0, transparent:true, opacity:.96, envMapIntensity:.8, clearcoat:1, clearcoatRoughness:.08}));
+    const beer=new THREE.Mesh(beerGeo, new THREE.MeshPhysicalMaterial({vertexColors:true, emissive:0x5a2200, emissiveIntensity:.38, roughness:.12, metalness:0, transparent:true, opacity:.96, envMapIntensity:.8, clearcoat:1, clearcoatRoughness:.08}));
     beer.renderOrder=3; pint.add(beer);
     /* creamy foam head with an uneven top */
     const head=new THREE.Group(); pint.add(head);
@@ -103,15 +103,26 @@
     /* poured liquid (only during the pour) */
     const P=mobile?280:460, pp=new Float32Array(P*3), pv=new Float32Array(P*3), pl=new Uint8Array(P); for(let i=0;i<P;i++) pp[i*3+1]=-99;
     const pg=new THREE.BufferGeometry(); pg.setAttribute('position',new THREE.BufferAttribute(pp,3));
-    const pour=new THREE.Points(pg,new THREE.PointsMaterial({map:blob(), size:.14, transparent:true, opacity:.95, depthWrite:false})); pour.renderOrder=9; pour.frustumCulled=false; scene.add(pour); let pIdx=0;
+    const pour=new THREE.Points(pg,new THREE.PointsMaterial({map:blob(), size:.07, transparent:true, opacity:.9, depthWrite:false}));
+    /* the pouring stream itself: a glossy amber ribbon that follows the arc from the rim to the bar */
+    const streamMat=new THREE.MeshPhysicalMaterial({color:0xc06a0e, emissive:0x6a2c00, emissiveIntensity:.5, roughness:.08, clearcoat:1, clearcoatRoughness:.05, transparent:true, opacity:.93, envMapIntensity:1.4});
+    let stream=null; const streamPts=[...Array(18)].map(()=>new THREE.Vector3());
+    function drawStream(origin, strength){
+      if(stream){ scene.remove(stream); stream.geometry.dispose(); stream=null; } if(strength<=.02) return;
+      const vx=.95, vy=.18, g=5.4; let tEnd=0; while(origin.y+vy*tEnd-.5*g*tEnd*tEnd>-1.24 && tEnd<2) tEnd+=.02;
+      streamPts.forEach((p,i)=>{ const t=tEnd*i/(streamPts.length-1); p.set(origin.x+vx*t, origin.y+vy*t-.5*g*t*t, origin.z); });
+      const curve=new THREE.CatmullRomCurve3(streamPts), geo=new THREE.TubeGeometry(curve,40,.028+.03*strength,10,false);
+      const pos=geo.attributes.position; for(let i=0;i<pos.count;i++){ const y=pos.getY(i); pos.setX(i,pos.getX(i)+Math.sin(y*22+clock.elapsedTime*18)*.006); }
+      stream=new THREE.Mesh(geo,streamMat); stream.renderOrder=9; scene.add(stream); } pour.renderOrder=9; pour.frustumCulled=false; scene.add(pour); let pIdx=0;
 
     /* coaster, bar top, contact shadow, and the spill puddle */
     const co=new THREE.Mesh(new THREE.CylinderGeometry(1.05,1.05,.05,80), [new THREE.MeshStandardMaterial({color:0xC9A961, roughness:.6}), new THREE.MeshStandardMaterial({map:coaster(null), roughness:.75}), new THREE.MeshStandardMaterial({color:0x111111})]);
     co.position.y=-1.235; scene.add(co); const logo=new Image(); logo.onload=()=>{ co.material[1].map=coaster(logo); co.material[1].needsUpdate=true; }; logo.src='logo.jpg';
     const bar=new THREE.Mesh(new THREE.PlaneGeometry(16,9), new THREE.MeshStandardMaterial({map:wood(), roughness:.65, metalness:0, envMapIntensity:.3, color:0x9a8070})); bar.rotation.x=-Math.PI/2; bar.position.y=-1.262; scene.add(bar);
     const sh=new THREE.Mesh(new THREE.PlaneGeometry(3.2,3.2), new THREE.MeshBasicMaterial({map:soft(), transparent:true, depthWrite:false})); sh.rotation.x=-Math.PI/2; sh.position.y=-1.205; scene.add(sh);
-    const puddle=new THREE.Mesh(new THREE.CircleGeometry(1,48), new THREE.MeshPhysicalMaterial({color:0xb86410, roughness:.05, clearcoat:1, transparent:true, opacity:0, envMapIntensity:1.6, depthWrite:false}));
-    puddle.rotation.x=-Math.PI/2; puddle.position.set(1.8,-1.256,.45); puddle.scale.set(.01,.01,1); scene.add(puddle);
+    const pudTex=tex(256,256,(x,w)=>{ const g=x.createRadialGradient(w/2,w/2,0,w/2,w/2,w/2); g.addColorStop(0,'rgba(170,82,8,.95)'); g.addColorStop(.62,'rgba(190,98,14,.85)'); g.addColorStop(.85,'rgba(230,150,50,.45)'); g.addColorStop(1,'rgba(230,150,50,0)'); x.fillStyle=g; x.fillRect(0,0,w,w); });
+    const puddle=new THREE.Mesh(new THREE.CircleGeometry(1,48), new THREE.MeshPhysicalMaterial({map:pudTex, roughness:.04, clearcoat:1, clearcoatRoughness:.02, transparent:true, opacity:0, envMapIntensity:2.2, depthWrite:false}));
+    puddle.rotation.x=-Math.PI/2; puddle.position.set(1.55,-1.256,.35); puddle.scale.set(.01,.01,1); scene.add(puddle);
 
     /* interaction */
     const ray=new THREE.Raycaster(), ptr=new THREE.Vector2(); let hover=false, drag=null, spin=0, spinV=.22, tiltX=0, tiltY=0, mx=0, my=0, pourT=-1, handed=false;
@@ -130,7 +141,12 @@
 
     /* render loop — paused off-screen (except while pouring) */
     const clock=new THREE.Clock(); let running=false, raf=0, visible=true;
-    function frame(){ raf=requestAnimationFrame(frame); const dt=Math.min(clock.getDelta(),.05), t=clock.elapsedTime;
+    /* automatic quality: if the device can't keep up, lower the resolution and drop the finest details */
+    let qN=0, qT=0, qLevel=0; const baseDpr=renderer.getPixelRatio();
+    function quality(raw){ qN++; qT+=raw; if(qN<60) return; const fps=qN/qT; qN=0; qT=0;
+      if(fps<28 && qLevel===0){ qLevel=1; renderer.setPixelRatio(Math.min(1,baseDpr)); }
+      else if(fps<18 && qLevel===1){ qLevel=2; renderer.setPixelRatio(.75); frostMesh.visible=false; laceMesh.visible=false; fb.visible=false; bk.visible=false; } }
+    function frame(){ raf=requestAnimationFrame(frame); const raw=clock.getDelta(), dt=Math.min(raw,.05), t=clock.elapsedTime; quality(raw);
       if(!drag && pourT<0){ spinV+=(.22-spinV)*Math.min(1,dt*1.5); spin+=spinV*dt; }
       tiltX+=((my*.1)-tiltX)*Math.min(1,dt*4); tiltY+=((mx*.16)-tiltY)*Math.min(1,dt*4);
       let lift=Math.sin(t*1.1)*.025, tipZ=0, shiftX=0, level=1;
@@ -140,10 +156,11 @@
         level = pourT<3.5 ? 1-.7*ease.inOut(seg(pourT,.5,2.5)) : .3+.7*ease.out(seg(pourT,3.6,5.4));
         spin+=((Math.round(spin/(Math.PI*2))*Math.PI*2)-spin)*Math.min(1,dt*5);
         if(pourT>.42 && pourT<2.55){ rimWorld.set(.74,1.2,0); pint.localToWorld(rimWorld);
-          const n=Math.ceil(dt*210); for(let j=0;j<n;j++){ const i=pIdx++%P; pp[i*3]=rimWorld.x+(Math.random()-.5)*.05; pp[i*3+1]=rimWorld.y+(Math.random()-.5)*.03; pp[i*3+2]=rimWorld.z+(Math.random()-.5)*.05;
+          const n=Math.ceil(dt*70); for(let j=0;j<n;j++){ const i=pIdx++%P; pp[i*3]=rimWorld.x+(Math.random()-.5)*.05; pp[i*3+1]=rimWorld.y+(Math.random()-.5)*.03; pp[i*3+2]=rimWorld.z+(Math.random()-.5)*.05;
             pv[i*3]=.85+Math.random()*.35; pv[i*3+1]=.15+Math.random()*.25; pv[i*3+2]=(Math.random()-.5)*.1; pl[i]=1; }
           if(!handed && pourT>.8){ handed=true; const s=screenOf(rimWorld); hooks&&hooks.onPour&&hooks.onPour(s.x,s.y); } }
-        if(pourT>.7 && pourT<2.9){ const g=ease.out(seg(pourT,.7,2.9)); puddle.material.opacity=.8*g; const s=.15+g*.85; puddle.scale.set(s,s*.72,1); }
+        { const flow = pourT>.42 && pourT<2.55 ? ease.out(seg(pourT,.42,.7))*(1-seg(pourT,2.2,2.55)) : 0; if(flow>0){ rimWorld.set(.74,1.2,0); pint.localToWorld(rimWorld); } drawStream(rimWorld, flow*(.55+.45*(level))); }
+        if(pourT>.7 && pourT<2.9){ const g=ease.out(seg(pourT,.7,2.9)); puddle.material.opacity=.92*g; const s=.12+g*.68; puddle.scale.set(s,s*.62,1); }
         if(pourT>4) puddle.material.opacity*=Math.pow(.25,dt);
         if(pourT>5.6){ pourT=-1; puddle.material.opacity=0; puddle.scale.set(.01,.01,1); if(!visible) setRun(false); } }
       pint.rotation.set(tiltX, spin, tiltY*.35+tipZ); pint.position.set(shiftX, lift, 0);
