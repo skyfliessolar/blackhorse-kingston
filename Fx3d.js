@@ -34,6 +34,46 @@
     x.fillStyle='#E4CE93'; x.font='600 30px Cinzel, Georgia, serif'; x.textAlign='center'; x.textBaseline='middle';
     const t='THE BLACK HORSE · DRUNKEN WOK · KINGSTON · '; x.save(); x.translate(c,c); for(let i=0;i<t.length;i++){ x.save(); x.rotate(-Math.PI/2+i*(Math.PI*2/t.length)); x.translate(0,-(c-56)); x.fillText(t[i],0,0); x.restore(); } x.restore(); }); }
 
+
+  /* ---------- vintage back-bar: brick, shelves of bottles, a gilded mirror sign and Edison bulbs ---------- */
+  function backbar(){ return tex(2048,1024,(x,w,h)=>{
+    const R=(a,b)=>a+Math.random()*(b-a);
+    // brick wall
+    x.fillStyle='#1b0f09'; x.fillRect(0,0,w,h);
+    const bw=118, bh=46; for(let row=0,y=0;y<h*.62;row++,y+=bh){ for(let c=-1,xx=(row%2)*bw/2-bw/2;xx<w;c++,xx+=bw){
+      const r=R(70,110), g=R(30,48), b=R(20,32); x.fillStyle=`rgb(${r},${g},${b})`; x.fillRect(xx+3,y+3,bw-6,bh-6);
+      const gr=x.createLinearGradient(0,y,0,y+bh); gr.addColorStop(0,'rgba(255,200,150,.06)'); gr.addColorStop(1,'rgba(0,0,0,.25)'); x.fillStyle=gr; x.fillRect(xx+3,y+3,bw-6,bh-6); } }
+    const soot=x.createLinearGradient(0,0,0,h*.62); soot.addColorStop(0,'rgba(0,0,0,.55)'); soot.addColorStop(1,'rgba(0,0,0,.15)'); x.fillStyle=soot; x.fillRect(0,0,w,h*.62);
+    // dark wood panelling below
+    const wd=x.createLinearGradient(0,h*.6,0,h); wd.addColorStop(0,'#2a160a'); wd.addColorStop(1,'#120804'); x.fillStyle=wd; x.fillRect(0,h*.6,w,h*.4);
+    for(let i=0;i<w;i+=170){ x.strokeStyle='rgba(0,0,0,.45)'; x.lineWidth=6; x.strokeRect(i+14,h*.66,140,h*.3); x.strokeStyle='rgba(201,169,97,.12)'; x.lineWidth=2; x.strokeRect(i+20,h*.67,128,h*.28); }
+    // gilded mirror sign in the middle
+    const mx=w*.32, my=h*.06, mw=w*.36, mh=h*.25; const mg=x.createLinearGradient(mx,my,mx+mw,my+mh); mg.addColorStop(0,'#16120e'); mg.addColorStop(.5,'#2b2219'); mg.addColorStop(1,'#120e0a');
+    x.fillStyle=mg; x.fillRect(mx,my,mw,mh); x.strokeStyle='#8B6F35'; x.lineWidth=14; x.strokeRect(mx,my,mw,mh); x.strokeStyle='#E4CE93'; x.lineWidth=3; x.strokeRect(mx+16,my+16,mw-32,mh-32);
+    const shine=x.createLinearGradient(mx,my,mx+mw*.6,my+mh); shine.addColorStop(0,'rgba(255,255,255,.08)'); shine.addColorStop(.5,'rgba(255,255,255,0)'); x.fillStyle=shine; x.fillRect(mx,my,mw,mh);
+    x.textAlign='center'; x.textBaseline='middle'; x.fillStyle='#E4CE93'; x.shadowColor='rgba(228,206,147,.6)'; x.shadowBlur=16;
+    x.font='600 76px Cinzel, Georgia, serif'; x.fillText('THE BLACK HORSE', w/2, my+mh*.42);
+    x.shadowBlur=0; x.font='600 30px Oswald, Arial, sans-serif'; x.fillStyle='#C9A961'; x.fillText('FINE ALES  ·  SPIRITS  ·  THAI KITCHEN', w/2, my+mh*.74);
+    // shelves of bottles either side of the mirror
+    const shelf=(y,x0,x1)=>{ x.fillStyle='#3a2210'; x.fillRect(x0,y,x1-x0,16); x.fillStyle='#C9A961'; x.fillRect(x0,y,x1-x0,3);
+      for(let bx=x0+16;bx<x1-30;){ const kind=Math.random(), bwid=kind<.3?R(30,38):kind<.6?R(22,28):R(34,46), bht=kind<.3?R(120,150):kind<.6?R(150,185):R(95,120);
+        const cols=[['#5a2a06','#c27a1c'],['#0e3b20','#2f8a4c'],['#d9d4c8','#ffffff'],['#4a0f12','#a3343a'],['#6b4a0a','#e2b04a'],['#1a2c3d','#4f7ca8']]; const [c0,c1]=cols[Math.floor(Math.random()*cols.length)];
+        const top=y-bht, g=x.createLinearGradient(bx,0,bx+bwid,0); g.addColorStop(0,c0); g.addColorStop(.35,c1); g.addColorStop(.6,c0); g.addColorStop(1,'#000'); x.fillStyle=g;
+        x.beginPath(); const neck=bwid*.32; x.moveTo(bx,y); x.lineTo(bx,top+bht*.38); x.quadraticCurveTo(bx,top+bht*.26,bx+bwid/2-neck/2,top+bht*.2); x.lineTo(bx+bwid/2-neck/2,top);
+        x.lineTo(bx+bwid/2+neck/2,top); x.lineTo(bx+bwid/2+neck/2,top+bht*.2); x.quadraticCurveTo(bx+bwid,top+bht*.26,bx+bwid,top+bht*.38); x.lineTo(bx+bwid,y); x.closePath(); x.fill();
+        x.fillStyle='rgba(255,255,255,.35)'; x.fillRect(bx+bwid*.18,top+bht*.4,3,bht*.5);
+        if(Math.random()<.8){ x.fillStyle=['#efe4cc','#d8c9a6','#1d1a16','#C9A961'][Math.floor(Math.random()*4)]; x.fillRect(bx+3,top+bht*.55,bwid-6,bht*.22); }
+        x.fillStyle='#2a1a0c'; x.fillRect(bx+bwid/2-neck/2,top-6,neck,8);
+        bx+=bwid+R(4,14); } };
+    shelf(h*.28,30,mx-30); shelf(h*.5,30,mx-30); shelf(h*.28,mx+mw+30,w-30); shelf(h*.5,mx+mw+30,w-30); shelf(h*.5,mx+20,mx+mw-20);
+    // Edison bulbs with warm halos
+    [[w*.12,h*.08],[w*.26,h*.13],[w*.74,h*.13],[w*.88,h*.08],[w*.5,h*.36]].forEach(([bx,by])=>{
+      x.strokeStyle='rgba(20,12,6,.9)'; x.lineWidth=3; x.beginPath(); x.moveTo(bx,0); x.lineTo(bx,by-26); x.stroke();
+      const halo=x.createRadialGradient(bx,by,4,bx,by,220); halo.addColorStop(0,'rgba(255,200,120,.55)'); halo.addColorStop(.25,'rgba(255,160,70,.18)'); halo.addColorStop(1,'rgba(255,140,50,0)'); x.fillStyle=halo; x.fillRect(bx-220,by-220,440,440);
+      x.fillStyle='rgba(255,224,170,.95)'; x.beginPath(); x.ellipse(bx,by,15,22,0,0,7); x.fill(); x.fillStyle='#3b2a1a'; x.fillRect(bx-9,by-34,18,12); });
+    // vignette & haze
+    const v=x.createRadialGradient(w/2,h*.45,h*.2,w/2,h*.45,w*.7); v.addColorStop(0,'rgba(0,0,0,0)'); v.addColorStop(1,'rgba(0,0,0,.7)'); x.fillStyle=v; x.fillRect(0,0,w,h);
+  }); }
   /* ---------- the nonic pint profile ---------- */
   const OUTER=[[0,-1.20],[0.50,-1.20],[0.535,-1.16],[0.55,-1.05],[0.595,-0.50],[0.645,0.20],[0.675,0.55],[0.725,0.72],[0.735,0.80],[0.715,0.92],[0.72,1.08],[0.735,1.22]];
   function rAt(y,inset){ for(let i=1;i<OUTER.length;i++){ const [r1,y1]=OUTER[i-1],[r2,y2]=OUTER[i]; if(y>=y1&&y<=y2){ const t=(y-y1)/((y2-y1)||1); return r1+(r2-r1)*t-(inset||0); } } return OUTER[OUTER.length-1][0]-(inset||0); }
@@ -65,6 +105,20 @@
     for(let i=0;i<(mobile?10:18);i++){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:btex[i%3], transparent:true, opacity:.035+Math.random()*.05, depthWrite:false, blending:THREE.AdditiveBlending, fog:false}));
       const s=.3+Math.random()*.7; sp.scale.set(s,s,1); const side=Math.random()<.5?-1:1; sp.position.set(side*(2.6+Math.random()*4.5), Math.random()*2.4-.6, -8-Math.random()*4); sp.userData={ph:Math.random()*6, sp:.3+Math.random()*.6, o:sp.material.opacity}; bk.add(sp); }
 
+    const bbTex=backbar(); const backdrop=new THREE.Mesh(new THREE.PlaneGeometry(24,12), new THREE.MeshBasicMaterial({map:bbTex, fog:false, depthWrite:false, color:0xb8aaa0}));
+    backdrop.position.set(0,1.75,-9); backdrop.renderOrder=-1; scene.add(backdrop);
+    { const c=bbTex.image, x2=c.getContext('2d'); if('filter' in x2){ const tmp=document.createElement('canvas'); tmp.width=c.width; tmp.height=c.height; const t2=tmp.getContext('2d'); t2.filter='blur(3px)'; t2.drawImage(c,0,0); x2.clearRect(0,0,c.width,c.height); x2.drawImage(tmp,0,0); bbTex.needsUpdate=true; } }
+    /* brass beer pumps with cream handles, standing back on the bar */
+    const brass=new THREE.MeshStandardMaterial({color:0xC9A961, metalness:1, roughness:.25, envMapIntensity:1.4}), ceramic=new THREE.MeshPhysicalMaterial({color:0xc9b48e, roughness:.3, clearcoat:1, envMapIntensity:.8}), wood2=new THREE.MeshStandardMaterial({color:0x3a1d0c, roughness:.45, metalness:.1});
+    const pump=(px,pz,lean)=>{ const g=new THREE.Group(); g.position.set(px,-1.26,pz); g.rotation.z=lean;
+      const baseP=new THREE.Mesh(new THREE.CylinderGeometry(.16,.2,.12,32),brass); baseP.position.y=.06; g.add(baseP);
+      const stem=new THREE.Mesh(new THREE.CylinderGeometry(.05,.06,.5,24),brass); stem.position.y=.37; g.add(stem);
+      const collar=new THREE.Mesh(new THREE.SphereGeometry(.09,24,16),brass); collar.position.y=.64; g.add(collar);
+      const handle=new THREE.Mesh(new THREE.LatheGeometry([[0,0],[.07,0],[.085,.12],[.07,.5],[.09,.85],[.075,1.0],[0,1.02]].map(p=>new THREE.Vector2(p[0],p[1])),32),ceramic); handle.position.y=.68; g.add(handle);
+      const clip=new THREE.Mesh(new THREE.CylinderGeometry(.092,.092,.2,32,1,true),wood2); clip.position.y=1.25; g.add(clip);
+      const spout=new THREE.Mesh(new THREE.TorusGeometry(.12,.025,10,24,Math.PI),brass); spout.position.set(.12,.25,0); spout.rotation.z=Math.PI/2; g.add(spout);
+      scene.add(g); return g; };
+    [[-2.3,-1.5,.04],[-1.7,-1.85,-.03],[2.4,-1.7,.02]].forEach(([a,b,c])=>pump(a,b,c).scale.setScalar(.85));
     const pint=new THREE.Group(); scene.add(pint);
     /* thick glass: outer skin, inner skin, heavy base and rolled lip */
     const glassOuter=new THREE.Mesh(lathe(OUTER), new THREE.MeshPhysicalMaterial({color:0xffffff, roughness:.03, metalness:0, transmission:.95, transparent:true, opacity:.14, envMapIntensity:2.6, clearcoat:1, clearcoatRoughness:.02, side:THREE.FrontSide, depthWrite:false}));
@@ -151,18 +205,19 @@
       tiltX+=((my*.1)-tiltX)*Math.min(1,dt*4); tiltY+=((mx*.16)-tiltY)*Math.min(1,dt*4);
       let lift=Math.sin(t*1.1)*.025, tipZ=0, shiftX=0, level=1;
       if(pourT>=0){ pourT+=dt;
-        const up=ease.inOut(seg(pourT,0,.6)), down=ease.inOut(seg(pourT,2.6,3.5)), k=up*(1-down);
+        const up=ease.inOut(seg(pourT,0,1.1)), down=ease.inOut(seg(pourT,5.2,6.6)), k=up*(1-down);
         lift+=k*.5; tipZ=-k*1.28; shiftX=-k*.5;
-        level = pourT<3.5 ? 1-.7*ease.inOut(seg(pourT,.5,2.5)) : .3+.7*ease.out(seg(pourT,3.6,5.4));
-        spin+=((Math.round(spin/(Math.PI*2))*Math.PI*2)-spin)*Math.min(1,dt*5);
-        if(pourT>.42 && pourT<2.55){ rimWorld.set(.74,1.2,0); pint.localToWorld(rimWorld);
-          const n=Math.ceil(dt*70); for(let j=0;j<n;j++){ const i=pIdx++%P; pp[i*3]=rimWorld.x+(Math.random()-.5)*.05; pp[i*3+1]=rimWorld.y+(Math.random()-.5)*.03; pp[i*3+2]=rimWorld.z+(Math.random()-.5)*.05;
-            pv[i*3]=.85+Math.random()*.35; pv[i*3+1]=.15+Math.random()*.25; pv[i*3+2]=(Math.random()-.5)*.1; pl[i]=1; }
-          if(!handed && pourT>.8){ handed=true; const s=screenOf(rimWorld); hooks&&hooks.onPour&&hooks.onPour(s.x,s.y); } }
-        { const flow = pourT>.42 && pourT<2.55 ? ease.out(seg(pourT,.42,.7))*(1-seg(pourT,2.2,2.55)) : 0; if(flow>0){ rimWorld.set(.74,1.2,0); pint.localToWorld(rimWorld); } drawStream(rimWorld, flow*(.55+.45*(level))); }
-        if(pourT>.7 && pourT<2.9){ const g=ease.out(seg(pourT,.7,2.9)); puddle.material.opacity=.92*g; const s=.12+g*.68; puddle.scale.set(s,s*.62,1); }
-        if(pourT>4) puddle.material.opacity*=Math.pow(.25,dt);
-        if(pourT>5.6){ pourT=-1; puddle.material.opacity=0; puddle.scale.set(.01,.01,1); if(!visible) setRun(false); } }
+        level = pourT<6.6 ? 1-.72*ease.inOut(seg(pourT,1.0,5.0)) : .28+.72*ease.out(seg(pourT,6.8,9.4));
+        spin+=((Math.round(spin/(Math.PI*2))*Math.PI*2)-spin)*Math.min(1,dt*4);
+        const flow = pourT>.85 && pourT<5.2 ? ease.out(seg(pourT,.85,1.3))*(1-seg(pourT,4.6,5.2)) : 0;
+        rimWorld.set(.74,1.2,0); pint.localToWorld(rimWorld);
+        if(flow>0){ const n=Math.ceil(dt*45); for(let j=0;j<n;j++){ const i=pIdx++%P; pp[i*3]=rimWorld.x+(Math.random()-.5)*.05; pp[i*3+1]=rimWorld.y+(Math.random()-.5)*.03; pp[i*3+2]=rimWorld.z+(Math.random()-.5)*.05;
+            pv[i*3]=.85+Math.random()*.35; pv[i*3+1]=.15+Math.random()*.25; pv[i*3+2]=(Math.random()-.5)*.1; pl[i]=1; } }
+        drawStream(rimWorld, flow*(.55+.45*level));
+        if(!handed && pourT>1.5){ handed=true; const s=screenOf(rimWorld); hooks&&hooks.onPour&&hooks.onPour(s.x,s.y); }
+        if(pourT>1.2 && pourT<5.4){ const g=ease.out(seg(pourT,1.2,5.4)); puddle.material.opacity=.92*g; const s=.12+g*.7; puddle.scale.set(s,s*.62,1); }
+        if(pourT>6.5) puddle.material.opacity*=Math.pow(.3,dt);
+        if(pourT>9.6){ pourT=-1; puddle.material.opacity=0; puddle.scale.set(.01,.01,1); if(!visible) setRun(false); } }
       pint.rotation.set(tiltX, spin, tiltY*.35+tipZ); pint.position.set(shiftX, lift, 0);
       const hs=hover?1.035:1; pint.scale.lerp(s3.set(hs,hs,hs), Math.min(1,dt*8));
       /* liquid level: the beer column shortens and the head rides down on top of it */
