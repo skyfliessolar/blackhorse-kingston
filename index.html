@@ -379,6 +379,17 @@
   #siteOff h1{font-size:clamp(30px,6vw,48px);color:var(--gold-light);margin:10px 0 14px;}
   #siteOff p{font-size:18px;color:rgba(241,232,214,.85);white-space:pre-line;margin:0 0 22px;}
   #siteOff .tel{color:var(--gold-light);font-family:'Oswald',sans-serif;letter-spacing:.1em;}
+  /* ---------- scroll motion (anime.js) ---------- */
+  #scrollBar{position:fixed;left:0;top:0;height:2px;width:100%;z-index:60;transform-origin:0 50%;transform:scaleX(0);background:linear-gradient(90deg,var(--gold-dark),var(--gold-light),#ffcf7a);box-shadow:0 0 10px rgba(228,206,147,.6);pointer-events:none;}
+  header{transition:background .35s,box-shadow .35s;}
+  header.scrolled{background:rgba(12,11,9,.86);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,.35);}
+  .nav-inner{transition:padding .35s;}
+  header.scrolled .nav-inner{padding-top:8px;padding-bottom:8px;}
+  .w-split{display:inline-block;overflow:hidden;vertical-align:bottom;padding-bottom:.08em;}
+  .w-split>span{display:inline-block;will-change:transform;}
+  .glow-cta{position:relative;}
+  html.fx-no-motion .reveal{opacity:1 !important;transform:none !important;}
+  html.fx-no-motion #scrollBar{display:none;}
   /* ---------- 3D pint (switch on/off in admin) ---------- */
   #pint3d{position:relative;padding:0;height:min(78vh,560px);min-height:420px;overflow:hidden;border-bottom:1px solid var(--line-dark);
     background:radial-gradient(ellipse 60% 70% at 50% 60%,rgba(255,155,47,.16),transparent 70%),radial-gradient(ellipse at 50% 120%,#2a170b,transparent 60%),var(--black);}
@@ -1339,13 +1350,14 @@ async function loadStatus(){
 }
 
 /* ================= ANIMATIONS & 3D (switched on/off in admin) ================= */
-const FX_DEF={pint3d:true, ambience:true, shimmer:true, tilt:true};
+const FX_DEF={pint3d:true, ambience:true, shimmer:true, tilt:true, motion:true};
 function gotoBook(){ document.getElementById('book').scrollIntoView({behavior:'smooth'}); setTimeout(()=>{ const g=$('guests'); if(g) g.focus({preventScroll:true}); },900); }
 async function applyPint(on){
   const sec=$('pint3d'), reduce=matchMedia('(prefers-reduced-motion: reduce)').matches, saveData=navigator.connection && navigator.connection.saveData;
   if(!on || reduce || saveData){ sec.hidden=true; window.BHPint && window.BHPint.unmount(); return; }
   sec.hidden=false;
-  try{ if(!window.BHPint) await new Promise((ok,no)=>{ const s=document.createElement('script'); s.src='fx3d.js'; s.onload=ok; s.onerror=no; document.head.appendChild(s); });
+  const loadJs=src=>new Promise((ok,no)=>{ const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=()=>{ s.remove(); no(new Error('load '+src)); }; document.head.appendChild(s); });
+  try{ if(!window.BHPint) await loadJs('fx3d.js').catch(()=>loadJs('Fx3d.js'));
     if(!window.BHPint.supported()) throw new Error('no-webgl');
     await window.BHPint.mount($('pint3dStage'), gotoBook); }
   catch(e){ console.warn('3D pint', e); sec.hidden=true; }
@@ -1355,7 +1367,7 @@ async function loadEffects(){
   let fx={...FX_DEF};
   try{ const s=await getDoc(doc(db,'site','effects')); if(s.exists()) fx={...fx,...s.data()}; }catch(e){}
   window.bhEffects=fx; const h=document.documentElement;
-  h.classList.toggle('fx-no-ambience', !fx.ambience); h.classList.toggle('fx-no-shimmer', !fx.shimmer); h.classList.toggle('fx-no-tilt', !fx.tilt);
+  h.classList.toggle('fx-no-ambience', !fx.ambience); h.classList.toggle('fx-no-shimmer', !fx.shimmer); h.classList.toggle('fx-no-tilt', !fx.tilt); h.classList.toggle('fx-no-motion', !fx.motion);
   window.dispatchEvent(new Event('bh-effects'));
   applyPint(!!fx.pint3d);
 }
@@ -1752,12 +1764,48 @@ function startMotion(){
   anime({targets:'.art-fire .sparks circle', translateY:[0,-26], opacity:[1,0], duration:1400, delay:anime.stagger(350), loop:true, easing:'easeOutQuad'});
   anime({targets:'.art-party .confetti > *', translateY:[0,10], translateX:()=>anime.random(-6,6), rotate:()=>anime.random(-40,40), direction:'alternate', loop:true, duration:900, delay:anime.stagger(110), easing:'easeInOutSine'});
   anime({targets:'.art-lantern .flame, .art-lantern .flame2', scaleY:[1,1.12], transformOrigin:'50% 100%', direction:'alternate', loop:true, duration:500, easing:'easeInOutSine'});
-  // scroll reveals
-  document.querySelectorAll('section h2, .mat, .menu-card, .highlight-card, .capacity-stat, .firepit, .addr-card, .book-form, .hours-list, .find-grid, .contact-card').forEach(el=>el.classList.add('reveal'));
-  const io=new IntersectionObserver(entries=>entries.forEach(en=>{ if(!en.isIntersecting) return; io.unobserve(en.target); en.target.classList.add('in');
-      anime({targets:en.target, opacity:[0,1], translateY:[22,0], duration:800, easing:'easeOutCubic'}); }), {rootMargin:'0px 0px -8% 0px'});
-  const watch=()=>document.querySelectorAll('.reveal:not(.in)').forEach(el=>io.observe(el));
-  watch(); window.addEventListener('content-added', watch);
+  // ================= richer scroll motion (admin switch: "Scroll animations") =================
+  const H=document.documentElement, motionOn=()=>!H.classList.contains('fx-no-motion');
+  // gold reading-progress line + header that tightens when scrolling
+  const bar=document.createElement('div'); bar.id='scrollBar'; document.body.appendChild(bar);
+  const head=document.querySelector('header'); let ticking=false;
+  const onScroll=()=>{ if(ticking) return; ticking=true; requestAnimationFrame(()=>{ ticking=false;
+    const max=document.documentElement.scrollHeight-innerHeight; bar.style.transform=`scaleX(${max>0?Math.min(1,scrollY/max):0})`;
+    if(head) head.classList.toggle('scrolled', scrollY>40);
+    if(motionOn()) document.querySelectorAll('.art').forEach(a=>{ const r=a.getBoundingClientRect(); if(r.bottom<0||r.top>innerHeight) return; a.style.transform=`translateY(${((r.top+r.height/2)/innerHeight-.5)*-14}px)`; });
+  }); };
+  addEventListener('scroll',onScroll,{passive:true}); onScroll();
+  // headings rise in word by word
+  const splitWords=el=>{ if(el.dataset.split||el.children.length) return false; const words=el.textContent.trim().split(/\s+/);
+    el.innerHTML=words.map(w=>`<span class="w-split"><span>${w.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}</span></span>`).join(' '); el.dataset.split='1'; return true; };
+  const heads=[...document.querySelectorAll('main section:not(.hero) h2')].filter(splitWords);
+  // what reveals, and how
+  const groups=['.why-grid .mat','.offer-grid .offer','.menu-card','.highlight-card','.hours-row','.find-grid > *','.contact-card','.addr-card','.capacity-stat','.firepit','.book-form','.play-copy','.game-box','.media-grid figure','.gallery-grid figure','main section:not(.hero) .eyebrow','main section:not(.hero) .ornate-rule'];
+  const mark=()=>{ document.querySelectorAll(groups.join(',')).forEach(el=>{ if(!el.classList.contains('reveal')) el.classList.add('reveal'); });
+    heads.forEach(h=>h.classList.add('reveal')); };
+  mark();
+  const play=(el,i)=>{ const d=i*85;
+    if(el.dataset.split){ el.style.opacity=1; anime({targets:el.querySelectorAll('.w-split>span'), translateY:['105%','0%'], rotate:[4,0], opacity:[0,1], duration:900, delay:anime.stagger(70,{start:d}), easing:'easeOutExpo'}); return; }
+    if(el.matches('.eyebrow')) return anime({targets:el, opacity:[0,1], letterSpacing:['.6em','.22em'], duration:1100, delay:d, easing:'easeOutExpo'});
+    if(el.matches('.ornate-rule')){ el.style.opacity=1; anime({targets:el.querySelectorAll('.bar'), scaleX:[0,1], duration:900, delay:d, easing:'easeOutQuart'}); return anime({targets:el.querySelector('.diamonds'), rotate:[180,0], scale:[0,1], opacity:[0,1], duration:900, delay:d+150, easing:'easeOutBack'}); }
+    if(el.matches('.hours-row')) return anime({targets:el, opacity:[0,1], translateX:[-28,0], duration:700, delay:d, easing:'easeOutCubic', complete:()=>{ if(el.classList.contains('today')) anime({targets:el, backgroundColor:['rgba(201,169,97,0)','rgba(201,169,97,.14)','rgba(201,169,97,.06)'], duration:1600, easing:'easeInOutSine'}); }});
+    if(el.matches('.mat,.offer,.menu-card,.highlight-card,figure')) return anime({targets:el, opacity:[0,1], translateY:[46,0], scale:[.94,1], rotateX:[12,0], duration:1000, delay:d, easing:'easeOutExpo'});
+    anime({targets:el, opacity:[0,1], translateY:[30,0], duration:900, delay:d, easing:'easeOutCubic'});
+  };
+  const io=new IntersectionObserver(entries=>{ let i=0; entries.forEach(en=>{ if(!en.isIntersecting) return; io.unobserve(en.target); en.target.classList.add('in');
+      if(!motionOn()){ en.target.style.opacity=1; return; } play(en.target, i++); }); }, {rootMargin:'0px 0px -10% 0px'});
+  const watch=()=>{ mark(); document.querySelectorAll('.reveal:not(.in)').forEach(el=>io.observe(el)); };
+  watch(); window.addEventListener('content-added', watch); window.addEventListener('bh-gallery', ()=>setTimeout(watch,60));
+  // safety sweep: anything already on screen (or scrolled past) is always revealed, even if the observer missed it
+  const sweep=()=>{ let i=0; document.querySelectorAll('.reveal:not(.in)').forEach(el=>{ if(!el.offsetParent) return; const r=el.getBoundingClientRect(); if(r.top<innerHeight*.98 && (r.width||r.height)){ io.unobserve(el); el.classList.add('in'); if(motionOn()) play(el,i++); else el.style.opacity=1; } }); };
+  let sw; addEventListener('scroll',()=>{ clearTimeout(sw); sw=setTimeout(sweep,140); },{passive:true}); setInterval(sweep,1500); setTimeout(sweep,600);
+  window.addEventListener('bh-effects',()=>{ if(!motionOn()) document.querySelectorAll('.reveal').forEach(el=>{ el.classList.add('in'); el.style.opacity=1; el.querySelectorAll('.w-split>span').forEach(s=>{ s.style.transform='none'; s.style.opacity=1; }); }); });
+  // "Book a Table" buttons breathe a warm glow now and then
+  anime({targets:'.hero-ctas .btn-gold, .nav-cta .btn-gold', boxShadow:['0 0 0 0 rgba(228,206,147,0)','0 0 0 10px rgba(228,206,147,.0)','0 0 26px 2px rgba(228,206,147,.55)','0 0 0 0 rgba(228,206,147,0)'],
+    duration:2600, delay:2400, endDelay:5200, loop:true, easing:'easeInOutSine', update:a=>{ if(!motionOn()) a.pause(); }});
+  // menu opens with its categories cascading in
+  const mm=document.getElementById('menuModal');
+  if(mm) new MutationObserver(()=>{ if(mm.hidden || !motionOn()) return; anime({targets:'#menuModal .menu-cat, #catBtns button', opacity:[0,1], translateY:[24,0], duration:600, delay:anime.stagger(35,{start:80}), easing:'easeOutCubic'}); }).observe(mm,{attributes:true,attributeFilter:['hidden']});
   // gentle count-up on the capacity number
   const cap=document.querySelector('.capacity-stat .num');
   if(cap){ const io2=new IntersectionObserver(es=>{ if(!es[0].isIntersecting) return; io2.disconnect(); const target=parseInt(cap.textContent)||250, o={v:0};
