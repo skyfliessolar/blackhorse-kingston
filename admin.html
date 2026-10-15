@@ -216,6 +216,17 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
 .notif .ic{font-size:20px;text-align:center;}
 .notif b{display:block;}
 .notif .when{font-size:12px;color:var(--muted);}
+
+.fx-row{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;padding:16px 0;border-bottom:1px solid var(--line);}
+.fx-row:last-child{border-bottom:none;}
+.fx-row b{font-family:'Fraunces',serif;font-size:17px;font-weight:600;}
+.fx-row p{margin:4px 0 0;font-size:13.5px;color:var(--muted);}
+.tgl{position:relative;width:58px;height:32px;flex:0 0 auto;}
+.tgl input{opacity:0;width:0;height:0;position:absolute;}
+.tgl span{position:absolute;inset:0;background:#cfc4ad;border-radius:999px;transition:.2s;cursor:pointer;}
+.tgl span::before{content:'';position:absolute;width:24px;height:24px;left:4px;top:4px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.25);}
+.tgl input:checked+span{background:#2C5642;} .tgl input:checked+span::before{transform:translateX(26px);}
+.tgl input:focus-visible+span{outline:2px solid var(--brass);outline-offset:2px;}
 .switch{display:inline-flex;align-items:center;gap:8px;font-size:13px;}
 .perm-chips label{font-size:13px;margin:2px 10px 2px 0;}
 .plan td.taken{white-space:nowrap;}
@@ -260,6 +271,7 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
     <button class="tab-btn" data-tab="hours" data-perm="hours">Opening hours</button>
     <button class="tab-btn" data-tab="logs" data-perm="logs">Activity log</button>
     <button class="tab-btn" data-tab="siteonoff" data-perm="owner">Website on / off</button>
+    <button class="tab-btn" data-tab="effects" data-perm="owner">Animations &amp; 3D</button>
     <button class="tab-btn" data-tab="notify" data-perm="owner">Email &amp; WhatsApp alerts</button>
     <button class="tab-btn" data-tab="staff" data-perm="owner">Staff &amp; permissions</button>
     <button class="tab-btn" data-tab="account" id="accountTab">My password</button>
@@ -488,6 +500,20 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
       <label class="drop" id="ppDrop"><input type="file" id="ppFile" accept="image/*" multiple hidden>📷 <b>Tap to add photos</b> or drag them here<br><span class="hint">They appear straight away in the "Our Pub" section after Get Directions.</span></label>
       <div class="msg" id="ppMsg"></div>
       <div class="pp-grid" id="ppGrid" style="margin-top:14px"></div>
+    </section>
+
+
+    <!-- ANIMATIONS & 3D -->
+    <section class="panel" id="p-effects">
+      <div class="head"><div><span class="eyebrow">Main admin only</span><h2>Animations &amp; 3D</h2></div><div class="toolbar"><button class="btn ghost" id="fxAllOff">Turn all off</button><button class="btn" id="saveFx">Save</button></div></div>
+      <div class="card" style="max-width:760px">
+        <div class="fx-row"><div><b>3D pint glass</b><p>A real-time 3D pint under the top banner — glowing beer, foam, bubbles and condensation on a Black Horse coaster. Customers can turn it, and tapping it takes them to Book a Table.</p></div><label class="tgl"><input type="checkbox" data-fx="pint3d"><span></span></label></div>
+        <div class="fx-row"><div><b>Pub lights &amp; embers</b><p>Warm out-of-focus lights and rising embers behind the top banner.</p></div><label class="tgl"><input type="checkbox" data-fx="ambience"><span></span></label></div>
+        <div class="fx-row"><div><b>Gold shimmer</b><p>A slow gold sheen across "The Black Horse" title and a glint around the logo.</p></div><label class="tgl"><input type="checkbox" data-fx="shimmer"><span></span></label></div>
+        <div class="fx-row"><div><b>Card spotlight &amp; tilt</b><p>Cards catch a warm light and tilt slightly under the mouse (computers only).</p></div><label class="tgl"><input type="checkbox" data-fx="tilt"><span></span></label></div>
+      </div>
+      <div class="msg" id="fxMsg"></div>
+      <p class="hint">Changes reach the website as soon as you press Save (visitors see them next time the page loads). Animations always stay still for visitors whose phones are set to reduce motion, and the 3D pint is skipped on devices or data-saver modes that can't run it. The Wok Toss game has its own switch under Game &amp; discount codes.</p>
     </section>
 
     <!-- SETTINGS -->
@@ -836,6 +862,7 @@ async function start(){
   if(can('calls')) unsubs.push(onSnapshot(collection(db,'calls'), s=>{calls=s.docs.map(d=>({id:d.id,...d.data()})); renderCalls();}));
   if(can('photos')||can('pubphotos')) unsubs.push(onSnapshot(collection(db,'gallery'), s=>{gallery=s.docs.map(d=>({id:d.id,...d.data()})); if(can('photos')) renderGallery(); renderPubPhotos();}));
   if(isOwner) loadStatusAdmin();
+  if(isOwner) loadFx();
   if(can('offers')) unsubs.push(onSnapshot(collection(db,'offers'), s=>{offers=s.docs.map(d=>({id:d.id,...d.data()})); renderOffers();}));
   if(isOwner) unsubs.push(onSnapshot(collection(db,'staff'), s=>{staff=s.docs.map(d=>({id:d.id,...d.data()})); renderStaff();}));
   if(can('content')) loadContent();
@@ -1502,7 +1529,7 @@ $('saveMenu').onclick=async()=>{
 /* ---------- activity log ---------- */
 let logs=[];
 const AREA_NAMES={bookings:'Bookings',hireEnquiries:'Private hire',messages:'Messages',calls:'Call log',offers:'Offers',gallery:'Photos & videos',
-  'site/booking':'Tables & charges','site/menu':'Menu & prices','site/content':'Site text','site/hours':'Opening hours','site/notify':'Alerts','site/promo':'Game settings','site/status':'Website on/off',staff:'Staff',vouchers:'Discount codes'};
+  'site/booking':'Tables & charges','site/menu':'Menu & prices','site/content':'Site text','site/hours':'Opening hours','site/notify':'Alerts','site/promo':'Game settings','site/status':'Website on/off','site/effects':'Animations & 3D',staff:'Staff',vouchers:'Discount codes'};
 function renderLogs(){
   const area=$('logArea').value, who=$('logWho').value, q=$('logFind').value.trim().toLowerCase();
   const names=Object.fromEntries((staff||[]).map(s=>[s.id,s.name]));
@@ -1598,6 +1625,20 @@ $('ppGrid').addEventListener('change',async e=>{ if(!e.target.matches('[data-ppc
   try{ await updateDoc(doc(db,'gallery',id),{caption:e.target.value.trim().slice(0,120)}); flash('ppMsg','Caption saved.'); }catch(err){ fail('ppMsg',err); } });
 $('ppGrid').addEventListener('click',async e=>{ if(!e.target.matches('[data-ppdel]')) return; if(!confirm('Remove this photo from the website?')) return; const id=e.target.closest('[data-pp]').dataset.pp;
   try{ await deleteDoc(doc(db,'gallery',id)); flash('ppMsg','Photo removed.'); }catch(err){ fail('ppMsg',err); } });
+
+
+/* ---------- animations & 3D ---------- */
+const FX_DEF={pint3d:true, ambience:true, shimmer:true, tilt:true}; let fxCfg={...FX_DEF};
+const FX_NAMES={pint3d:'3D pint', ambience:'Pub lights & embers', shimmer:'Gold shimmer', tilt:'Card spotlight & tilt'};
+function renderFx(){ document.querySelectorAll('[data-fx]').forEach(i=>i.checked=!!fxCfg[i.dataset.fx]); }
+async function loadFx(){ try{ const s=await getDoc(doc(db,'site','effects')); if(s.exists()) fxCfg={...FX_DEF,...s.data()}; }catch(e){} renderFx(); }
+$('fxAllOff').onclick=()=>{ document.querySelectorAll('[data-fx]').forEach(i=>i.checked=false); flash('fxMsg','All switched off — press Save to apply.'); };
+$('saveFx').onclick=async()=>{
+  const d=Object.fromEntries(Object.keys(FX_DEF).map(k=>[k, !!document.querySelector(`[data-fx="${k}"]`)?.checked]));
+  const ch=Object.keys(d).filter(k=>d[k]!==fxCfg[k]).map(k=>`${FX_NAMES[k]} ${d[k]?'ON':'OFF'}`);
+  $('saveFx').disabled=true; logNote = ch.length ? ch.join('; ') : 'Animation settings saved (no changes)';
+  try{ await setDoc(doc(db,'site','effects'),d); fxCfg=d; flash('fxMsg','Saved — the website uses these settings now.'); }catch(e){ fail('fxMsg',e); } finally{ logNote=''; $('saveFx').disabled=false; }
+};
 </script>
 </body>
 </html>
