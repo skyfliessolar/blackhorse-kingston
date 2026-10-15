@@ -229,6 +229,13 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
 .tgl input:focus-visible+span{outline:2px solid var(--brass);outline-offset:2px;}
 .switch{display:inline-flex;align-items:center;gap:8px;font-size:13px;}
 .perm-chips label{font-size:13px;margin:2px 10px 2px 0;}
+.sc-grp{border:1px solid var(--line);padding:12px 14px 6px;margin:0 0 12px;border-radius:2px;}
+.sc-grp.off{opacity:.45;}
+.sc-grp h4{margin:0 0 8px;font-family:'Fraunces',serif;font-size:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.sc-grp h4 .hint{font-family:inherit;font-weight:400;font-size:12.5px;}
+.sc-grp h4 .sp{flex:1;}
+.sc-grp .mini{background:none;border:1px solid var(--line);font-size:12px;padding:3px 8px;cursor:pointer;border-radius:2px;}
+.sc-sum{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.4;}
 .plan td.taken{white-space:nowrap;}
 .toast{position:fixed;right:18px;bottom:18px;background:var(--ink);color:var(--paper);padding:14px 18px;border-left:4px solid var(--brass);border-radius:2px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:99;max-width:320px;font-size:14px;display:none;}
 </style>
@@ -511,6 +518,7 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
         <div class="fx-row"><div><b>Pub lights &amp; embers</b><p>Warm out-of-focus lights and rising embers behind the top banner.</p></div><label class="tgl"><input type="checkbox" data-fx="ambience"><span></span></label></div>
         <div class="fx-row"><div><b>Gold shimmer</b><p>A slow gold sheen across "The Black Horse" title and a glint around the logo.</p></div><label class="tgl"><input type="checkbox" data-fx="shimmer"><span></span></label></div>
         <div class="fx-row"><div><b>Scroll animations</b><p>Headings rise in word by word, cards cascade in, opening hours slide in, a gold progress line runs along the top, and the Book a Table buttons glow now and then.</p></div><label class="tgl"><input type="checkbox" data-fx="motion"><span></span></label></div>
+        <div class="fx-row"><div><b>💦 Splash in the face</b><p>A real-looking splash of drink hits the screen as if someone threw it at the visitor — drops smack onto the "glass", run down and wipe away, then "Cheers!" appears. Plays once per visit, and again when someone taps "Cheers!". Choose the drink: <select id="fxSplashKind" style="margin-left:4px"><option value="water">Water</option><option value="ale">Ale</option><option value="wine">Red wine</option><option value="prosecco">Prosecco</option></select></p></div><label class="tgl"><input type="checkbox" data-fx="splash"><span></span></label></div>
         <div class="fx-row"><div><b>Card spotlight &amp; tilt</b><p>Cards catch a warm light and tilt slightly under the mouse (computers only).</p></div><label class="tgl"><input type="checkbox" data-fx="tilt"><span></span></label></div>
       </div>
       <div class="msg" id="fxMsg"></div>
@@ -590,7 +598,7 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
           <div class="field"><label>&nbsp;</label><button class="btn" id="addShared" style="width:100%">Create shared login</button></div></div>
         <div class="field"><label>What can employees use?</label><div class="chips" id="sh-perms"></div></div>
         <div class="msg" id="shMsg"></div>
-        <p class="hint">Employees sign in with <b>Staff login</b> at the bottom of the website. Staff tools open right there on the website — they never see this admin portal. Staff tools cover: bookings, offers, menu prices, pub photos, discount codes, messages and hire enquiries. To change the shared password later, use "Change password" next to it in the list below.</p>
+        <p class="hint">Employees sign in with <b>Staff login</b> at the bottom of the website. Staff tools open right there on the website — they never see this admin portal. Staff tools cover: bookings, offers, menu prices, pub photos, site text, opening hours, discount codes, messages and hire enquiries. Press <b>Fine-tune…</b> next to a login to choose exactly which text, which days' hours, which menu sections and how many photos a day they can change. To change the shared password later, use "Change password" next to it in the list below.</p>
       </div>
       <div class="card">
         <h3>Add a personal staff login (optional)</h3>
@@ -615,6 +623,14 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
     <div class="field"><label>Your name</label><input id="nm-in" maxlength="40" autocomplete="off" required></div>
     <button class="btn" style="width:100%">Continue</button>
   </form>
+</div>
+<div class="modal-bg" id="scModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="scTitle" style="max-width:780px">
+    <div class="mhead"><h3 id="scTitle">Exactly what they can change</h3><button class="close" id="scClose" aria-label="Close">&times;</button></div>
+    <p class="hint" style="margin-top:-8px">Tick only the parts this login may change. Areas switched off in the list (greyed here) stay hidden from them completely.</p>
+    <div id="scBody"></div>
+    <div class="mfoot"><button class="btn ghost" id="scAll">Allow everything</button><span class="spacer"></span><span class="msg" id="scMsg" style="margin:0"></span><button class="btn" id="scSave">Save</button></div>
+  </div>
 </div>
 <div class="modal-bg" id="bkModal" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="bkTitle">
@@ -689,6 +705,7 @@ function describe(op, path, data){
     if(op==='delete') return {area, text:'Removed a photo/video'}; if('img' in d) return {area, text:'Replaced a photo'};
     if('place' in d) return {area, text:`Moved a photo/video to "${d.place}"`}; if('caption' in d) return {area, text:`Caption: "${short(d.caption)}"`}; return {area, text:'Photo order changed'}; }
   if(col==='staff'){ if(op==='delete') return {area, text:'Removed access: '+id};
+    if(d.scope && !d.perms) return {area, text:'Fine-tuned access: '+id.split('@')[0]+' — '+((scopeSummary({perms:(staff.find(x=>x.id===id)||{}).perms, scope:d.scope})||'').slice(0,240)||'everything allowed')};
     const p=d.perms ? Object.entries(d.perms).filter(([,v])=>v).map(([k])=>(PERMS.find(x=>x[0]===k)||[k,k])[1]).join(', ') : '';
     return {area, text:(d.addedAt?'Login added: ':'Permissions changed: ')+id+(p?' — '+p:' — no access')}; }
   if(col==='vouchers' && d.used) return {area, text:`Code ${id} redeemed${d.saved?' — '+money(d.saved)+' off':''}`};
@@ -1307,8 +1324,8 @@ const permBoxes=(cur,attr)=>PERMS.map(([k,n])=>`<label><input type="checkbox" ${
 $('st-perms').innerHTML=permBoxes(LEGACY,'data-np'); $('st-perms').classList.add('perm-chips');
 function renderStaff(){
   $('stBody').innerHTML=`<tr><td><b>${esc(auth.currentUser?.email||'')}</b><br><span class="hint">You · main admin (only you can see this)</span></td><td>Everything</td><td></td></tr>`+staff.map(s=>{ const p=s.perms||LEGACY;
-    return `<tr data-sid="${esc(s.id)}"><td><b>${esc(s.name||'')}</b><br><span class="hint">${s.shared?'Username: <b>'+esc(s.id.split('@')[0])+'</b> · everyone uses this':esc(s.id)}</span></td><td class="chips perm-chips">${permBoxes(p,'data-sp')}</td>
-      <td>${s.shared?`<button class="btn small ghost" data-spw="${esc(s.id)}" style="margin-bottom:6px">Change password</button><br>`:''}<button class="btn small danger" data-sdel="${esc(s.id)}">Remove</button></td></tr>`; }).join('');
+    return `<tr data-sid="${esc(s.id)}"><td><b>${esc(s.name||'')}</b><br><span class="hint">${s.shared?'Username: <b>'+esc(s.id.split('@')[0])+'</b> · everyone uses this':esc(s.id)}</span></td><td class="chips perm-chips">${permBoxes(p,'data-sp')}<div class="sc-sum">${esc(scopeSummary(s))}</div></td>
+      <td><button class="btn small" data-sscope="${esc(s.id)}" style="margin-bottom:6px">Fine-tune…</button><br>${s.shared?`<button class="btn small ghost" data-spw="${esc(s.id)}" style="margin-bottom:6px">Change password</button><br>`:''}<button class="btn small danger" data-sdel="${esc(s.id)}">Remove</button></td></tr>`; }).join('');
 }
 
 $('sh-perms').innerHTML=permBoxes({bookings:true,offers:true,menu:true},'data-shp'); $('sh-perms').classList.add('perm-chips');
@@ -1334,6 +1351,69 @@ async function changeSharedPassword(em){
     logNote='Shared login password changed ('+em.split('@')[0]+')'; await setDoc(doc(db,'staff',em),{pwChangedAt:serverTimestamp()},{merge:true}); logNote='';
     flash('stMsg','Password changed — tell your team the new one. People already signed in stay signed in.'); }
   catch(err){ logNote=''; const m={'auth/wrong-password':'The current password is not right.','auth/invalid-credential':'The current password is not right.','auth/weak-password':'Please choose a stronger password.'}[err.code]; m ? flash('stMsg',m,true) : fail('stMsg',err); } }
+/* ---------- fine-grained staff scope ----------
+   Stored on the staff record as scope:{content:[...], hours:[...], menu:[...], photos:n, photoDel:bool, offers:{...}, bookings:{...}}.
+   A missing list means "everything in that area". Site text and opening hours are also enforced by the database rules. */
+const CF_NAMES={tagline:'Hero tagline',welcome:'Welcome paragraph',food:'Drunken Wok paragraph',drinks:'Drinks paragraph',terrace:'Terrace paragraph',capacity:'Guest capacity',hire:'Private hire paragraph'};
+const SC_DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+const OFFER_ACTS={add:'Add new offers',edit:'Edit wording',toggle:'Switch offers on/off',del:'Delete offers'};
+const BOOK_ACTS={confirm:'Confirm bookings',cancel:'Cancel bookings'};
+function scopeSummary(s){
+  const sc=s.scope||{}, p=s.perms||LEGACY, out=[];
+  if(p.content) out.push('Text: '+(sc.content? (sc.content.length? sc.content.map(k=>CF_NAMES[k]||k).join(', ') : 'none') : 'all'));
+  if(p.hours) out.push('Hours: '+(sc.hours? (sc.hours.length? sc.hours.map(d=>d.slice(0,3)).join(', ') : 'none') : 'all days'));
+  if(p.menu) out.push('Menu: '+(sc.menu? (sc.menu.length? sc.menu.length+' section'+(sc.menu.length>1?'s':'') : 'none') : 'all sections'));
+  if(p.pubphotos) out.push('Photos: '+(sc.photos? 'up to '+sc.photos+'/day' : 'no limit')+(sc.photoDel===false?', can’t remove':''));
+  if(p.offers && sc.offers) out.push('Offers: '+(Object.keys(OFFER_ACTS).filter(k=>sc.offers[k]!==false).map(k=>OFFER_ACTS[k].split(' ')[0].toLowerCase()).join('/')||'view only'));
+  if(p.bookings && sc.bookings) out.push('Bookings: '+(Object.keys(BOOK_ACTS).filter(k=>sc.bookings[k]!==false).map(k=>BOOK_ACTS[k].split(' ')[0].toLowerCase()).join('/')||'view only'));
+  return out.join(' · ');
+}
+let scId=null, scMenu=null;
+async function openScope(id){
+  const s=staff.find(x=>x.id===id); if(!s) return; scId=id;
+  if(!scMenu){ try{ const m=await getDoc(doc(db,'site','menu')); scMenu=m.exists()?{...clone(DEFAULT_MENU),...m.data()}:clone(DEFAULT_MENU); }catch(e){ scMenu=clone(DEFAULT_MENU); } }
+  const sc=s.scope||{}, p=s.perms||LEGACY;
+  const box=(grp,key,label,on)=>`<label><input type="checkbox" data-sc="${grp}" value="${esc(key)}" ${on?'checked':''}> ${esc(label)}</label>`;
+  const has=(list,k)=> !list || list.includes(k);
+  const head=(perm,title,hint)=>`<h4>${title} ${p[perm]?'':'<span class="hint">(switched off for this login)</span>'}<span class="sp"></span><button type="button" class="mini" data-scall="1">All</button><button type="button" class="mini" data-scnone="1">None</button></h4>${hint?`<p class="hint" style="margin:-4px 0 8px">${hint}</p>`:''}`;
+  const menuSecs=[...(scMenu.food||[]).map(c=>['food:'+c.t,'Food · '+c.t]), ...(scMenu.lunch||[]).map(c=>['lunch:'+c.t,'Lunch · '+c.t]), ['deal','Lunch deal prices']];
+  const ph=sc.photos||0;
+  $('scTitle').textContent='Exactly what '+(s.name||id)+' can change';
+  $('scBody').innerHTML=`
+    <div class="sc-grp ${p.content?'':'off'}">${head('content','Site text','Which words on the website they may rewrite.')}<div class="chips">${Object.entries(CF_NAMES).map(([k,n])=>box('content',k,n,has(sc.content,k))).join('')}</div></div>
+    <div class="sc-grp ${p.hours?'':'off'}">${head('hours','Opening hours','Which days’ lines they may change.')}<div class="chips">${SC_DAYS.map(d=>box('hours',d,d,has(sc.hours,d))).join('')}</div></div>
+    <div class="sc-grp ${p.menu?'':'off'}">${head('menu','Menu sections','Which parts of the menu they may change prices or mark sold out.')}<div class="chips">${menuSecs.map(([k,n])=>box('menu',k,n,has(sc.menu,k))).join('')}</div></div>
+    <div class="sc-grp ${p.pubphotos?'':'off'}"><h4>Pub photos</h4><div class="chips" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+      <label>Photos they can add each day <select id="scPhotos" style="margin-left:6px">${[[0,'No limit'],[1,'1'],[2,'2'],[3,'3'],[4,'4'],[5,'5'],[10,'10'],[20,'20']].map(([v,n])=>`<option value="${v}" ${ph===v?'selected':''}>${n}</option>`).join('')}</select></label>
+      <label><input type="checkbox" id="scPhotoDel" ${sc.photoDel===false?'':'checked'}> Can remove photos</label></div>
+      <p class="hint" style="margin:6px 0 0">With the shared login, the daily limit is shared by everyone using it.</p></div>
+    <div class="sc-grp ${p.offers?'':'off'}">${head('offers','Offers & discounts')}<div class="chips">${Object.entries(OFFER_ACTS).map(([k,n])=>box('offers',k,n,!sc.offers||sc.offers[k]!==false)).join('')}</div></div>
+    <div class="sc-grp ${p.bookings?'':'off'}">${head('bookings','Bookings')}<div class="chips">${Object.entries(BOOK_ACTS).map(([k,n])=>box('bookings',k,n,!sc.bookings||sc.bookings[k]!==false)).join('')}</div></div>`;
+  $('scMsg').textContent=''; $('scModal').hidden=false;
+}
+$('scClose').onclick=()=>{ $('scModal').hidden=true; };
+$('scModal').addEventListener('click',e=>{ if(e.target.id==='scModal') $('scModal').hidden=true;
+  const g=e.target.closest('.sc-grp'); if(!g) return;
+  if(e.target.dataset.scall) g.querySelectorAll('[data-sc]').forEach(i=>i.checked=true);
+  if(e.target.dataset.scnone) g.querySelectorAll('[data-sc]').forEach(i=>i.checked=false); });
+$('scAll').onclick=()=>{ $('scBody').querySelectorAll('[data-sc]').forEach(i=>i.checked=true); $('scPhotos').value='0'; $('scPhotoDel').checked=true; };
+function readScope(){
+  const list=g=>[...$('scBody').querySelectorAll(`[data-sc="${g}"]`)], picked=g=>list(g).filter(i=>i.checked).map(i=>i.value);
+  const all=g=>list(g).every(i=>i.checked);
+  const sc={};
+  ['content','hours','menu'].forEach(g=>{ if(!all(g)) sc[g]=picked(g); });
+  const n=Number($('scPhotos').value)||0; if(n) sc.photos=n;
+  if(!$('scPhotoDel').checked) sc.photoDel=false;
+  ['offers','bookings'].forEach(g=>{ if(!all(g)) sc[g]=Object.fromEntries(list(g).map(i=>[i.value,i.checked])); });
+  return sc;
+}
+$('scSave').onclick=async()=>{
+  const s=staff.find(x=>x.id===scId); if(!s) return; const sc=readScope();
+  $('scSave').disabled=true;
+  try{ await updateDoc(doc(db,'staff',scId),{scope:sc}); s.scope=sc; renderStaff();
+    flash('scMsg','Saved'); flash('stMsg',`Updated ${s.name||scId} — takes effect the next time they open Staff tools.`); setTimeout(()=>{ $('scModal').hidden=true; },600); }
+  catch(err){ fail('scMsg',err); } finally{ $('scSave').disabled=false; }
+};
 let staffApp=null;
 function staffAuth(){ if(!staffApp) staffApp=initializeApp(firebaseConfig,'staff-creator'); return getAuth(staffApp); }
 $('addStaff').onclick=async()=>{
@@ -1360,6 +1440,7 @@ $('stBody').addEventListener('change',async e=>{ const k=e.target.dataset.sp, tr
   try{ await setDoc(doc(db,'staff',s.id),{perms:p},{merge:true}); flash('stMsg',`Updated ${s.name||s.id} — takes effect next time they open admin.`); }catch(err){ fail('stMsg',err); } });
 $('stBody').onclick=async e=>{
   if(e.target.dataset.spw) return changeSharedPassword(e.target.dataset.spw);
+  if(e.target.dataset.sscope) return openScope(e.target.dataset.sscope);
   const id=e.target.dataset.sdel; if(!id||!confirm('Remove access for '+id+'? They will no longer be able to open the admin.')) return;
   try{ await deleteDoc(doc(db,'staff',id)); flash('stMsg','Access removed.'); }catch(err){ fail('stMsg',err); }
 };
@@ -1629,14 +1710,15 @@ $('ppGrid').addEventListener('click',async e=>{ if(!e.target.matches('[data-ppde
 
 
 /* ---------- animations & 3D ---------- */
-const FX_DEF={pint3d:true, ambience:true, shimmer:true, tilt:true, motion:true}; let fxCfg={...FX_DEF};
-const FX_NAMES={pint3d:'3D pint', ambience:'Pub lights & embers', shimmer:'Gold shimmer', tilt:'Card spotlight & tilt', motion:'Scroll animations'};
-function renderFx(){ document.querySelectorAll('[data-fx]').forEach(i=>i.checked=!!fxCfg[i.dataset.fx]); }
+const FX_DEF={pint3d:true, ambience:true, shimmer:true, tilt:true, motion:true, splash:false}; let fxCfg={...FX_DEF, splashKind:'water'};
+const FX_NAMES={pint3d:'3D pint', ambience:'Pub lights & embers', shimmer:'Gold shimmer', tilt:'Card spotlight & tilt', motion:'Scroll animations', splash:'Splash in the face'};
+function renderFx(){ document.querySelectorAll('[data-fx]').forEach(i=>i.checked=!!fxCfg[i.dataset.fx]); $('fxSplashKind').value=fxCfg.splashKind||'water'; }
 async function loadFx(){ try{ const s=await getDoc(doc(db,'site','effects')); if(s.exists()) fxCfg={...FX_DEF,...s.data()}; }catch(e){} renderFx(); }
 $('fxAllOff').onclick=()=>{ document.querySelectorAll('[data-fx]').forEach(i=>i.checked=false); flash('fxMsg','All switched off — press Save to apply.'); };
 $('saveFx').onclick=async()=>{
   const d=Object.fromEntries(Object.keys(FX_DEF).map(k=>[k, !!document.querySelector(`[data-fx="${k}"]`)?.checked]));
   const ch=Object.keys(d).filter(k=>d[k]!==fxCfg[k]).map(k=>`${FX_NAMES[k]} ${d[k]?'ON':'OFF'}`);
+  d.splashKind=$('fxSplashKind').value; if(d.splashKind!==(fxCfg.splashKind||'water')) ch.push('Splash drink → '+$('fxSplashKind').selectedOptions[0].text);
   $('saveFx').disabled=true; logNote = ch.length ? ch.join('; ') : 'Animation settings saved (no changes)';
   try{ await setDoc(doc(db,'site','effects'),d); fxCfg=d; flash('fxMsg','Saved — the website uses these settings now.'); }catch(e){ fail('fxMsg',e); } finally{ logNote=''; $('saveFx').disabled=false; }
 };
