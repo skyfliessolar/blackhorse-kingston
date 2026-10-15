@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>document.documentElement.classList.add('checking');setTimeout(function(){document.documentElement.classList.remove('checking');},2500);</script>
+<script>/* Only hide the page while checking if the site was switched off last time — otherwise it shows instantly. */
+try{if(localStorage.getItem('bh_off')==='1'){document.documentElement.classList.add('checking');setTimeout(function(){document.documentElement.classList.remove('checking');},2500);}}catch(e){}</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Black Horse — Drunken Wok, Kingston upon Thames</title>
@@ -16,7 +17,16 @@
 <link rel="canonical" href="https://blackhorsedrunkenwok.co.uk/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Oswald:wght@500;600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-lite.js">
+<link rel="modulepreload" href="./firebase-config.js">
+<link rel="preload" as="image" href="logo.jpg">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Oswald:wght@500;600&family=Work+Sans:wght@400;500;600&display=swap">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Oswald:wght@500;600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Oswald:wght@500;600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
 <style>
   :root{
     --black:#0C0B09;
@@ -73,10 +83,31 @@
     transition:transform .15s ease, background .2s ease, color .2s ease;
   }
   .btn:hover{transform:translateY(-1px);}
-  .btn-gold{background:var(--gold);color:var(--black);}
-  .btn-gold:hover{background:var(--gold-light);}
-  .btn-outline-light{border-color:rgba(241,232,214,0.5);color:var(--cream);}
-  .btn-outline-light:hover{border-color:var(--gold);color:var(--gold-light);background:rgba(201,169,97,0.08);}
+  /* Buttons are made like things on the bar: gold ones are brass pump clips, outlined ones are oak bar plaques.
+     Tapping one pours a drink into it (ale in the brass ones, stout in the oak ones). */
+  .btn{position:relative;isolation:isolate;overflow:hidden;-webkit-tap-highlight-color:transparent;}
+  .btn-gold{color:#1d1309;border-color:#6b4a1c;border-radius:6px;text-shadow:0 1px 0 rgba(255,240,200,.55);
+    background:radial-gradient(circle at 12px 50%,#fff3c8 0 1.5px,#7a5622 2.5px,transparent 3.5px),radial-gradient(circle at calc(100% - 12px) 50%,#fff3c8 0 1.5px,#7a5622 2.5px,transparent 3.5px),
+      linear-gradient(180deg,#f6e2a4 0%,#dcb862 20%,#b98a3b 52%,#e7c676 80%,#9d7431 100%);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.65),inset 0 -2px 0 rgba(0,0,0,.25),0 3px 0 #5b3e16,0 7px 16px rgba(0,0,0,.45);
+    transition:transform .12s ease, box-shadow .12s ease, filter .2s ease;}
+  .btn-gold:hover{filter:brightness(1.07) saturate(1.05);background-color:transparent;}
+  .btn-gold:active,.btn-gold.tapped{transform:translateY(3px);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -1px 0 rgba(0,0,0,.25),0 0 0 #5b3e16,0 2px 6px rgba(0,0,0,.4);}
+  .btn-outline-light{color:#f4e6c6;border:2px solid #b48a3c;border-radius:6px;text-shadow:0 1px 2px rgba(0,0,0,.7);
+    background:repeating-linear-gradient(92deg,rgba(255,255,255,.035) 0 2px,transparent 2px 7px,rgba(0,0,0,.08) 7px 9px,transparent 9px 15px),linear-gradient(180deg,#4a2e18,#2c1a0d 60%,#3a2413);
+    box-shadow:inset 0 0 0 1px rgba(255,220,150,.18),inset 0 2px 6px rgba(0,0,0,.5),0 3px 0 #1a0f07,0 7px 16px rgba(0,0,0,.45);
+    transition:transform .12s ease, box-shadow .12s ease, border-color .2s ease;}
+  .btn-outline-light:hover{border-color:#e4ce93;color:#fff3d6;}
+  .btn-outline-light:active,.btn-outline-light.tapped{transform:translateY(3px);box-shadow:inset 0 0 0 1px rgba(255,220,150,.18),inset 0 2px 6px rgba(0,0,0,.5),0 0 0 #1a0f07,0 2px 6px rgba(0,0,0,.4);}
+  .btn .btn-pour{position:absolute;left:0;right:0;bottom:0;height:0;z-index:-1;pointer-events:none;
+    background:linear-gradient(180deg,#fff6e0 0 5px,#f0c46a 5px,#d58a24 55%,#a85d0e);animation:btnPour .75s cubic-bezier(.3,.7,.3,1) forwards;}
+  .btn-outline-light .btn-pour{background:linear-gradient(180deg,#f3e3c3 0 6px,#2a1408 6px,#120804);}
+  .btn .btn-pour i{position:absolute;bottom:4px;width:3px;height:3px;border-radius:50%;background:rgba(255,248,230,.85);animation:btnFizz .9s ease-out forwards;}
+  .btn.poured-out .btn-pour{animation:btnDrain .45s ease-in forwards;}
+  @keyframes btnPour{0%{height:0}100%{height:100%}}
+  @keyframes btnDrain{0%{height:100%;opacity:1}100%{height:100%;opacity:0}}
+  @keyframes btnFizz{0%{transform:translateY(0);opacity:0}20%{opacity:1}100%{transform:translateY(-34px);opacity:0}}
+  @media (prefers-reduced-motion: reduce){ .btn .btn-pour{display:none;} }
 
   header{position:sticky;top:0;z-index:50;background:rgba(12,11,9,0.96);border-bottom:1px solid var(--line-dark);}
   .nav-inner{
@@ -184,6 +215,48 @@
   .book-copy p{color:rgba(241,232,214,0.72);max-width:38ch;}
   form.book-form{background:var(--black-2);border:1px solid var(--line-dark);border-radius:2px;padding:36px;}
   .form-row{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .form-row.one{grid-template-columns:1fr;}
+  .form-row:has(#areaField[hidden]){grid-template-columns:1fr;}
+  /* guests: bottle-cap buttons and quick picks */
+  .st-btn{flex:0 0 52px !important;height:52px;border-radius:50% !important;border:none !important;margin:0 6px;font-weight:700;color:#3a250c !important;font-size:24px !important;
+    background:radial-gradient(circle at 35% 30%,#fff5cf,#e2b85c 42%,#a77a2c 75%,#6e4c18) !important;
+    box-shadow:0 0 0 3px #8a6424,0 0 0 5px rgba(0,0,0,.35),inset 0 -3px 6px rgba(0,0,0,.25),0 4px 10px rgba(0,0,0,.4);
+    outline:3px dotted rgba(110,76,24,.9);outline-offset:-1px;transition:transform .12s;}
+  .st-btn:active{transform:scale(.9) rotate(-12deg);}
+  .stepper{align-items:center;}
+  .stepper input{height:52px;border-radius:6px !important;font-size:22px !important;}
+  .quick-g{display:flex;gap:8px;margin:10px 0 20px;flex-wrap:wrap;}
+  .quick-g button{flex:1;min-width:46px;padding:9px 0;border-radius:999px;border:1px solid rgba(228,206,147,.4);background:rgba(228,206,147,.06);color:var(--gold-light);font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:.06em;cursor:pointer;}
+  .quick-g button.on{background:var(--gold);color:#1d1309;border-color:var(--gold);}
+  /* days as beer mats */
+  .day-mats{display:flex;gap:10px;overflow-x:auto;padding:14px 4px 12px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:thin;}
+  .day-mat{flex:0 0 74px;height:74px;border-radius:50%;scroll-snap-align:start;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05;
+    color:#4a2c10;font-family:'Oswald',sans-serif;border:none;position:relative;transition:transform .18s cubic-bezier(.3,1.6,.5,1),box-shadow .2s;
+    background:radial-gradient(circle,transparent 58%,rgba(120,70,20,.35) 59% 61%,transparent 62%),repeating-radial-gradient(circle at 30% 30%,rgba(255,255,255,.08) 0 2px,transparent 2px 5px),radial-gradient(circle at 40% 35%,#f7ecd2,#e6d1a4 70%,#cdb07a);
+    box-shadow:0 3px 0 #a88a52,0 6px 12px rgba(0,0,0,.45),inset 0 0 0 2px rgba(255,255,255,.3);}
+  .day-mat small{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.8;}
+  .day-mat b{font-family:'Cinzel',serif;font-size:24px;font-weight:700;color:#5a1a14;}
+  .day-mat:hover{transform:translateY(-3px) rotate(-4deg);}
+  .day-mat[aria-checked="true"]{transform:translateY(-4px) rotate(-6deg) scale(1.05);box-shadow:0 0 0 3px var(--gold),0 0 22px rgba(228,206,147,.55),0 6px 12px rgba(0,0,0,.45);}
+  .day-mat[aria-checked="true"]::after{content:'✓';position:absolute;top:-4px;right:-2px;width:22px;height:22px;border-radius:50%;background:var(--gold);color:#1d1309;font-size:13px;display:flex;align-items:center;justify-content:center;font-weight:700;}
+  .day-mat:disabled{opacity:.35;cursor:not-allowed;transform:none;filter:grayscale(1);}
+  .day-mat:disabled b{text-decoration:line-through;}
+  .other-date{display:inline-flex;align-items:center;gap:10px;margin-top:4px;cursor:pointer;font-family:'Oswald',sans-serif;font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-light);text-transform:uppercase;}
+  .other-date input{width:auto !important;padding:7px 10px !important;font-size:14px !important;color-scheme:dark;}
+  /* times as brass tokens */
+  .time-taps{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px;}
+  .time-taps:empty{display:none;}
+  .t-groups{display:flex;gap:6px;margin:0 0 10px;}
+  .t-groups:empty{display:none;}
+  .t-groups button{flex:1;padding:8px 4px;border-radius:999px;border:1px solid rgba(228,206,147,.35);background:transparent;color:rgba(241,232,214,.8);font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;}
+  .t-groups button.on{background:rgba(228,206,147,.16);border-color:var(--gold);color:var(--gold-light);}
+  .t-groups button small{display:block;font-size:10px;letter-spacing:.04em;text-transform:none;opacity:.7;}
+  .time-taps button{padding:11px 4px;border-radius:8px;cursor:pointer;font-family:'Oswald',sans-serif;font-size:15px;letter-spacing:.04em;color:#f4e6c6;position:relative;
+    border:1px solid #9c7431;background:linear-gradient(180deg,#3d2614,#24160b);box-shadow:inset 0 1px 0 rgba(255,220,150,.15),0 2px 0 #140b05;transition:transform .1s;}
+  .time-taps button:active{transform:translateY(2px);}
+  .time-taps button[aria-checked="true"]{color:#1d1309;border-color:#6b4a1c;background:linear-gradient(180deg,#f6e2a4,#d6ad5a 50%,#b98a3b);box-shadow:0 0 14px rgba(228,206,147,.5);}
+  .time-taps button.busy::after{content:'busy';position:absolute;top:-7px;right:4px;font-size:9px;letter-spacing:.1em;text-transform:uppercase;background:#7a2e22;color:#fbe3d6;padding:1px 5px;border-radius:999px;}
+  .time-taps:not(:empty) + .time-sel{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px;}
   .stepper{display:flex;align-items:stretch;}
   .stepper input{text-align:center;font-weight:600;font-size:18px !important;border-radius:0 !important;-moz-appearance:textfield;min-width:0;}
   .stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
@@ -586,7 +659,7 @@
   <div class="media-slot" data-place="welcome-after" hidden><div class="wrap"><div class="media-grid"></div></div></div>
 
 
-  <div class="divider"><img class="mark" src="logo.jpg" alt="" style="width:40px;height:40px;"></div>
+  <div class="divider"><img class="mark" src="logo.jpg" loading="lazy" decoding="async" alt="" style="width:40px;height:40px;"></div>
 
   <section id="food" class="section-panel">
     <div class="wrap fd-grid">
@@ -740,7 +813,7 @@
     </div>
   </section>
 
-  <div class="divider"><img class="mark" src="logo.jpg" alt="" style="width:40px;height:40px;"></div>
+  <div class="divider"><img class="mark" src="logo.jpg" loading="lazy" decoding="async" alt="" style="width:40px;height:40px;"></div>
 
   <section id="hire">
     <div class="wrap hire-grid">
@@ -799,7 +872,7 @@
     </div>
   </section>
 
-  <div class="divider"><img class="mark" src="logo.jpg" alt="" style="width:40px;height:40px;"></div>
+  <div class="divider"><img class="mark" src="logo.jpg" loading="lazy" decoding="async" alt="" style="width:40px;height:40px;"></div>
 
     <div class="media-slot" data-place="book-before" hidden><div class="wrap"><div class="media-grid"></div></div></div>
 
@@ -837,13 +910,16 @@
       </div>
       <form class="book-form" id="bookingForm" novalidate>
         <div class="wine-head" aria-hidden="true"><div class="crest">❦ Réserve ❦</div><div class="sub">The Black Horse · Table Booking</div><div class="rule"></div></div>
-        <div class="form-row">
-          <div class="field"><label for="date">Date</label><input id="date" type="date" required></div>
-          <div class="field"><label for="guests">Guests <span class="g-hint">(any group size)</span></label>
+        <div class="form-row one">
+          <div class="field"><label for="guests">How many of you? <span class="g-hint">(any group size)</span></label>
             <div class="stepper"><button type="button" class="st-btn" data-step="-1" aria-label="Fewer guests">−</button><input id="guests" type="number" min="1" max="999" value="2" inputmode="numeric" required><button type="button" class="st-btn" data-step="1" aria-label="More guests">+</button></div></div>
+        <div class="quick-g" id="quickG" aria-label="Quick pick guests"><button type="button" data-g="2">2</button><button type="button" data-g="4">4</button><button type="button" data-g="6">6</button><button type="button" data-g="8">8</button><button type="button" data-g="12">12+</button></div>
         </div>
+        <div class="field"><label id="dayLbl">Which day?</label>
+          <div class="day-mats" id="dayMats" role="radiogroup" aria-labelledby="dayLbl"></div>
+          <label class="other-date"><span>📅 Another date</span><input id="date" type="date" required aria-label="Choose another date"></label></div>
         <div class="form-row">
-          <div class="field"><label for="time">Time</label><select id="time" class="sel" required><option value="">Choose a date first</option></select></div>
+          <div class="field"><label for="time">What time?</label><div class="t-groups" id="tGroups"></div><div class="time-taps" id="timeTaps" role="radiogroup" aria-label="Times"></div><select id="time" class="sel time-sel" required><option value="">Choose a date first</option></select></div>
           <div class="field" id="areaField" hidden><label for="area">Seating</label><select id="area" class="sel"><option value="">No preference</option></select></div>
         </div>
         <div class="avail" id="avail" aria-live="polite"></div>
@@ -1106,7 +1182,7 @@ $('mmBody').addEventListener('scroll',()=>{ const body=$('mmBody'); let cur=0;
 $('menuTabs').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; window.currentMenu=b.dataset.menu; renderMenu(); };
 $('menuPages').onclick=e=>{ const f=e.target.closest('figure'); if(f) openLb(window.MENU_PAGES, Number(f.dataset.i)); };
 let lastFocus=null;
-function openMenu(which){ window.currentMenu=which||'food'; renderMenu(); lastFocus=document.activeElement; $('menuModal').hidden=false; document.body.classList.add('menu-open'); $('menuClose').focus();
+function openMenu(which){ window.bhGalleryNow&&window.bhGalleryNow(); window.currentMenu=which||'food'; renderMenu(); lastFocus=document.activeElement; $('menuModal').hidden=false; document.body.classList.add('menu-open'); $('menuClose').focus();
   if(location.hash!=='#menu') history.pushState({menu:1},'','#menu'); }
 function closeMenu(fromPop){ if($('menuModal').hidden) return; $('menuModal').hidden=true; document.body.classList.remove('menu-open'); if(lastFocus) lastFocus.focus();
   if(!fromPop && history.state && history.state.menu) history.back(); }
@@ -1125,8 +1201,9 @@ window.openLb = openLb; window.renderMenu = renderMenu;
 </script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+// "lite" database library: about a quarter of the size and no live connection to open — the public pages only need one-off reads and writes
 import { getFirestore, collection, doc, getDoc, getDocs, setDoc, query, where, writeBatch, addDoc, serverTimestamp, Timestamp }
-  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-lite.js";
 import { firebaseConfig } from "./firebase-config.js";
 
 const db = getFirestore(initializeApp(firebaseConfig));
@@ -1326,6 +1403,46 @@ document.querySelectorAll('.st-btn').forEach(b=>{ let hold, rep;
 $('date').min=todayISO();
 { const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); $('date').value=d.toISOString().slice(0,10); }
 
+/* ---- easy picking: beer-mat days, tap-a-time, quick guest counts ---- */
+const isoOf=d=>{ const x=new Date(d); x.setMinutes(x.getMinutes()-x.getTimezoneOffset()); return x.toISOString().slice(0,10); };
+function renderDayMats(){
+  const box=$('dayMats'); if(!box) return; const cur=$('date').value, out=[];
+  for(let i=0;i<21;i++){ const d=new Date(); d.setHours(12,0,0,0); d.setDate(d.getDate()+i); const iso=isoOf(d), list=timesFor(iso);
+    const closed=list===null, none=!closed && !list.length;
+    const top = i===0 ? 'Today' : i===1 ? 'Tmrw' : d.toLocaleDateString('en-GB',{weekday:'short'});
+    out.push(`<button type="button" class="day-mat" role="radio" data-d="${iso}" aria-checked="${iso===cur}" ${closed||none?'disabled':''} aria-label="${d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}${closed?' — closed':none?' — no times left':''}"><small>${top}</small><b>${d.getDate()}</b><small>${d.toLocaleDateString('en-GB',{month:'short'})}</small></button>`); }
+  box.innerHTML=out.join('');
+  // if today has no times left, start on the next open day
+  if(cur===todayISO() && box.querySelector(`[data-d="${cur}"]:disabled`)){ const f=box.querySelector('.day-mat:not(:disabled)'); if(f){ $('date').value=f.dataset.d; $('date').dispatchEvent(new Event('change')); return renderDayMats(); } }
+}
+$('dayMats').addEventListener('click',e=>{ const b=e.target.closest('.day-mat'); if(!b||b.disabled) return; $('date').value=b.dataset.d; $('date').dispatchEvent(new Event('change')); });
+$('date').addEventListener('change',()=>{ const b=$('dayMats').querySelector(`[data-d="${$('date').value}"]`);
+  $('dayMats').querySelectorAll('.day-mat').forEach(x=>x.setAttribute('aria-checked', x===b)); if(b) b.scrollIntoView({block:'nearest',inline:'nearest',behavior:'smooth'}); });
+document.querySelector('.other-date span').addEventListener('click',()=>{ try{ $('date').showPicker(); }catch(e){ $('date').focus(); } });
+const T_GROUPS=[['lunch','Lunch','12–3pm',0,900],['after','Afternoon','3–6pm',900,1080],['eve','Evening','6pm on',1080,99999]];
+let tGroup='';
+function renderTimeTaps(){
+  const sel=$('time'), box=$('timeTaps'), date=$('date').value, g=Number($('guests').value)||2;
+  const all=[...sel.options].filter(o=>o.value), mins=v=>{ const m=toMin(v); return m<360?m+1440:m; };
+  const groups=T_GROUPS.filter(G=>all.some(o=>mins(o.value)>=G[3]&&mins(o.value)<G[4]));
+  const selG=(T_GROUPS.find(G=>sel.value&&mins(sel.value)>=G[3]&&mins(sel.value)<G[4])||[])[0];
+  if(!groups.find(G=>G[0]===tGroup)) tGroup = selG || (groups[0]||[])[0] || '';
+  $('tGroups').innerHTML = groups.length>1 ? groups.map(G=>`<button type="button" data-tg="${G[0]}" class="${G[0]===tGroup?'on':''}">${G[1]}<small>${G[2]}</small></button>`).join('') : '';
+  const G=T_GROUPS.find(x=>x[0]===tGroup), opts= groups.length>1&&G ? all.filter(o=>mins(o.value)>=G[3]&&mins(o.value)<G[4]) : all;
+  box.innerHTML=opts.map(o=>{ let busy=false; try{ busy=!freeTableAt(date,o.value,g); }catch(e){}
+    return `<button type="button" role="radio" data-tv="${o.value}" aria-checked="${o.value===sel.value}" class="${busy?'busy':''}">${esc(o.textContent)}</button>`; }).join('');
+}
+$('tGroups').addEventListener('click',e=>{ const b=e.target.closest('[data-tg]'); if(!b) return; tGroup=b.dataset.tg; renderTimeTaps(); });
+$('date').addEventListener('change',()=>{ tGroup=''; });
+$('timeTaps').addEventListener('click',e=>{ const b=e.target.closest('[data-tv]'); if(!b) return; $('time').value=b.dataset.tv; $('time').dispatchEvent(new Event('change')); renderTimeTaps(); });
+new MutationObserver(renderTimeTaps).observe($('time'),{childList:true});
+$('time').addEventListener('change',renderTimeTaps);
+new MutationObserver(()=>renderTimeTaps()).observe($('avail'),{childList:true});
+$('quickG').addEventListener('click',e=>{ const b=e.target.closest('[data-g]'); if(!b) return; $('guests').value=b.dataset.g; $('guests').dispatchEvent(new Event('change'));
+  $('quickG').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); });
+$('guests').addEventListener('input',()=>$('quickG').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.g===$('guests').value)));
+renderDayMats(); window.bhRenderDayMats=renderDayMats;
+
 function showOk(html){ $('book-confirm').innerHTML=html; $('book-confirm').style.display='block'; }
 function showErr(html){ $('book-error').innerHTML=html; $('book-error').style.display='block'; }
 form.addEventListener('submit', async e=>{
@@ -1415,34 +1532,72 @@ $('contactForm').addEventListener('submit', async e=>{
 });
 
 /* ================= WEBSITE ON / OFF (switched in admin) ================= */
-async function loadStatus(){
-  try{ const s=await getDoc(doc(db,'site','status')); const d=s.exists()?s.data():{};
-    if(d.offline && !/[?&]preview\b/.test(location.search)){
-      if(d.title) $('offTitle').textContent=d.title; if(d.message) $('offMsg').textContent=d.message;
-      $('siteOff').hidden=false; document.documentElement.classList.add('site-off'); document.title=(d.title||"We'll be back soon")+' — The Black Horse'; }
-  }catch(e){ console.warn('Status',e); }
+/* ================= TIMERS (set in admin): switch the website or animations on/off automatically, in UK time ================= */
+const TM_DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const scheduleP = getDoc(doc(db,'site','schedule')).then(s=>s.exists()?(s.data().rules||[]):[]).catch(()=>[]);
+function londonNow(){ const p=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',weekday:'short',hour12:false}).formatToParts(new Date()).map(x=>[x.type,x.value]));
+  const hm=(p.hour==='24'?'00':p.hour)+':'+p.minute; return {stamp:`${p.year}-${p.month}-${p.day}T${hm}`, hm, dow:TM_DAYS.indexOf(p.weekday)}; }
+function timerLive(r,n){ if(!r || r.active===false) return false;
+  if(r.mode==='weekly'){ const d=r.days||[], f=r.from||'00:00', t=r.to||'23:59';
+    if(f<t) return d.includes(n.dow) && n.hm>=f && n.hm<t;
+    return (d.includes(n.dow) && n.hm>=f) || (d.includes((n.dow+6)%7) && n.hm<t); }
+  return (!r.start || n.stamp>=r.start) && (!r.end || n.stamp<r.end); }
+let rules=[], statusBase={}, statusLoaded=false, fxBase=null, lastKey=''; const OFF_MSG=document.getElementById('offMsg').textContent;
+function effective(){
+  const n=londonNow(), st={...statusBase}, fx={...(fxBase||FX_DEF)};
+  for(const r of rules){ if(!timerLive(r,n)) continue; const on=r.turn==='on';
+    if(r.what==='site'){ st.offline=!on; if(!on){ st.title=r.title||st.title; st.message=r.message||st.message; } }
+    else if(r.what==='anim'){ ['pint3d','ambience','shimmer','tilt','motion','splash'].forEach(k=>fx[k]=on); }
+    else fx[r.what]=on; }
+  return {st,fx};
+}
+function applyStatus(d){
+  const off = !!d.offline && !/[?&]preview\b/.test(location.search);
+  if(off){ $('offTitle').textContent=d.title||"We'll be back soon"; $('offMsg').textContent=d.message||OFF_MSG; document.title=(d.title||"We'll be back soon")+' — The Black Horse'; }
+  else if(!$('siteOff').hidden) document.title='The Black Horse — Kingston upon Thames';
+  $('siteOff').hidden=!off; document.documentElement.classList.toggle('site-off',off);
+  try{ off ? localStorage.setItem('bh_off','1') : localStorage.removeItem('bh_off'); }catch(e){}
   document.documentElement.classList.remove('checking');
+}
+function reapply(){ const {st,fx}=effective(), key=JSON.stringify([st.offline,st.title,st.message,fx]); if(key===lastKey) return; lastKey=key; if(statusLoaded) applyStatus(st); if(fxBase) applyFx(fx); }
+setInterval(reapply, 30000); document.addEventListener('visibilitychange',()=>{ if(!document.hidden) reapply(); });
+async function loadStatus(){
+  try{ const s=await getDoc(doc(db,'site','status')); statusBase=s.exists()?s.data():{}; }catch(e){ console.warn('Status',e); }
+  rules=await scheduleP; statusLoaded=true; applyStatus(effective().st);
 }
 
 /* ================= ANIMATIONS & 3D (switched on/off in admin) ================= */
-const FX_DEF={pint3d:true, ambience:true, shimmer:true, tilt:true, motion:true, splash:false, splashKind:'water'};
+const FX_DEF={pint3d:true, ambience:true, shimmer:true, tilt:true, motion:true, splash:false, splashKind:'water', splashCount:3};
 function gotoBook(){ document.getElementById('book').scrollIntoView({behavior:'smooth'}); setTimeout(()=>{ const g=$('guests'); if(g) g.focus({preventScroll:true}); },900); }
+const pageIdle=()=>new Promise(ok=>{ const go=()=>('requestIdleCallback' in window) ? requestIdleCallback(()=>ok(),{timeout:1200}) : setTimeout(ok,200);
+  document.readyState==='complete' ? go() : addEventListener('load',go,{once:true}); });
 async function applyPint(on){
-  const sec=$('pint3d'), reduce=matchMedia('(prefers-reduced-motion: reduce)').matches, saveData=navigator.connection && navigator.connection.saveData;
+  const sec=$('pint3d'), reduce=matchMedia('(prefers-reduced-motion: reduce)').matches, nc=navigator.connection||{}, saveData=nc.saveData || /(^|-)2g|3g/.test(nc.effectiveType||'') || (navigator.deviceMemory && navigator.deviceMemory<=1);
   const html=document.documentElement;
   if(!on || reduce || saveData){ sec.hidden=true; html.classList.remove('pint-on'); window.bhCine && window.bhCine(); window.BHPint && window.BHPint.unmount(); return; }
   sec.hidden=false; html.classList.add('pint-on'); window.bhImmersive && window.bhImmersive(true); window.bhCine && window.bhCine();
   const loadJs=src=>new Promise((ok,no)=>{ const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=()=>{ s.remove(); no(new Error('load '+src)); }; document.head.appendChild(s); });
+  await pageIdle();
   try{ if(!window.BHPint) await loadJs('fx3d.js').catch(()=>loadJs('Fx3d.js'));
     if(!window.BHPint.supported()) throw new Error('no-webgl');
-    await window.BHPint.mount($('pint3dStage'), {onPour:(x,y)=>pourToBooking(x,y)}); }
+    await window.BHPint.mount($('pint3dStage'), {onPour:(x,y)=>pintToFace(x,y)}); }
   catch(e){ console.warn('3D pint', e); sec.hidden=true; html.classList.remove('pint-on'); window.bhCine && window.bhCine(); }
 }
 document.querySelectorAll('a[href="#book"]').forEach(l=>l.addEventListener('click',e=>{ if(!document.documentElement.classList.contains('pint-on') || l.closest('#menuModal,#play,#pint3d,#book')) return; e.preventDefault(); document.getElementById('pint3d').scrollIntoView({behavior:'smooth', block:'center'}); }));
 document.querySelectorAll('.pint-cta').forEach(l=>l.addEventListener('click',e=>{ e.preventDefault(); document.getElementById('pint3d').scrollIntoView({behavior:'smooth', block:'center'}); }));
 $('p3Book').onclick=()=>{ if(window.BHPint && $('pint3dStage').querySelector('canvas')) window.BHPint.pour(); else gotoBook(); };
-/* ---------- tap the pint: the ale pours down the page into the booking form ---------- */
-window.bhPour=(x,y)=>pourToBooking(x,y);
+/* ---------- tap the pint: it's thrown at the screen ("Cheers!"), the ale splats on the glass and runs straight down into the booking form ---------- */
+function pintToFace(x,y){
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce) return pourToBooking(x,y);
+  let done=false; const go=c=>{ if(done) return; done=true; setTimeout(()=>pourToBooking(c.x,c.y), 700); };
+  const at={x:Math.max(innerWidth*.3,Math.min(innerWidth*.7,x)), y:Math.max(innerHeight*.28,Math.min(innerHeight*.5,y))};
+  loadSplash().then(()=>window.BHSplash.play('ale',{at, size:1.1, cheers:false, onImpact:go})).catch(()=>go(at));
+  setTimeout(()=>go(at), 2500);   // never leave the customer waiting
+}
+window.bhPintToFace=pintToFace;
+/* ---------- the ale runs down the page into the booking form ---------- */
+window.bhPour=(x,y)=>pintToFace(x,y);
 /* Tap the pint: the ale runs down the page — the page follows it — and fills the booking form. Scrolling or tapping skips ahead. */
 function pourToBooking(x0,y0){
   const form=document.querySelector('form.book-form'), reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1468,26 +1623,48 @@ function pourToBooking(x0,y0){
     // the page follows the ale down, keeping it a little below the middle of the screen
     const want=Math.min(finalScroll(), Math.max(startScroll, headDoc-innerHeight*.58));
     if(S.skip && !S.landed) scrollTo(0,finalScroll()); else if(!S.landed) scrollTo(0, scrollY+(want-scrollY)*Math.min(1,dt*3.2));
-    const fr=form.getBoundingClientRect(), tx=fr.left+fr.width*.5, landY=fr.top+18;
+    const fr=form.getBoundingClientRect(), tx=Math.max(fr.left+50, Math.min(fr.right-50, srcX)), landY=fr.top+18;
     const srcY=Math.max(-24, srcDocY-scrollY), headY=Math.min(headDoc-scrollY, landY);
     const tailY=S.flowing ? srcY : Math.max(srcY, S.tailDoc-scrollY);
     if(!S.flowing) S.tailDoc+=(380+S.t*900)*dt;
     ctx.clearRect(0,0,innerWidth,innerHeight);
-    if(headY>tailY+2){
-      const steps=Math.max(14,Math.round((headY-tailY)/12)), pts=[], span=Math.max(1,(landDoc-scrollY)-(srcDocY-scrollY));
-      for(let i=0;i<=steps;i++){ const y=tailY+(headY-tailY)*i/steps, k=Math.min(1,Math.max(0,(y-(srcDocY-scrollY))/span)), sm=k*k*(3-2*k);
-        pts.push([srcX+(tx-srcX)*sm+Math.sin(y*.016+S.t*6)*3.2*(1-k*.5), y]); }
-      const g=ctx.createLinearGradient(0,tailY,0,headY); g.addColorStop(0,'rgba(236,160,52,.96)'); g.addColorStop(1,'rgba(170,84,10,.96)');
-      const line=(w,style)=>{ ctx.beginPath(); pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.lineWidth=w; ctx.strokeStyle=style; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.stroke(); };
-      ctx.shadowColor='rgba(255,170,60,.6)'; ctx.shadowBlur=22; line(14,g); ctx.shadowBlur=0;
-      ctx.save(); ctx.translate(-3.5,0); line(3,'rgba(255,238,196,.7)'); ctx.restore();
-      for(let i=0;i<pts.length;i+=2){ const [x,y]=pts[i]; ctx.fillStyle='rgba(255,242,210,.55)'; ctx.beginPath(); ctx.arc(x+Math.sin(S.t*9+i)*3.5,y+Math.sin(S.t*5+i)*2,1.5,0,7); ctx.fill(); }
-      if(!S.landed){ const [hx,hy]=pts[pts.length-1]; const hg=ctx.createRadialGradient(hx,hy,0,hx,hy,16); hg.addColorStop(0,'rgba(255,214,140,.9)'); hg.addColorStop(1,'rgba(214,128,24,0)'); ctx.fillStyle=hg; ctx.beginPath(); ctx.arc(hx,hy,16,0,7); ctx.fill(); } }
+    if(headY>tailY+2) drawAle(tailY, headY, srcY, landDoc-scrollY, tx);
     if(S.p>=1 && !S.landed){ S.landed=true; cleanupInput(); scrollTo(0,finalScroll()); land(); }
     if(S.landed && S.flowing) for(let i=0;i<2;i++) S.splash.push({x:tx+(Math.random()-.5)*12,y:landY,vx:(Math.random()-.5)*200,vy:-110-Math.random()*190,l:1});
     S.splash.forEach(p=>{ p.vy+=880*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.l-=dt*1.4; if(p.l>0){ ctx.fillStyle=`rgba(226,148,40,${p.l})`; ctx.beginPath(); ctx.arc(p.x,p.y,2.6,0,7); ctx.fill(); } });
     S.splash=S.splash.filter(p=>p.l>0&&p.y<innerHeight+20);
     if(!S.flowing && tailY>=headY-2 && !S.splash.length){ cancelAnimationFrame(raf); cv.remove(); removeEventListener('resize',fit); html.style.scrollBehavior=prevSB; }
+  }
+  /* a real-looking stream of ale: a glossy ribbon that swells and narrows, with light running down it, foam flecks and a heavy drop at the front */
+  const BW=innerWidth<600?15:20;
+  function drawAle(tailY, headY, srcY, landYv, tx){
+    const span=Math.max(1,landYv-srcY), n=Math.max(10,Math.round((headY-tailY)/7)), C=[], Wd=[];
+    for(let i=0;i<=n;i++){ const y=tailY+(headY-tailY)*i/n, k=Math.min(1,Math.max(0,(y-srcY)/span)), sm=k*k*(3-2*k);
+      const x=srcX+(tx-srcX)*sm + Math.sin(y*.012+S.t*2.2)*2.2*(1-k*.6);
+      let w=BW*(1+.24*Math.sin(y*.045-S.t*9)+.1*Math.sin(y*.11+S.t*4));
+      if(!S.flowing) w*= Math.min(1,(i/n)*1.6+.25);               // the tail thins out once the pour stops
+      if(i<4 && S.flowing) w*= .75+i*.07;                           // narrower where it leaves the splash
+      C.push([x,y]); Wd.push(w); }
+    const edge=(f,dx)=>{ ctx.beginPath(); C.forEach(([x,y],i)=>{ const p=[x-Wd[i]*f/2+dx*Wd[i],y]; i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]); });
+      for(let i=C.length-1;i>=0;i--){ const [x,y]=C[i]; ctx.lineTo(x+Wd[i]*f/2+dx*Wd[i],y); } ctx.closePath(); };
+    ctx.save();
+    ctx.shadowColor='rgba(255,160,40,.45)'; ctx.shadowBlur=20; ctx.fillStyle='rgba(112,50,6,.94)'; edge(1,0); ctx.fill(); ctx.shadowBlur=0;
+    const g=ctx.createLinearGradient(0,tailY,0,headY); g.addColorStop(0,'rgba(232,150,44,.96)'); g.addColorStop(.5,'rgba(214,124,26,.96)'); g.addColorStop(1,'rgba(186,96,14,.97)');
+    ctx.fillStyle=g; edge(.78,.03); ctx.fill();
+    ctx.fillStyle='rgba(255,206,120,.42)'; edge(.3,-.12); ctx.fill();                       // light passing through the middle
+    const along=(off,lw,col,dash,speed)=>{ ctx.beginPath(); C.forEach(([x,y],i)=>i?ctx.lineTo(x+off*Wd[i],y):ctx.moveTo(x+off*Wd[i],y));
+      ctx.lineWidth=lw; ctx.strokeStyle=col; ctx.lineCap='round'; ctx.setLineDash(dash); ctx.lineDashOffset=-S.t*speed; ctx.stroke(); ctx.setLineDash([]); };
+    along(-.27,2.2,'rgba(255,250,235,.85)',[18,26],300);                                      // window reflection sliding down
+    along(.22,1.4,'rgba(255,236,200,.4)',[6,34],380);
+    along(-.05,1,'rgba(120,52,4,.35)',[3,16],420);
+    for(let i=0;i<10;i++){ const u=((i*.137+S.t*.55)%1), idx=Math.min(C.length-1,Math.floor(u*C.length)), [x,y]=C[idx];   // foam flecks carried in the flow
+      ctx.fillStyle='rgba(255,246,226,.75)'; ctx.beginPath(); ctx.arc(x+Math.sin(i*7.3)*Wd[idx]*.28, y, 1.1+(i%3)*.5, 0, 7); ctx.fill(); }
+    if(!S.landed){ const [hx,hy]=C[C.length-1], r=BW*.78;                                        // the heavy drop leading the stream
+      const hg=ctx.createRadialGradient(hx-r*.3,hy-r*.2,1,hx,hy,r*1.1); hg.addColorStop(0,'rgba(250,184,80,.98)'); hg.addColorStop(.7,'rgba(200,104,18,.97)'); hg.addColorStop(1,'rgba(112,50,6,.95)');
+      ctx.fillStyle=hg; ctx.beginPath(); ctx.ellipse(hx,hy+r*.2,r,r*1.18,0,0,7); ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,.85)'; ctx.beginPath(); ctx.ellipse(hx-r*.35,hy-r*.25,r*.28,r*.14,-.5,0,7); ctx.fill();
+      if(Math.random()<.25) S.splash.push({x:hx+(Math.random()-.5)*r,y:hy,vx:(Math.random()-.5)*60,vy:20+Math.random()*60,l:.6}); }
+    ctx.restore();
   }
   raf=requestAnimationFrame(draw);
   function land(){
@@ -1508,16 +1685,20 @@ function pourToBooking(x0,y0){
 async function loadEffects(){
   let fx={...FX_DEF};
   try{ const s=await getDoc(doc(db,'site','effects')); if(s.exists()) fx={...fx,...s.data()}; }catch(e){}
+  fxBase=fx; rules=await scheduleP; reapply();
+}
+let lastPint=null;
+function applyFx(fx){
   window.bhEffects=fx; const h=document.documentElement;
   h.classList.toggle('fx-no-ambience', !fx.ambience); h.classList.toggle('fx-no-shimmer', !fx.shimmer); h.classList.toggle('fx-no-tilt', !fx.tilt); h.classList.toggle('fx-no-motion', !fx.motion);
   window.dispatchEvent(new Event('bh-effects'));
-  applyPint(!!fx.pint3d);
+  if(lastPint!==!!fx.pint3d){ lastPint=!!fx.pint3d; applyPint(lastPint); }
   applySplash(fx);
 }
 /* ---- "splash in the face": loaded only when the main admin switches it on ---- */
 let splashReady=null;
 function loadSplash(){ return splashReady || (splashReady=new Promise((ok,no)=>{ if(window.BHSplash) return ok(); const s=document.createElement('script'); s.src='./splash.js'; s.onload=ok; s.onerror=no; document.head.appendChild(s); })); }
-function playSplash(){ const fx=window.bhEffects||{}; if(!fx.splash) return; loadSplash().then(()=>window.BHSplash.play(fx.splashKind||'water')).catch(()=>{}); }
+function playSplash(){ const fx=window.bhEffects||{}; if(!fx.splash) return; loadSplash().then(()=>window.BHSplash.series(fx.splashKind||'water', fx.splashCount||3)).catch(()=>{}); }
 function applySplash(fx){
   let b=$('splashBtn');
   if(!fx.splash){ if(b) b.hidden=true; return; }
@@ -1562,14 +1743,19 @@ window.bhCreateVoucher=async(score, det={})=>{
 };
 
 /* ================= START ================= */
-loadStatus(); loadEffects(); loadContent(); loadGallery(); loadOffers(); loadPromo(); loadMenu();
-window.bhReloadGallery=()=>loadGallery(); window.bhReloadOffers=()=>loadOffers();
+loadStatus(); loadEffects(); loadContent(); loadOffers(); loadPromo(); loadMenu();
+/* Photos are the heaviest thing on the site, so they wait until the visitor scrolls, opens the menu, or the first screen has finished (~3.5s). */
+let galleryP=null; const galleryNow=()=> galleryP ||= loadGallery();
+['scroll','pointerdown','keydown'].forEach(ev=>addEventListener(ev,galleryNow,{once:true,passive:true}));
+addEventListener('load',()=>setTimeout(galleryNow,3500),{once:true});
+window.bhGalleryNow=galleryNow;
+window.bhReloadGallery=()=>{ galleryP=loadGallery(); return galleryP; }; window.bhReloadOffers=()=>loadOffers();
 
 /* ================= STAFF LOGIN (staff tools open inside the website) ================= */
 let staffMod=null; const loadStaff=()=> staffMod ||= import('./staff.js');
 $('staffLink').addEventListener('click',e=>{ e.preventDefault(); loadStaff().then(m=>m.openLogin()).catch(err=>{ console.error(err); alert('Staff login could not load — please check your connection.'); }); });
 try{ if(localStorage.getItem('bh_staff')==='1') loadStaff(); else if(location.hash==='#staff') loadStaff().then(m=>m.openLogin()); }catch(e){}
-loadHours().then(loadSettings);
+loadHours().then(loadSettings).then(()=>window.bhRenderDayMats&&window.bhRenderDayMats());
 </script>
 
 
@@ -1962,6 +2148,18 @@ loadHours().then(loadSettings);
 })();
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js" defer></script>
+<script>/* every button pours a drink when tapped: ale into the brass ones, stout into the oak ones */
+(function(){ if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  document.addEventListener('pointerdown',function(e){ var b=e.target.closest&&e.target.closest('.btn'); if(!b||b.disabled) return;
+    var old=b.querySelector('.btn-pour'); if(old) old.remove(); b.classList.remove('poured-out');
+    var p=document.createElement('span'); p.className='btn-pour'; p.setAttribute('aria-hidden','true');
+    for(var i=0;i<7;i++){ var f=document.createElement('i'); f.style.left=(8+Math.random()*84)+'%'; f.style.animationDelay=(.15+Math.random()*.5)+'s'; p.appendChild(f); }
+    b.appendChild(p); b.classList.add('tapped');
+    setTimeout(function(){ b.classList.remove('tapped'); },160);
+    setTimeout(function(){ b.classList.add('poured-out'); },900);
+    setTimeout(function(){ if(p.parentNode) p.remove(); b.classList.remove('poured-out'); },1400);
+  },{passive:true});
+})();</script>
 <script>
 /* ================= MOTION (anime.js) ================= */
 window.addEventListener('DOMContentLoaded',()=>{ setTimeout(startMotion, 50); });
@@ -2028,7 +2226,7 @@ function startMotion(){
   let sw; addEventListener('scroll',()=>{ clearTimeout(sw); sw=setTimeout(sweep,140); },{passive:true}); setInterval(sweep,1500); setTimeout(sweep,600);
   window.addEventListener('bh-effects',()=>{ if(!motionOn()) document.querySelectorAll('.reveal').forEach(el=>{ el.classList.add('in'); el.style.opacity=1; el.querySelectorAll('.w-split>span').forEach(s=>{ s.style.transform='none'; s.style.opacity=1; }); }); });
   // "Book a Table" buttons breathe a warm glow now and then
-  anime({targets:'.hero-ctas .btn-gold, .nav-cta .btn-gold', boxShadow:['0 0 0 0 rgba(228,206,147,0)','0 0 0 10px rgba(228,206,147,.0)','0 0 26px 2px rgba(228,206,147,.55)','0 0 0 0 rgba(228,206,147,0)'],
+  anime({targets:'.hero-ctas .btn-gold, .nav-cta .btn-gold', filter:['drop-shadow(0 0 0px rgba(228,206,147,0))','drop-shadow(0 0 14px rgba(255,214,130,.75))','drop-shadow(0 0 0px rgba(228,206,147,0))'],
     duration:2600, delay:2400, endDelay:5200, loop:true, easing:'easeInOutSine', update:a=>{ if(!motionOn()) a.pause(); }});
   // menu opens with its categories cascading in
   const mm=document.getElementById('menuModal');
