@@ -399,6 +399,9 @@
   .pour-fill svg{position:absolute;left:0;top:-15px;width:200%;height:16px;}
   .pour-fill .foam{position:absolute;left:0;right:0;top:-6px;height:14px;background:linear-gradient(180deg,rgba(255,246,226,.85),rgba(255,240,210,.0));}
   .pour-fill i{position:absolute;bottom:0;width:6px;height:6px;border-radius:50%;background:rgba(255,245,220,.75);}
+  html.pint-on .hero-ctas .btn-gold{display:none;}
+  .pint-cta{display:none;}
+  html.pint-on .hero-ctas .pint-cta{display:inline-flex;}
   form.book-form.poured{box-shadow:0 0 0 1px rgba(228,206,147,.6),0 0 40px rgba(228,206,147,.25);}
   /* ---------- 3D pint (switch on/off in admin) ---------- */
   #pint3d{position:relative;padding:0;height:min(78vh,560px);min-height:420px;overflow:hidden;border-bottom:1px solid var(--line-dark);
@@ -406,6 +409,8 @@
   #pint3d[hidden]{display:none;}
   #pint3dStage{position:absolute;inset:0;}
   #pint3dStage canvas{display:block;width:100%;height:100%;}
+  #pint3d::before{content:'';position:absolute;left:0;right:0;top:0;height:30%;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(12,11,9,.9) 0%,rgba(12,11,9,.5) 60%,rgba(12,11,9,0) 100%);}
+  #pint3d::after{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;box-shadow:inset 0 0 120px 30px rgba(0,0,0,.65);}
   .p3-copy{position:absolute;left:0;right:0;top:26px;text-align:center;pointer-events:none;z-index:2;padding:0 20px;}
   .p3-copy h2{font-size:clamp(26px,4vw,40px);color:var(--gold-light);margin:8px 0 0;text-shadow:0 2px 24px rgba(0,0,0,.6);}
   .p3-cta{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);z-index:2;display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;width:max-content;max-width:calc(100% - 32px);}
@@ -515,6 +520,7 @@
       <div class="hero-ctas">
         <a class="btn btn-gold" href="#book">Book a Table</a>
         <a class="btn btn-outline-light" href="#menu">View Our Menu</a>
+        <a class="btn btn-gold pint-cta" href="#pint3d">🍺 Pour yourself a table</a>
       </div>
       <a class="play-chip" href="#play" data-play-link hidden>🎮 Play Wok Toss · win 25% off</a>
     </div>
@@ -1364,68 +1370,82 @@ const FX_DEF={pint3d:true, ambience:true, shimmer:true, tilt:true, motion:true};
 function gotoBook(){ document.getElementById('book').scrollIntoView({behavior:'smooth'}); setTimeout(()=>{ const g=$('guests'); if(g) g.focus({preventScroll:true}); },900); }
 async function applyPint(on){
   const sec=$('pint3d'), reduce=matchMedia('(prefers-reduced-motion: reduce)').matches, saveData=navigator.connection && navigator.connection.saveData;
-  if(!on || reduce || saveData){ sec.hidden=true; window.BHPint && window.BHPint.unmount(); return; }
-  sec.hidden=false;
+  const html=document.documentElement;
+  if(!on || reduce || saveData){ sec.hidden=true; html.classList.remove('pint-on'); window.BHPint && window.BHPint.unmount(); return; }
+  sec.hidden=false; html.classList.add('pint-on');
   const loadJs=src=>new Promise((ok,no)=>{ const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=()=>{ s.remove(); no(new Error('load '+src)); }; document.head.appendChild(s); });
   try{ if(!window.BHPint) await loadJs('fx3d.js').catch(()=>loadJs('Fx3d.js'));
     if(!window.BHPint.supported()) throw new Error('no-webgl');
     await window.BHPint.mount($('pint3dStage'), {onPour:(x,y)=>pourToBooking(x,y)}); }
-  catch(e){ console.warn('3D pint', e); sec.hidden=true; }
+  catch(e){ console.warn('3D pint', e); sec.hidden=true; html.classList.remove('pint-on'); }
 }
+document.querySelectorAll('a[href="#book"]').forEach(l=>l.addEventListener('click',e=>{ if(!document.documentElement.classList.contains('pint-on') || l.closest('#menuModal,#play,#pint3d,#book')) return; e.preventDefault(); document.getElementById('pint3d').scrollIntoView({behavior:'smooth', block:'center'}); }));
+document.querySelectorAll('.pint-cta').forEach(l=>l.addEventListener('click',e=>{ e.preventDefault(); document.getElementById('pint3d').scrollIntoView({behavior:'smooth', block:'center'}); }));
 $('p3Book').onclick=()=>{ if(window.BHPint && $('pint3dStage').querySelector('canvas')) window.BHPint.pour(); else gotoBook(); };
 /* ---------- tap the pint: the ale pours down the page into the booking form ---------- */
 window.bhPour=(x,y)=>pourToBooking(x,y);
+/* Tap the pint: the ale runs down the page — the page follows it — and fills the booking form. Scrolling or tapping skips ahead. */
 function pourToBooking(x0,y0){
   const form=document.querySelector('form.book-form'), reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(!form || reduce || typeof anime==='undefined' || document.documentElement.classList.contains('fx-no-motion')) return gotoBook();
   if(document.querySelector('.pour-layer')) return;
   const dpr=Math.min(devicePixelRatio||1,2), cv=document.createElement('canvas'); cv.className='pour-layer'; document.body.appendChild(cv);
-  const ctx=cv.getContext('2d'); const fit=()=>{ cv.width=innerWidth*dpr; cv.height=innerHeight*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); }; fit();
+  const ctx=cv.getContext('2d'); const fit=()=>{ cv.width=innerWidth*dpr; cv.height=innerHeight*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); }; fit(); addEventListener('resize',fit);
   const html=document.documentElement, prevSB=html.style.scrollBehavior; html.style.scrollBehavior='auto';
-  const startScroll=scrollY, targetScroll=Math.max(0, form.getBoundingClientRect().top+scrollY-110);
-  const S={head:y0, v:120, flowing:true, tail:y0, landed:false, splash:[], t0:performance.now(), done:false};
-  // glide the page down to the booking form while the ale runs
-  const sc={y:startScroll}; anime({targets:sc, y:targetScroll, duration:1700, delay:300, easing:'easeInOutCubic', update:()=>scrollTo(0,sc.y)});
+  const startScroll=scrollY, srcDocY=y0+scrollY, srcX=x0;
+  const formDocTop=()=>form.getBoundingClientRect().top+scrollY+18;
+  const finalScroll=()=>Math.max(0, form.getBoundingClientRect().top+scrollY-110);
+  const dist=Math.max(200, formDocTop()-srcDocY), travel=Math.min(5.6, Math.max(3.4, dist/430));   // seconds for the ale to reach the form
+  const S={p:0, flowing:true, tailDoc:srcDocY, landed:false, splash:[], skip:false, t:0};
+  const skip=()=>{ if(S.landed) return; S.skip=true; };
+  const stopKeys=e=>{ if(['ArrowDown','ArrowUp','PageDown','PageUp','Space',' ','End','Home'].includes(e.key)) skip(); };
+  addEventListener('wheel',skip,{passive:true}); addEventListener('touchstart',skip,{passive:true}); addEventListener('keydown',stopKeys);
+  const cleanupInput=()=>{ removeEventListener('wheel',skip); removeEventListener('touchstart',skip); removeEventListener('keydown',stopKeys); };
+  const easeIO=k=>k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
   let last=performance.now(), raf;
-  function draw(now){ raf=requestAnimationFrame(draw); const dt=Math.min(.05,(now-last)/1000); last=now; const t=(now-S.t0)/1000;
+  function draw(now){ raf=requestAnimationFrame(draw); const dt=Math.min(.05,(now-last)/1000); last=now; S.t+=dt;
+    if(!S.landed){ S.p = S.skip ? 1 : Math.min(1, S.p+dt/travel); }
+    const landDoc=formDocTop(), headDoc=srcDocY+(landDoc-srcDocY)*easeIO(S.p);
+    // the page follows the ale down, keeping it a little below the middle of the screen
+    const want=Math.min(finalScroll(), Math.max(startScroll, headDoc-innerHeight*.58));
+    if(S.skip && !S.landed) scrollTo(0,finalScroll()); else if(!S.landed) scrollTo(0, scrollY+(want-scrollY)*Math.min(1,dt*3.2));
     const fr=form.getBoundingClientRect(), tx=fr.left+fr.width*.5, landY=fr.top+18;
-    const srcY=Math.max(-20, y0-(scrollY-startScroll)), srcX=x0;
-    S.v+=1900*dt; S.head=Math.min(S.head+S.v*dt, landY);
-    if(!S.flowing){ S.tail+= (S.tail<srcY?0:0) + 1400*dt*(1+t*.2); } else S.tail=srcY;
+    const srcY=Math.max(-24, srcDocY-scrollY), headY=Math.min(headDoc-scrollY, landY);
+    const tailY=S.flowing ? srcY : Math.max(srcY, S.tailDoc-scrollY);
+    if(!S.flowing) S.tailDoc+=(380+S.t*900)*dt;
     ctx.clearRect(0,0,innerWidth,innerHeight);
-    const top=Math.max(S.tail,srcY), bottom=S.head; if(bottom>top+2){
-      const steps=Math.max(12,Math.round((bottom-top)/14)), pts=[];
-      for(let i=0;i<=steps;i++){ const y=top+(bottom-top)*i/steps, k=Math.min(1,Math.max(0,(y-srcY)/Math.max(1,landY-srcY)));
-        const x=srcX+(tx-srcX)*(k*k*(3-2*k))+Math.sin(y*.018+t*7)*3*(1-k*.6); pts.push([x,y]); }
-      const g=ctx.createLinearGradient(0,top,0,bottom); g.addColorStop(0,'rgba(232,150,40,.95)'); g.addColorStop(1,'rgba(176,90,12,.95)');
+    if(headY>tailY+2){
+      const steps=Math.max(14,Math.round((headY-tailY)/12)), pts=[], span=Math.max(1,(landDoc-scrollY)-(srcDocY-scrollY));
+      for(let i=0;i<=steps;i++){ const y=tailY+(headY-tailY)*i/steps, k=Math.min(1,Math.max(0,(y-(srcDocY-scrollY))/span)), sm=k*k*(3-2*k);
+        pts.push([srcX+(tx-srcX)*sm+Math.sin(y*.016+S.t*6)*3.2*(1-k*.5), y]); }
+      const g=ctx.createLinearGradient(0,tailY,0,headY); g.addColorStop(0,'rgba(236,160,52,.96)'); g.addColorStop(1,'rgba(170,84,10,.96)');
       const line=(w,style)=>{ ctx.beginPath(); pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.lineWidth=w; ctx.strokeStyle=style; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.stroke(); };
-      ctx.shadowColor='rgba(255,170,60,.55)'; ctx.shadowBlur=18; line(13,g); ctx.shadowBlur=0;
-      ctx.save(); ctx.translate(-3,0); line(3,'rgba(255,236,190,.65)'); ctx.restore();
-      for(let i=0;i<pts.length;i+=3){ const [x,y]=pts[i]; ctx.fillStyle='rgba(255,240,205,.5)'; ctx.beginPath(); ctx.arc(x+Math.sin(t*9+i)*3,y,1.4,0,7); ctx.fill(); } }
-    if(S.head>=landY-1 && !S.landed){ S.landed=true; land(); }
-    if(S.landed && S.flowing) for(let i=0;i<3;i++) S.splash.push({x:tx+(Math.random()-.5)*10,y:landY,vx:(Math.random()-.5)*220,vy:-120-Math.random()*200,l:1});
-    S.splash.forEach(p=>{ p.vy+=900*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.l-=dt*1.6; if(p.l>0){ ctx.fillStyle=`rgba(226,148,40,${p.l})`; ctx.beginPath(); ctx.arc(p.x,p.y,2.6,0,7); ctx.fill(); } });
+      ctx.shadowColor='rgba(255,170,60,.6)'; ctx.shadowBlur=22; line(14,g); ctx.shadowBlur=0;
+      ctx.save(); ctx.translate(-3.5,0); line(3,'rgba(255,238,196,.7)'); ctx.restore();
+      for(let i=0;i<pts.length;i+=2){ const [x,y]=pts[i]; ctx.fillStyle='rgba(255,242,210,.55)'; ctx.beginPath(); ctx.arc(x+Math.sin(S.t*9+i)*3.5,y+Math.sin(S.t*5+i)*2,1.5,0,7); ctx.fill(); }
+      if(!S.landed){ const [hx,hy]=pts[pts.length-1]; const hg=ctx.createRadialGradient(hx,hy,0,hx,hy,16); hg.addColorStop(0,'rgba(255,214,140,.9)'); hg.addColorStop(1,'rgba(214,128,24,0)'); ctx.fillStyle=hg; ctx.beginPath(); ctx.arc(hx,hy,16,0,7); ctx.fill(); } }
+    if(S.p>=1 && !S.landed){ S.landed=true; cleanupInput(); scrollTo(0,finalScroll()); land(); }
+    if(S.landed && S.flowing) for(let i=0;i<2;i++) S.splash.push({x:tx+(Math.random()-.5)*12,y:landY,vx:(Math.random()-.5)*200,vy:-110-Math.random()*190,l:1});
+    S.splash.forEach(p=>{ p.vy+=880*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.l-=dt*1.4; if(p.l>0){ ctx.fillStyle=`rgba(226,148,40,${p.l})`; ctx.beginPath(); ctx.arc(p.x,p.y,2.6,0,7); ctx.fill(); } });
     S.splash=S.splash.filter(p=>p.l>0&&p.y<innerHeight+20);
-    if(!S.flowing && S.tail>=S.head-2 && !S.splash.length){ cancelAnimationFrame(raf); cv.remove(); html.style.scrollBehavior=prevSB; }
+    if(!S.flowing && tailY>=headY-2 && !S.splash.length){ cancelAnimationFrame(raf); cv.remove(); removeEventListener('resize',fit); html.style.scrollBehavior=prevSB; }
   }
   raf=requestAnimationFrame(draw);
   function land(){
-    // the form fills with ale, a foamy head rides on top, bubbles rise, then it drains to a gold glow
     const fill=document.createElement('div'); fill.className='pour-fill';
     fill.innerHTML='<svg viewBox="0 0 200 16" preserveAspectRatio="none"><path d="M0 8 Q12.5 0 25 8 T50 8 T75 8 T100 8 T125 8 T150 8 T175 8 T200 8 V16 H0Z" fill="rgba(255,244,222,.9)"/></svg><div class="foam"></div>'+
-      Array.from({length:18},(_,i)=>`<i style="left:${4+Math.random()*92}%;"></i>`).join('');
+      Array.from({length:22},()=>`<i style="left:${4+Math.random()*92}%;"></i>`).join('');
     form.prepend(fill);
-    anime({targets:fill.querySelector('svg'), translateX:['0%','-50%'], duration:1100, loop:true, easing:'linear'});
-    anime({targets:fill.querySelectorAll('i'), translateY:()=>[0,-anime.random(80,260)], opacity:[.9,0], scale:[.6,1.2], delay:anime.stagger(90), duration:1400, loop:true, easing:'easeOutSine'});
+    anime({targets:fill.querySelector('svg'), translateX:['0%','-50%'], duration:1300, loop:true, easing:'linear'});
+    anime({targets:fill.querySelectorAll('i'), translateY:()=>[0,-anime.random(90,300)], opacity:[.9,0], scale:[.6,1.2], delay:anime.stagger(110), duration:1700, loop:true, easing:'easeOutSine'});
     anime.timeline({easing:'easeOutCubic'})
-      .add({targets:fill, height:['0%','100%'], duration:1300})
-      .add({targets:{}, duration:350, begin:()=>{ S.flowing=false; }})
-      .add({targets:fill, opacity:[1,0], duration:900, easing:'easeInQuad', complete:()=>{ anime.remove(fill.querySelectorAll('i')); anime.remove(fill.querySelector('svg')); fill.remove(); }})
-      .add({targets:form, boxShadow:['0 0 0 1px rgba(228,206,147,0), 0 0 0px rgba(228,206,147,0)','0 0 0 1px rgba(228,206,147,.7), 0 0 46px rgba(228,206,147,.35)'], duration:700,
-            begin:()=>form.classList.add('poured'), complete:()=>{ const g=$('guests'); if(g) g.focus({preventScroll:true}); }}, '-=500');
+      .add({targets:fill, height:['0%','100%'], duration:2400, easing:'easeInOutSine'})
+      .add({targets:{}, duration:700, begin:()=>{ S.flowing=false; S.t=0; S.tailDoc=Math.max(srcDocY, scrollY-30); }})
+      .add({targets:fill, opacity:[1,0], duration:1400, easing:'easeInQuad', complete:()=>{ anime.remove(fill.querySelectorAll('i')); anime.remove(fill.querySelector('svg')); fill.remove(); }})
+      .add({targets:form, boxShadow:['0 0 0 1px rgba(228,206,147,0), 0 0 0px rgba(228,206,147,0)','0 0 0 1px rgba(228,206,147,.7), 0 0 46px rgba(228,206,147,.35)'], duration:800,
+            begin:()=>form.classList.add('poured'), complete:()=>{ const g=$('guests'); if(g) g.focus({preventScroll:true}); }}, '-=700');
   }
 }
-
 async function loadEffects(){
   let fx={...FX_DEF};
   try{ const s=await getDoc(doc(db,'site','effects')); if(s.exists()) fx={...fx,...s.data()}; }catch(e){}
