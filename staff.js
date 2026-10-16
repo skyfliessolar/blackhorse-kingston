@@ -227,12 +227,15 @@ $('sfBody').addEventListener('change', async e=>{
 function rOffers(body){
   const l=offers.slice().sort((a,b)=>(a.order||0)-(b.order||0)), t=todayISO();
   body.innerHTML=`<div class="sf-tools"><h3 style="margin:0;flex:1">Offers &amp; discounts</h3>${mayDo('offers','add')?'<button class="sf-btn" id="sfAddOffer">+ New offer</button>':''}</div>
-  ${l.map(o=>{ const live=o.active!==false && (!o.from||o.from<=t) && (!o.to||o.to>=t);
-    return `<div class="sf-row" data-oid="${esc(o.id)}"><div class="top"><span>${live?'🟢 On the website':'⚪ Not showing'}</span>
-      <label style="margin-left:auto;display:flex;gap:6px;align-items:center"><input type="checkbox" data-of="active" ${o.active!==false?'checked':''} ${mayDo('offers','toggle')?'':'disabled'}> On</label>${mayDo('offers','del')?'<button class="sf-btn danger" data-odel>Delete</button>':''}</div>
+  ${isOwner?'':'<p class="sub" style="color:rgba(241,232,214,.7);margin:-6px 0 12px">You can change any offer. A <b>new</b> offer goes to the manager first and appears on the website once it is approved.</p>'}
+  ${l.map(o=>{ const wait=o.pending===true, live=!wait && o.active!==false && (!o.from||o.from<=t) && (!o.to||o.to>=t);
+    return `<div class="sf-row ${wait?'urgent':''}" data-oid="${esc(o.id)}"><div class="top"><span>${wait?'⏳ Waiting for manager approval':live?'🟢 On the website':'⚪ Not showing'}</span>
+      <label style="margin-left:auto;display:flex;gap:6px;align-items:center"><input type="checkbox" data-of="active" ${o.active!==false&&!wait?'checked':''} ${mayDo('offers','toggle')&&!wait?'':'disabled'}> On</label>${mayDo('offers','del')?'<button class="sf-btn danger" data-odel>Delete</button>':''}</div>
       <fieldset style="border:0;padding:0;margin:0" ${mayDo('offers','edit')?'':'disabled'}><div class="sf-mi" style="grid-template-columns:110px 1fr"><input type="text" data-of="badge" value="${esc(o.badge||'')}" placeholder="Badge" maxlength="20"><input type="text" data-of="title" value="${esc(o.title||'')}" placeholder="Title" maxlength="80"></div>
       <div class="sf-mi" style="grid-template-columns:1fr 1fr"><input type="text" data-of="text" value="${esc(o.text||'')}" placeholder="Details" maxlength="300"><input type="text" data-of="when" value="${esc(o.when||'')}" placeholder="When (e.g. Tuesdays 5–9pm)" maxlength="80"></div></fieldset></div>`; }).join('') || '<p style="color:rgba(241,232,214,.6)">No offers yet.</p>'}`;
-  if($('sfAddOffer')) $('sfAddOffer').onclick=async()=>{ try{ await addDoc(collection(db,'offers'),{badge:'NEW',title:'New offer',text:'',when:'',from:'',to:'',active:false,order:offers.length,createdAt:serverTimestamp()}); say('Offer added — fill it in and tick On.'); logAct('Offers','New offer added'); }catch(e){ fail(e); } };
+  if($('sfAddOffer')) $('sfAddOffer').onclick=async()=>{ const who=isOwner?'Main admin':(isShared?staffName:(me?.email||'Staff'));
+    try{ await addDoc(collection(db,'offers'),{badge:'NEW',title:'New offer',text:'',when:'',from:'',to:'',active:false,order:offers.length,createdAt:serverTimestamp(), ...(isOwner?{}:{pending:true, requestedBy:String(who).slice(0,80)})});
+      say(isOwner?'Offer added — fill it in and tick On.':'New offer added — fill it in. The manager will approve it before it goes on the website.'); logAct('Offers', isOwner?'New offer added':'New offer added — waiting for approval'); }catch(e){ fail(e); } };
 }
 $('sfBody').addEventListener('change', async e=>{
   const card=e.target.closest('[data-oid]'), f=e.target.dataset.of; if(!card||!f) return; const o=offers.find(x=>x.id===card.dataset.oid)||{};
