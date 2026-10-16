@@ -91,6 +91,8 @@ tr.cancelled td{opacity:.5;}
 td a{color:inherit;}
 .tel{font-weight:600;white-space:nowrap;}
 .pill{display:inline-block;font-family:'Oswald',sans-serif;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:var(--paper);margin:2px 2px 0 0;}
+.g-plan{border-collapse:collapse;font-size:13px;} .g-plan th,.g-plan td{padding:5px 8px;text-align:center;border-bottom:1px solid var(--line);} .g-plan th:first-child,.g-plan td:first-child{text-align:left;}
+.w-row{display:grid;grid-template-columns:1fr 90px 36px;gap:8px;margin-bottom:6px;} .w-row input{padding:8px;}
 .pill.money{background:#E7EFE6;color:#2C5642;}
 .pill.new{background:#C0584A;color:#fff;}
 select.status{border:1px solid var(--line);border-radius:2px;padding:5px 6px;font-size:12.5px;}
@@ -433,8 +435,13 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
         </div>
         <div class="card" data-perm="owner">
           <h3>Game settings</h3>
-          <label class="hint" style="display:block;margin:4px 0 14px;font-size:13.5px;color:var(--text-dark)"><input type="checkbox" id="pr-enabled"> Show the Wok Toss game on the website</label>
-          <div class="field"><label>Discount for every player (%)</label><input id="pr-percent" type="number" min="5" max="50" step="1" value="25"></div>
+          <label class="hint" style="display:block;margin:4px 0 14px;font-size:13.5px;color:var(--text-dark)"><input type="checkbox" id="pr-enabled"> Show the games on the website</label>
+          <div class="field"><label>Games (switch each on or off)</label><div class="chips" id="pr-games"></div></div>
+          <div class="field"><label>Which games show on which day</label><div style="overflow-x:auto"><table class="g-plan" id="pr-plan"></table></div>
+            <p class="hint" style="margin:6px 0 0">A day with nothing ticked shows the first game that's switched on.</p></div>
+          <div class="field"><label>Spin &amp; Win wheel — prizes (0% = "Try again")</label><div id="pr-wheel"></div><button class="btn small ghost" type="button" id="pr-wadd">+ Add a slice</button></div>
+          <div class="field"><label>Scratch the Mat — how often a card wins</label><select id="pr-odds"><option value="0.2">1 in 5</option><option value="0.3">About 1 in 3</option><option value="0.4">2 in 5</option><option value="0.5">1 in 2</option><option value="0.7">Most cards</option><option value="1">Every card</option></select></div>
+          <div class="field"><label>Standard prize — Wok Toss, Perfect Pint and Scratch the Mat (%)</label><input id="pr-percent" type="number" min="5" max="50" step="1" value="25"></div>
           <div class="field"><label>The discount applies to</label>
             <select id="pr-applies"><option value="food">Food only</option><option value="bill">Whole bill (food &amp; drinks)</option></select></div>
           <label class="hint" style="display:block;margin:4px 0 16px;font-size:13.5px;color:var(--text-dark)"><input type="checkbox" id="pr-details"> Ask players for their name + phone or email before they get a code</label>
@@ -518,8 +525,8 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
         <h3 style="margin-top:0">New timer</h3>
         <div class="grid3">
           <div class="field"><label>What</label><select id="tmWhat">
-            <option value="site">The whole website</option><option value="anim">All animations</option><option value="pint3d">3D pint</option><option value="splash">Splash in the face</option>
-            <option value="ambience">Pub lights &amp; embers</option><option value="motion">Scroll animations</option><option value="shimmer">Gold shimmer</option><option value="tilt">Card spotlight &amp; tilt</option></select></div>
+            <option value="site">The whole website</option><option value="classic">Classic (older) style</option><option value="anim">All animations</option><option value="pint3d">3D pint</option><option value="splash">Splash in the face</option>
+            <option value="festivals">Festival themes</option><option value="ambience">Pub lights &amp; embers</option><option value="motion">Scroll animations</option><option value="shimmer">Gold shimmer</option><option value="tilt">Card spotlight &amp; tilt</option></select></div>
           <div class="field"><label>Turn it</label><select id="tmTurn"><option value="off">OFF</option><option value="on">ON</option></select></div>
           <div class="field"><label>When</label><select id="tmMode"><option value="once">Once — between two dates</option><option value="weekly">Every week — on chosen days</option></select></div>
         </div>
@@ -540,6 +547,8 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
     <section class="panel" id="p-effects">
       <div class="head"><div><span class="eyebrow">Main admin only</span><h2>Animations &amp; 3D</h2></div><div class="toolbar"><button class="btn ghost" id="fxAllOff">Turn all off</button><button class="btn" id="saveFx">Save</button></div></div>
       <div class="card" style="max-width:760px">
+        <div class="fx-row" style="background:#FBF7EE;margin:-6px -10px 6px;padding:16px 10px"><div><b>Website style</b><p><b>Animated</b> uses everything switched on below. <b>Classic</b> is the older, simpler website — plain buttons and no animations at all (the switches below are kept for when you go back).</p></div>
+          <div class="chips" style="display:flex;gap:14px"><label><input type="radio" name="fxStyle" value="animated"> Animated</label><label><input type="radio" name="fxStyle" value="classic"> Classic</label></div></div>
         <div class="fx-row"><div><b>3D pint glass</b><p>A real-time 3D pint under the top banner — glowing beer, foam, bubbles and condensation on a Black Horse coaster. Customers can turn it, and tapping it takes them to Book a Table.</p></div><label class="tgl"><input type="checkbox" data-fx="pint3d"><span></span></label></div>
         <div class="fx-row"><div><b>Pub lights &amp; embers</b><p>Warm out-of-focus lights and rising embers behind the top banner.</p></div><label class="tgl"><input type="checkbox" data-fx="ambience"><span></span></label></div>
         <div class="fx-row"><div><b>Gold shimmer</b><p>A slow gold sheen across "The Black Horse" title and a glint around the logo.</p></div><label class="tgl"><input type="checkbox" data-fx="shimmer"><span></span></label></div>
@@ -548,8 +557,14 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
         <div class="fx-row"><div><b>How many splashes</b><p>When a visitor arrives, the splash can hit once, or two or three times from different sides with "Cheers!" on the last one.</p></div><select id="fxSplashCount"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></div>
         <div class="fx-row"><div><b>Card spotlight &amp; tilt</b><p>Cards catch a warm light and tilt slightly under the mouse (computers only).</p></div><label class="tgl"><input type="checkbox" data-fx="tilt"><span></span></label></div>
       </div>
+      <div class="card" style="max-width:760px">
+        <div class="fx-row" style="border-bottom:1px solid var(--line)"><div><b>🎉 British festival themes</b><p>On the right days the website dresses up by itself — snow and fairy lights at Christmas, bats and pumpkins at Halloween, fireworks for Bonfire Night and New Year, and more. A greeting ribbon shows under the menu bar (customers can close it).</p></div><label class="tgl"><input type="checkbox" data-fx="festivals"><span></span></label></div>
+        <div class="field" style="margin-top:14px"><label>Show a festival now, for everyone (for trying it out — set back to "By the date" afterwards)</label><select id="fsPreview"><option value="">By the date (normal)</option></select></div>
+        <div id="fsList" style="max-height:520px;overflow:auto"></div>
+        <p class="hint">Untick a festival to skip it. You can change the greeting customers see; leave it empty for the standard one. Moving dates (Easter, Mother's Day, Pancake Day, Diwali, Eid, Lunar New Year) are worked out automatically.</p>
+      </div>
       <div class="msg" id="fxMsg"></div>
-      <p class="hint">Changes reach the website as soon as you press Save (visitors see them next time the page loads). Animations always stay still for visitors whose phones are set to reduce motion, and the 3D pint is skipped on devices or data-saver modes that can't run it. The Wok Toss game has its own switch under Game &amp; discount codes.</p>
+      <p class="hint">Changes reach the website as soon as you press Save (visitors see them next time the page loads). Animations always stay still for visitors whose phones are set to <b>Reduce Motion</b> (an accessibility setting — on iPhone: Settings → Accessibility → Motion), so if an animation doesn't show on your own phone, check that setting first; and the 3D pint is skipped on devices or data-saver modes that can't run it. The Wok Toss game has its own switch under Game &amp; discount codes.</p>
     </section>
 
     <!-- SETTINGS -->
@@ -1561,16 +1576,35 @@ async function startScan(){
 }
 function stopScan(){ clearTimeout(scanTimer); if(scanStream) scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; $('scanBox').hidden=true; $('scanBtn').textContent='📷 Scan QR code'; }
 $('scanBtn').onclick=()=> scanStream ? stopScan() : startScan();
+const G_NAMES={wok:'🔥 Wok Toss',spin:'🎡 Spin & Win',pour:'🍺 Perfect Pint',scratch:'🪙 Scratch the Mat'}, G_DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], G_DOW=[1,2,3,4,5,6,0];
+const G_DEF_DAYS={0:['wok','spin','pour','scratch'],1:['wok'],2:['pour'],3:['scratch'],4:['spin'],5:['spin','wok'],6:['wok','spin','pour','scratch']};
+const G_DEF_WHEEL=[{label:'25% OFF',percent:25},{label:'TRY AGAIN',percent:0},{label:'10% OFF',percent:10},{label:'15% OFF',percent:15},{label:'TRY AGAIN',percent:0},{label:'20% OFF',percent:20},{label:'10% OFF',percent:10},{label:'TRY AGAIN',percent:0}];
+let promoCfg={};
+function renderWheel(w){ $('pr-wheel').innerHTML=w.map((x,i)=>`<div class="w-row" data-wi="${i}"><input data-wl value="${esc(x.label)}" maxlength="14" placeholder="Label"><input data-wp type="number" min="0" max="50" value="${x.percent}"><button class="btn small danger" type="button" data-wdel title="Remove">×</button></div>`).join(''); }
+const readWheel=()=>[...$('pr-wheel').querySelectorAll('.w-row')].map(r=>({label:r.querySelector('[data-wl]').value.trim().toUpperCase().slice(0,14)||'PRIZE', percent:Math.max(0,Math.min(50,Math.round(Number(r.querySelector('[data-wp]').value)||0)))}));
+$('pr-wadd').onclick=()=>{ const w=readWheel(); if(w.length>=12) return; w.push({label:'10% OFF',percent:10}); renderWheel(w); };
+$('pr-wheel').addEventListener('click',e=>{ if(!e.target.matches('[data-wdel]')) return; const w=readWheel(); if(w.length<=2) return; w.splice(Number(e.target.closest('[data-wi]').dataset.wi),1); renderWheel(w); });
+$('pr-wheel').addEventListener('input',e=>{ if(!e.target.matches('[data-wp]')) return; const r=e.target.closest('.w-row'), l=r.querySelector('[data-wl]'), v=Math.round(Number(e.target.value)||0); if(/^(\d+% OFF|TRY AGAIN)$/.test(l.value)) l.value= v>0 ? v+'% OFF' : 'TRY AGAIN'; });
 async function loadPromo(){
-  try{ const s=await getDoc(doc(db,'site','promo')); const p={enabled:false,appliesTo:'food',requireDetails:false,percent:25,...(s.exists()?s.data():{})};
-    $('pr-enabled').checked=p.enabled===true; $('pr-percent').value=p.percent||25; $('pr-applies').value=p.appliesTo==='bill'?'bill':'food'; $('pr-details').checked=!!p.requireDetails; }catch(e){ console.warn(e); }
+  try{ const s=await getDoc(doc(db,'site','promo')); const p={enabled:false,appliesTo:'food',requireDetails:false,percent:25,...(s.exists()?s.data():{})}; promoCfg=p;
+    $('pr-enabled').checked=p.enabled===true; $('pr-percent').value=p.percent||25; $('pr-applies').value=p.appliesTo==='bill'?'bill':'food'; $('pr-details').checked=!!p.requireDetails;
+    const games=p.games||{}, days=p.days||G_DEF_DAYS;
+    $('pr-games').innerHTML=Object.entries(G_NAMES).map(([k,n])=>`<label><input type="checkbox" data-gon="${k}" ${games[k]!==false?'checked':''}> ${n}</label>`).join('');
+    $('pr-plan').innerHTML=`<tr><th></th>${Object.values(G_NAMES).map(n=>`<th>${n}</th>`).join('')}</tr>`+G_DOW.map((d,i)=>`<tr><td><b>${G_DAYS[i]}</b></td>${Object.keys(G_NAMES).map(k=>`<td><input type="checkbox" data-gd="${d}" data-gk="${k}" ${(days[d]||[]).includes(k)?'checked':''} aria-label="${G_DAYS[i]} ${k}"></td>`).join('')}</tr>`).join('');
+    renderWheel(p.wheel||G_DEF_WHEEL); $('pr-odds').value=String(p.scratchOdds ?? 0.4); if(!$('pr-odds').value) $('pr-odds').value='0.4';
+  }catch(e){ console.warn(e); }
 }
 $('savePromo').onclick=async()=>{
   const percent=Math.round(Number($('pr-percent').value));
   if(!(percent>=5&&percent<=50)) return flash('prMsg','Choose a discount between 5% and 50%.',true);
   $('savePromo').disabled=true;
-  try{ await setDoc(doc(db,'site','promo'),{enabled:$('pr-enabled').checked, appliesTo:$('pr-applies').value, requireDetails:$('pr-details').checked, percent});
-    flash('prMsg', $('pr-enabled').checked ? 'Saved — the game is now live on the website.' : 'Saved — the game is hidden; the website looks normal.'); }
+  const games=Object.fromEntries([...$('pr-games').querySelectorAll('[data-gon]')].map(i=>[i.dataset.gon,i.checked]));
+  if(!Object.values(games).some(Boolean)) { $('savePromo').disabled=false; return flash('prMsg','Switch on at least one game (or untick "Show the games").',true); }
+  const days={}; G_DOW.forEach(d=>days[d]=[...$('pr-plan').querySelectorAll(`[data-gd="${d}"]:checked`)].map(i=>i.dataset.gk));
+  const wheel=readWheel(); if(!wheel.some(x=>x.percent>0)){ $('savePromo').disabled=false; return flash('prMsg','Give the wheel at least one prize.',true); }
+  const wheelPercents=[...new Set(wheel.map(x=>x.percent).filter(n=>n>0))];
+  try{ await setDoc(doc(db,'site','promo'),{enabled:$('pr-enabled').checked, appliesTo:$('pr-applies').value, requireDetails:$('pr-details').checked, percent, games, days, wheel, wheelPercents, scratchOdds:Number($('pr-odds').value)||0.4});
+    flash('prMsg', $('pr-enabled').checked ? 'Saved — the games are live on the website.' : 'Saved — the games are hidden; the website looks normal.'); }
   catch(e){ fail('prMsg',e); } finally{ $('savePromo').disabled=false; }
 };
 function hashCode(){ const m=location.hash.match(/^#v=([A-Za-z0-9]{8})$/); return m ? m[1].toUpperCase() : null; }
@@ -1738,7 +1772,7 @@ $('ppGrid').addEventListener('click',async e=>{ if(!e.target.matches('[data-ppde
 
 
 /* ---------- timers: automatic on/off ---------- */
-const TM_WHAT={site:'The whole website',anim:'All animations',pint3d:'3D pint',splash:'Splash in the face',ambience:'Pub lights & embers',motion:'Scroll animations',shimmer:'Gold shimmer',tilt:'Card spotlight & tilt'};
+const TM_WHAT={site:'The whole website',classic:'Classic (older) style',festivals:'Festival themes',anim:'All animations',pint3d:'3D pint',splash:'Splash in the face',ambience:'Pub lights & embers',motion:'Scroll animations',shimmer:'Gold shimmer',tilt:'Card spotlight & tilt'};
 const TM_DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 let timers=[];
 function londonNow(){ const p=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',weekday:'short',hour12:false}).formatToParts(new Date()).map(x=>[x.type,x.value]));
@@ -1778,15 +1812,29 @@ $('tmList').addEventListener('change',async e=>{ if(!e.target.matches('[data-tac
 setInterval(()=>{ if($('p-timers').classList.contains('active')) renderTimers(); },30000);
 
 /* ---------- animations & 3D ---------- */
-const FX_DEF={pint3d:true, ambience:true, shimmer:true, tilt:true, motion:true, splash:false}; let fxCfg={...FX_DEF, splashKind:'water'};
-const FX_NAMES={pint3d:'3D pint', ambience:'Pub lights & embers', shimmer:'Gold shimmer', tilt:'Card spotlight & tilt', motion:'Scroll animations', splash:'Splash in the face'};
-function renderFx(){ document.querySelectorAll('[data-fx]').forEach(i=>i.checked=!!fxCfg[i.dataset.fx]); $('fxSplashKind').value=fxCfg.splashKind||'water'; $('fxSplashCount').value=String(fxCfg.splashCount||3); }
+const FX_DEF={pint3d:true, ambience:true, shimmer:true, tilt:true, motion:true, splash:false, festivals:true}; let fxCfg={...FX_DEF, splashKind:'water'};
+const FX_NAMES={pint3d:'3D pint', ambience:'Pub lights & embers', shimmer:'Gold shimmer', tilt:'Card spotlight & tilt', motion:'Scroll animations', splash:'Splash in the face', festivals:'Festival themes'};
+let festLoaded=null;
+function loadFestList(){ return festLoaded ||= new Promise(ok=>{ if(window.BHFestivals) return ok(); const sc=document.createElement('script'); sc.src='./festivals.js'; sc.onload=ok; sc.onerror=ok; document.head.appendChild(sc); }); }
+async function renderFest(){
+  await loadFestList(); const F=window.BHFestivals; if(!F){ $('fsList').innerHTML='<p class="hint">Could not load the festival list — check festivals.js is uploaded.</p>'; return; }
+  const y=new Date().getFullYear(), off=fxCfg.festivalOff||[], msgs=fxCfg.festivalMsg||{}, now=F.today({off, enabled:true});
+  $('fsPreview').innerHTML='<option value="">By the date (normal)</option>'+F.list.map(f=>`<option value="${f.id}">${f.icon} ${esc(f.name)}</option>`).join(''); $('fsPreview').value=fxCfg.festivalPreview||'';
+  $('fsList').innerHTML=F.list.map(f=>`<div class="fx-row" data-fs="${f.id}" style="grid-template-columns:auto 1fr;padding:10px 0"><label style="display:flex;align-items:center;gap:8px;min-width:210px"><input type="checkbox" data-fson ${off.includes(f.id)?'':'checked'}> <span style="font-size:20px">${f.icon}</span> <b style="font-size:15px">${esc(f.name)}</b> ${now&&now.id===f.id?'<span class="pill new">Today</span>':''}</label>
+    <div><div class="hint" style="margin:0 0 4px">${esc(f.when)} · this year: ${esc(F.datesFor(f,y))}</div><input data-fsmsg value="${esc(msgs[f.id]||'')}" placeholder="${esc(f.msg)}" maxlength="120" style="width:100%"></div></div>`).join('');
+}
+function readFest(){ const off=[], msgs={}; document.querySelectorAll('#fsList [data-fs]').forEach(r=>{ if(!r.querySelector('[data-fson]').checked) off.push(r.dataset.fs); const m=r.querySelector('[data-fsmsg]').value.trim(); if(m) msgs[r.dataset.fs]=m.slice(0,120); }); return {off, msgs, preview:$('fsPreview').value}; }
+function renderFx(){ renderFest(); document.querySelectorAll('[name=fxStyle]').forEach(r=>r.checked=r.value===(fxCfg.style||'animated')); document.querySelectorAll('[data-fx]').forEach(i=>i.checked=!!fxCfg[i.dataset.fx]); $('fxSplashKind').value=fxCfg.splashKind||'water'; $('fxSplashCount').value=String(fxCfg.splashCount||3); }
 async function loadFx(){ try{ const s=await getDoc(doc(db,'site','effects')); if(s.exists()) fxCfg={...FX_DEF,...s.data()}; }catch(e){} renderFx(); }
 $('fxAllOff').onclick=()=>{ document.querySelectorAll('[data-fx]').forEach(i=>i.checked=false); flash('fxMsg','All switched off — press Save to apply.'); };
 $('saveFx').onclick=async()=>{
   const d=Object.fromEntries(Object.keys(FX_DEF).map(k=>[k, !!document.querySelector(`[data-fx="${k}"]`)?.checked]));
   const ch=Object.keys(d).filter(k=>d[k]!==fxCfg[k]).map(k=>`${FX_NAMES[k]} ${d[k]?'ON':'OFF'}`);
   d.splashKind=$('fxSplashKind').value; if(d.splashKind!==(fxCfg.splashKind||'water')) ch.push('Splash drink → '+$('fxSplashKind').selectedOptions[0].text);
+  d.style=(document.querySelector('[name=fxStyle]:checked')||{}).value||'animated'; if(d.style!==(fxCfg.style||'animated')) ch.unshift('Website style → '+(d.style==='classic'?'Classic':'Animated'));
+  const fs=readFest(); d.festivalOff=fs.off; d.festivalMsg=fs.msgs; d.festivalPreview=fs.preview;
+  if(fs.preview!==(fxCfg.festivalPreview||'')) ch.push(fs.preview ? 'Festival shown now → '+fs.preview : 'Festivals back to "by the date"');
+  if(JSON.stringify(fs.off)!==JSON.stringify(fxCfg.festivalOff||[])) ch.push('Festivals skipped: '+(fs.off.join(', ')||'none'));
   d.splashCount=Number($('fxSplashCount').value)||3; if(d.splashCount!==(fxCfg.splashCount||3)) ch.push('Splashes → '+d.splashCount);
   $('saveFx').disabled=true; logNote = ch.length ? ch.join('; ') : 'Animation settings saved (no changes)';
   try{ await setDoc(doc(db,'site','effects'),d); fxCfg=d; flash('fxMsg','Saved — the website uses these settings now.'); }catch(e){ fail('fxMsg',e); } finally{ logNote=''; $('saveFx').disabled=false; }
