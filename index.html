@@ -1611,7 +1611,7 @@ async function loadStatus(){
 }
 
 /* ================= ANIMATIONS & 3D (switched on/off in admin) ================= */
-const FX_DEF={style:'animated', pintTap:'face', pint3d:true, ambience:true, shimmer:true, tilt:true, motion:true, splash:false, splashKind:'water', splashCount:3, festivals:true};
+const FX_DEF={style:'animated', pintTap:'pour', pint3d:true, ambience:true, shimmer:true, tilt:true, motion:true, splash:false, splashKind:'water', splashCount:3, festivals:true};
 function gotoBook(){ document.getElementById('book').scrollIntoView({behavior:'smooth'}); setTimeout(()=>{ const g=$('guests'); if(g) g.focus({preventScroll:true}); },900); }
 const pageIdle=()=>new Promise(ok=>{ const go=()=>('requestIdleCallback' in window) ? requestIdleCallback(()=>ok(),{timeout:1200}) : setTimeout(ok,200);
   document.readyState==='complete' ? go() : addEventListener('load',go,{once:true}); });
@@ -1676,41 +1676,72 @@ function pourToBooking(x0,y0){
     ctx.clearRect(0,0,innerWidth,innerHeight);
     if(headY>tailY+2) drawAle(tailY, headY, srcY, landDoc-scrollY, tx);
     if(S.p>=1 && !S.landed){ S.landed=true; cleanupInput(); scrollTo(0,finalScroll()); land(); }
-    if(S.landed && S.flowing) for(let i=0;i<2;i++) S.splash.push({x:tx+(Math.random()-.5)*12,y:landY,vx:(Math.random()-.5)*200,vy:-110-Math.random()*190,l:1});
-    S.splash.forEach(p=>{ p.vy+=880*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.l-=dt*1.4; if(p.l>0){ ctx.fillStyle=`rgba(226,148,40,${p.l})`; ctx.beginPath(); ctx.arc(p.x,p.y,2.6,0,7); ctx.fill(); } });
+    if(S.landed && S.flowing){ for(let i=0;i<3;i++){ const a=-Math.PI/2+(Math.random()-.5)*2.4, sp=140+Math.random()*260; S.splash.push({x:tx+(Math.random()-.5)*10,y:landY,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:1.4+Math.random()*2.4,l:1}); }
+      if(Math.random()<dt*5) S.rip.push({x:tx,y:landY+6,r:BW*.5,l:1}); }
+    drawDrops(dt);
+    S.splash.forEach(p=>{ p.vy+=1100*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.l-=dt*1.3; if(p.l>0) lensDrop(p.x,p.y,p.r,Math.min(1,p.l+.15),1+Math.min(1,Math.abs(p.vy)/900)); });
     S.splash=S.splash.filter(p=>p.l>0&&p.y<innerHeight+20);
-    if(!S.flowing && tailY>=headY-2 && !S.splash.length){ cancelAnimationFrame(raf); cv.remove(); removeEventListener('resize',fit); html.style.scrollBehavior=prevSB; }
+    if(!S.flowing && tailY>=headY-2 && !S.splash.length && !S.drops.length){ cancelAnimationFrame(raf); cv.remove(); removeEventListener('resize',fit); html.style.scrollBehavior=prevSB; }
   }
-  /* a real-looking stream of ale: a glossy ribbon that swells and narrows, with light running down it, foam flecks and a heavy drop at the front */
-  const BW=innerWidth<600?15:20;
+  /* REAL-LOOKING ALE STREAM
+     - it thins as it speeds up and has ripples running down it (like a real pour)
+     - see-through amber body with darker edges where light bends, moving highlights and bubbles
+     - a soft shadow on the page behind it and warm light cast around it
+     - while falling, the front breaks into drops; stray droplets fly off; on landing a crown splash and ripples */
+  const BW=innerWidth<600?16:22;
+  S.drops=[]; S.rip=[];
+  function lensDrop(x,y,r,a,stretch){ const g=ctx.createRadialGradient(x-r*.35,y-r*.35,r*.1,x,y,r*1.05);
+    g.addColorStop(0,`rgba(255,214,130,${a})`); g.addColorStop(.6,`rgba(214,128,26,${a})`); g.addColorStop(1,`rgba(110,48,6,${a})`);
+    ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(x,y,r,r*(stretch||1),0,0,7); ctx.fill();
+    ctx.fillStyle=`rgba(255,255,255,${.8*a})`; ctx.beginPath(); ctx.ellipse(x-r*.35,y-r*.38*(stretch||1),r*.28,r*.16,-.5,0,7); ctx.fill(); }
   function drawAle(tailY, headY, srcY, landYv, tx){
-    const span=Math.max(1,landYv-srcY), n=Math.max(10,Math.round((headY-tailY)/7)), C=[], Wd=[];
-    for(let i=0;i<=n;i++){ const y=tailY+(headY-tailY)*i/n, k=Math.min(1,Math.max(0,(y-srcY)/span)), sm=k*k*(3-2*k);
-      const x=srcX+(tx-srcX)*sm + Math.sin(y*.012+S.t*2.2)*2.2*(1-k*.6);
-      let w=BW*(1+.24*Math.sin(y*.045-S.t*9)+.1*Math.sin(y*.11+S.t*4));
-      if(!S.flowing) w*= Math.min(1,(i/n)*1.6+.25);               // the tail thins out once the pour stops
-      if(i<4 && S.flowing) w*= .75+i*.07;                           // narrower where it leaves the splash
+    const span=Math.max(1,landYv-srcY), breakup=S.landed?0:Math.min(70,(headY-tailY)*.35);
+    const bodyEnd=headY-breakup, n=Math.max(12,Math.round((bodyEnd-tailY)/5)), C=[], Wd=[];
+    for(let i=0;i<=n;i++){ const y=tailY+(bodyEnd-tailY)*i/n, k=Math.min(1,Math.max(0,(y-srcY)/span)), sm=k*k*(3-2*k);
+      const x=srcX+(tx-srcX)*sm + Math.sin(y*.011+S.t*2)*2.6*(1-k*.5) + Math.sin(y*.07-S.t*14)*.6;
+      const fall=Math.max(0,y-srcY), speedThin=Math.max(.46,1/Math.pow(1+fall/240,.33));            // faster lower down = thinner
+      let w=BW*speedThin*(1+.16*Math.sin(y*.05-S.t*11)+.08*Math.sin(y*.13+S.t*5));                 // ripples travelling down
+      if(!S.flowing) w*=Math.min(1,(i/n)*1.5+.2);
+      if(i<5 && S.flowing) w*=.7+i*.06;
       C.push([x,y]); Wd.push(w); }
-    const edge=(f,dx)=>{ ctx.beginPath(); C.forEach(([x,y],i)=>{ const p=[x-Wd[i]*f/2+dx*Wd[i],y]; i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]); });
-      for(let i=C.length-1;i>=0;i--){ const [x,y]=C[i]; ctx.lineTo(x+Wd[i]*f/2+dx*Wd[i],y); } ctx.closePath(); };
-    ctx.save();
-    ctx.shadowColor='rgba(255,160,40,.45)'; ctx.shadowBlur=20; ctx.fillStyle='rgba(112,50,6,.94)'; edge(1,0); ctx.fill(); ctx.shadowBlur=0;
-    const g=ctx.createLinearGradient(0,tailY,0,headY); g.addColorStop(0,'rgba(232,150,44,.96)'); g.addColorStop(.5,'rgba(214,124,26,.96)'); g.addColorStop(1,'rgba(186,96,14,.97)');
-    ctx.fillStyle=g; edge(.78,.03); ctx.fill();
-    ctx.fillStyle='rgba(255,206,120,.42)'; edge(.3,-.12); ctx.fill();                       // light passing through the middle
+    if(C.length<2) return;
+    const edge=(f,dx,ox,oy)=>{ ctx.beginPath(); C.forEach(([x,y],i)=>{ const X=x-Wd[i]*f/2+dx*Wd[i]+(ox||0), Y=y+(oy||0); i?ctx.lineTo(X,Y):ctx.moveTo(X,Y); });
+      for(let i=C.length-1;i>=0;i--){ const [x,y]=C[i]; ctx.lineTo(x+Wd[i]*f/2+dx*Wd[i]+(ox||0),y+(oy||0)); } ctx.closePath(); };
     const along=(off,lw,col,dash,speed)=>{ ctx.beginPath(); C.forEach(([x,y],i)=>i?ctx.lineTo(x+off*Wd[i],y):ctx.moveTo(x+off*Wd[i],y));
-      ctx.lineWidth=lw; ctx.strokeStyle=col; ctx.lineCap='round'; ctx.setLineDash(dash); ctx.lineDashOffset=-S.t*speed; ctx.stroke(); ctx.setLineDash([]); };
-    along(-.27,2.2,'rgba(255,250,235,.85)',[18,26],300);                                      // window reflection sliding down
-    along(.22,1.4,'rgba(255,236,200,.4)',[6,34],380);
-    along(-.05,1,'rgba(120,52,4,.35)',[3,16],420);
-    for(let i=0;i<10;i++){ const u=((i*.137+S.t*.55)%1), idx=Math.min(C.length-1,Math.floor(u*C.length)), [x,y]=C[idx];   // foam flecks carried in the flow
-      ctx.fillStyle='rgba(255,246,226,.75)'; ctx.beginPath(); ctx.arc(x+Math.sin(i*7.3)*Wd[idx]*.28, y, 1.1+(i%3)*.5, 0, 7); ctx.fill(); }
-    if(!S.landed){ const [hx,hy]=C[C.length-1], r=BW*.78;                                        // the heavy drop leading the stream
-      const hg=ctx.createRadialGradient(hx-r*.3,hy-r*.2,1,hx,hy,r*1.1); hg.addColorStop(0,'rgba(250,184,80,.98)'); hg.addColorStop(.7,'rgba(200,104,18,.97)'); hg.addColorStop(1,'rgba(112,50,6,.95)');
-      ctx.fillStyle=hg; ctx.beginPath(); ctx.ellipse(hx,hy+r*.2,r,r*1.18,0,0,7); ctx.fill();
-      ctx.fillStyle='rgba(255,255,255,.85)'; ctx.beginPath(); ctx.ellipse(hx-r*.35,hy-r*.25,r*.28,r*.14,-.5,0,7); ctx.fill();
-      if(Math.random()<.25) S.splash.push({x:hx+(Math.random()-.5)*r,y:hy,vx:(Math.random()-.5)*60,vy:20+Math.random()*60,l:.6}); }
+      ctx.lineWidth=lw; ctx.strokeStyle=col; ctx.lineCap='round'; ctx.setLineDash(dash||[]); ctx.lineDashOffset=-S.t*(speed||0); ctx.stroke(); ctx.setLineDash([]); };
+    ctx.save();
+    // warm light the ale casts on the page
+    ctx.globalCompositeOperation='lighter'; along(0,BW*5,'rgba(255,140,30,.05)'); along(0,BW*2.4,'rgba(255,170,60,.07)'); ctx.globalCompositeOperation='source-over';
+    // its shadow on the page
+    ctx.filter='blur(6px)'; ctx.fillStyle='rgba(0,0,0,.32)'; edge(1,0,7,5); ctx.fill(); ctx.filter='none';
+    // see-through amber body: darker at the edges, bright through the middle
+    const cx=C.reduce((a,c)=>a+c[0],0)/C.length, g=ctx.createLinearGradient(cx-BW*.6,0,cx+BW*.6,0);
+    g.addColorStop(0,'rgba(104,44,4,.95)'); g.addColorStop(.18,'rgba(196,108,18,.9)'); g.addColorStop(.42,'rgba(246,176,60,.82)'); g.addColorStop(.55,'rgba(255,206,110,.8)'); g.addColorStop(.78,'rgba(206,118,22,.9)'); g.addColorStop(1,'rgba(96,40,4,.95)');
+    ctx.fillStyle=g; edge(1,0); ctx.fill();
+    const vg=ctx.createLinearGradient(0,tailY,0,bodyEnd); vg.addColorStop(0,'rgba(255,220,150,.18)'); vg.addColorStop(1,'rgba(120,50,0,.18)'); ctx.fillStyle=vg; edge(1,0); ctx.fill();
+    // light bending at the edges
+    along(-.47,1.3,'rgba(70,28,0,.55)'); along(.47,1.3,'rgba(70,28,0,.55)');
+    // highlights: a steady window reflection plus glints sliding down with the flow
+    along(-.28,1.6,'rgba(255,250,235,.45)'); along(-.28,2.6,'rgba(255,255,245,.9)',[14,30],340); along(.2,1.4,'rgba(255,236,200,.5)',[5,40],420); along(.05,.8,'rgba(255,246,220,.35)',[2,12],520);
+    // bubbles and foam carried down inside
+    for(let i=0;i<16;i++){ const u=((i*.0731+S.t*(.5+(i%4)*.09))%1), idx=Math.min(C.length-1,Math.floor(u*C.length)), [x,y]=C[idx], w=Wd[idx];
+      ctx.strokeStyle='rgba(255,248,230,.7)'; ctx.lineWidth=.8; ctx.beginPath(); ctx.arc(x+Math.sin(i*7.3)*w*.28, y, .9+(i%3)*.6, 0, 7); ctx.stroke(); }
+    // stray droplets thrown off the sides
+    if(S.flowing && Math.random()<.35){ const idx=Math.floor(Math.random()*C.length), [x,y]=C[idx], side=Math.random()<.5?-1:1;
+      S.drops.push({x:x+side*Wd[idx]*.45, y, vx:side*(20+Math.random()*50), vy:260+Math.random()*220, r:1.2+Math.random()*2.2, l:1}); }
+    // while falling, the front of the stream breaks into drops
+    if(breakup>4){ const [bx]=C[C.length-1], wEnd=Wd[Wd.length-1];
+      for(let k=0;k<5;k++){ const f=(k+1)/5, y=bodyEnd+breakup*Math.pow(f,1.25), r=wEnd*.62*(1-.12*k)*(1+.08*Math.sin(S.t*20+k)), stretch=1.25-.05*k;
+        lensDrop(bx+Math.sin(S.t*6+k)*1.4, y, Math.max(2,r), .96, stretch); }
+      const hy=headY, hx=bx; ctx.globalCompositeOperation='lighter'; const hg=ctx.createRadialGradient(hx,hy,0,hx,hy,BW*2.2); hg.addColorStop(0,'rgba(255,190,90,.35)'); hg.addColorStop(1,'rgba(255,190,90,0)');
+      ctx.fillStyle=hg; ctx.beginPath(); ctx.arc(hx,hy,BW*2.2,0,7); ctx.fill(); ctx.globalCompositeOperation='source-over'; }
     ctx.restore();
+  }
+  function drawDrops(dt){
+    S.drops.forEach(d=>{ d.vy+=1500*dt; d.x+=d.vx*dt; d.y+=d.vy*dt; d.l-=dt*.9; if(d.l>0) lensDrop(d.x,d.y,d.r,Math.min(1,d.l+.2),1+Math.min(1.2,d.vy/1400)); });
+    S.drops=S.drops.filter(d=>d.l>0&&d.y<innerHeight+30);
+    S.rip.forEach(r=>{ r.r+=dt*(70+r.r*.6); r.l-=dt*.9; if(r.l>0){ ctx.strokeStyle=`rgba(255,226,160,${r.l*.7})`; ctx.lineWidth=1.6; ctx.beginPath(); ctx.ellipse(r.x,r.y,r.r,r.r*.22,0,0,7); ctx.stroke(); } });
+    S.rip=S.rip.filter(r=>r.l>0);
   }
   raf=requestAnimationFrame(draw);
   function land(){
