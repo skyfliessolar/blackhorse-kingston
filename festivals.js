@@ -22,12 +22,13 @@
 
   // priority: earlier in the list wins if two fall on the same day
   const FESTIVALS=[
-    {id:'christmas', name:'Christmas', icon:'🎄', when:'1–26 December', msg:'Merry Christmas from The Black Horse — book your festive table early!', range:y=>[D(y,12,1),D(y,12,26)]},
+    {id:'standrew', name:"St Andrew's Day", icon:'🏴', when:'30 November', msg:"Happy St Andrew's Day!", range:y=>[D(y,11,30),D(y,11,30)]},
+    {id:'christmas', name:'Christmas', icon:'🎄', when:'25 November – 26 December', msg:'Merry Christmas from The Black Horse — book your festive table early!', range:y=>[D(y,11,25),D(y,12,26)]},
     {id:'newyear', name:'New Year', icon:'🎆', when:'27 Dec – 2 Jan', msg:'Happy New Year! Raise a glass with us at The Black Horse.', range:y=>[D(y,12,27),D(y+1,1,2)], prev:true},
     {id:'remembrance', name:'Remembrance', icon:'🌺', when:'Remembrance Sunday & 11 November', msg:'We will remember them.', range:y=>{ const s=nthSunday(y,11,2), d=D(y,11,11); return [add(d<s?d:s,-1), d>s?d:s]; }, quiet:true},
     {id:'bonfire', name:'Bonfire Night', icon:'🎇', when:'1–5 November', msg:'Remember, remember the fifth of November — warm up by our fire pit!', range:y=>[D(y,11,1),D(y,11,5)]},
     {id:'diwali', name:'Diwali', icon:'🪔', when:'Festival of Lights (date changes)', msg:'Happy Diwali — wishing you light, joy and good food!', range:y=>{ const d=fromTable(DIWALI,y); return d?[add(d,-2),add(d,1)]:null; }},
-    {id:'halloween', name:'Halloween', icon:'🎃', when:'24–31 October', msg:'Happy Halloween! Spooky specials all week at The Black Horse.', range:y=>[D(y,10,24),D(y,10,31)]},
+    {id:'halloween', name:'Halloween', icon:'🎃', when:'10–31 October', msg:'Happy Halloween! Spooky season is here at The Black Horse.', range:y=>[D(y,10,10),D(y,10,31)]},
     {id:'easter', name:'Easter', icon:'🐣', when:'Good Friday – Easter Monday', msg:'Happy Easter from The Black Horse!', range:y=>{ const e=easter(y); return [add(e,-2),add(e,1)]; }},
     {id:'mothers', name:"Mother's Day", icon:'💐', when:'Mothering Sunday (3 weeks before Easter)', msg:"Treat Mum this Mother's Day — book a table for the family.", range:y=>{ const m=add(easter(y),-21); return [add(m,-3),m]; }},
     {id:'pancake', name:'Pancake Day', icon:'🥞', when:'Shrove Tuesday', msg:'Happy Pancake Day! Flip by for a treat.', range:y=>{ const p=add(easter(y),-47); return [p,p]; }},
@@ -38,7 +39,6 @@
     {id:'stpatrick', name:"St Patrick's Day", icon:'☘️', when:'15–17 March', msg:"Happy St Patrick's Day — the Guinness is flowing!", range:y=>[D(y,3,15),D(y,3,17)]},
     {id:'stdavid', name:"St David's Day", icon:'🌼', when:'1 March', msg:'Dydd Gŵyl Dewi Hapus — Happy St David’s Day!', range:y=>[D(y,3,1),D(y,3,1)]},
     {id:'stgeorge', name:"St George's Day", icon:'🌹', when:'23 April', msg:"Happy St George's Day — a proper English pint awaits!", range:y=>[D(y,4,23),D(y,4,23)]},
-    {id:'standrew', name:"St Andrew's Day", icon:'🏴', when:'30 November', msg:"Happy St Andrew's Day!", range:y=>[D(y,11,30),D(y,11,30)]},
     {id:'burns', name:'Burns Night', icon:'🥃', when:'24–25 January', msg:'Burns Night — a wee dram and good company.', range:y=>[D(y,1,24),D(y,1,25)]},
     {id:'summer', name:'Summer Bank Holiday', icon:'☀️', when:'Last weekend of August', msg:'Bank holiday sunshine on our terrace — see you there!', range:y=>{ const m=lastMonday(y,8); return [add(m,-2),m]; }}
   ];
@@ -49,6 +49,11 @@
     if(o.enabled===false) return null;
     const t=londonToday(), y=t.getUTCFullYear();
     return FESTIVALS.find(f=>{ if(off.includes(f.id)) return false; return [y-1,y].some(yy=>{ const r=f.range(yy); return r && t>=r[0] && t<=r[1]; }); }) || null; }
+  // the next festival coming up (for the admin status line)
+  function next(o){ o=o||{}; const off=o.off||[], t=londonToday(), y=t.getUTCFullYear(); let best=null;
+    FESTIVALS.forEach(f=>{ if(off.includes(f.id)) return; [y,y+1].forEach(yy=>{ const r=f.range(yy); if(r && r[0]>t && (!best||r[0]<best.start)) best={f, start:r[0], end:r[1]}; }); });
+    return best; }
+  function until(f){ const t=londonToday(), y=t.getUTCFullYear(); for(const yy of [y-1,y]){ const r=f.range(yy); if(r && t>=r[0] && t<=r[1]) return r[1]; } return null; }
   const fmt=d=>d.toLocaleDateString('en-GB',{day:'numeric',month:'short',timeZone:'UTC'});
   function datesFor(f,y){ const r=f.range(y); return r ? (r[0].getTime()===r[1].getTime() ? fmt(r[0]) : fmt(r[0])+' – '+fmt(r[1])) : '—'; }
 
@@ -161,5 +166,5 @@
     if(!o.still && !matchMedia('(prefers-reduced-motion: reduce)').matches) startCanvas(th);
     return f;
   }
-  window.BHFestivals={list:FESTIVALS, today, apply, datesFor};
+  window.BHFestivals={list:FESTIVALS, today, apply, datesFor, next, until, fmt:d=>fmt(d)};
 })();
