@@ -551,7 +551,7 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
           <div class="chips" style="display:flex;gap:14px"><label><input type="radio" name="fxStyle" value="animated"> Animated</label><label><input type="radio" name="fxStyle" value="classic"> Classic</label></div></div>
         <div class="fx-row"><div><b>3D pint glass</b><p>A real-time 3D pint under the top banner — glowing beer, foam, bubbles and condensation on a Black Horse coaster. Customers can turn it, and tapping it takes them to Book a Table.</p></div><label class="tgl"><input type="checkbox" data-fx="pint3d"><span></span></label></div>
         <div class="fx-row"><div><b>When a customer taps the pint</b><p><b>Splash in the face</b> — the glass is swung at the screen, the ale splats on the glass and then runs down into Book a Table.<br><b>Pour down</b> — the glass tips over and pours; the ale runs down the page and fills the Book a Table form.</p></div>
-          <select id="fxPintTap"><option value="face">Splash in the face</option><option value="pour">Pour down</option></select></div>
+          <select id="fxPintTap"><option value="pour">Pour down (ale runs down into Book a Table)</option><option value="face">Splash in the face</option></select></div>
         <div class="fx-row"><div><b>Pub lights &amp; embers</b><p>Warm out-of-focus lights and rising embers behind the top banner.</p></div><label class="tgl"><input type="checkbox" data-fx="ambience"><span></span></label></div>
         <div class="fx-row"><div><b>Gold shimmer</b><p>A slow gold sheen across "The Black Horse" title and a glint around the logo.</p></div><label class="tgl"><input type="checkbox" data-fx="shimmer"><span></span></label></div>
         <div class="fx-row"><div><b>Scroll animations</b><p>Headings rise in word by word, cards cascade in, opening hours slide in, a gold progress line runs along the top, and the Book a Table buttons glow now and then.</p></div><label class="tgl"><input type="checkbox" data-fx="motion"><span></span></label></div>
@@ -1836,14 +1836,14 @@ async function renderFest(){
     <div><div class="hint" style="margin:0 0 4px">${esc(f.when)} · this year: ${esc(F.datesFor(f,y))}</div><input data-fsmsg value="${esc(msgs[f.id]||'')}" placeholder="${esc(f.msg)}" maxlength="120" style="width:100%"></div></div>`).join('');
 }
 function readFest(){ const off=[], msgs={}; document.querySelectorAll('#fsList [data-fs]').forEach(r=>{ if(!r.querySelector('[data-fson]').checked) off.push(r.dataset.fs); const m=r.querySelector('[data-fsmsg]').value.trim(); if(m) msgs[r.dataset.fs]=m.slice(0,120); }); return {off, msgs, preview:$('fsPreview').value}; }
-function renderFx(){ renderFest(); $('fxPintTap').value=fxCfg.pintTap==='pour'?'pour':'face'; document.querySelectorAll('[name=fxStyle]').forEach(r=>r.checked=r.value===(fxCfg.style||'animated')); document.querySelectorAll('[data-fx]').forEach(i=>i.checked=!!fxCfg[i.dataset.fx]); $('fxSplashKind').value=fxCfg.splashKind||'water'; $('fxSplashCount').value=String(fxCfg.splashCount||3); }
+function renderFx(){ renderFest(); $('fxPintTap').value=fxCfg.pintTap==='face'?'face':'pour'; document.querySelectorAll('[name=fxStyle]').forEach(r=>r.checked=r.value===(fxCfg.style||'animated')); document.querySelectorAll('[data-fx]').forEach(i=>i.checked=!!fxCfg[i.dataset.fx]); $('fxSplashKind').value=fxCfg.splashKind||'water'; $('fxSplashCount').value=String(fxCfg.splashCount||3); }
 async function loadFx(){ try{ const s=await getDoc(doc(db,'site','effects')); if(s.exists()) fxCfg={...FX_DEF,...s.data()}; }catch(e){} renderFx(); }
 $('fxAllOff').onclick=()=>{ document.querySelectorAll('[data-fx]').forEach(i=>i.checked=false); flash('fxMsg','All switched off — press Save to apply.'); };
 $('saveFx').onclick=async()=>{
   const d=Object.fromEntries(Object.keys(FX_DEF).map(k=>[k, !!document.querySelector(`[data-fx="${k}"]`)?.checked]));
   const ch=Object.keys(d).filter(k=>d[k]!==fxCfg[k]).map(k=>`${FX_NAMES[k]} ${d[k]?'ON':'OFF'}`);
   d.splashKind=$('fxSplashKind').value; if(d.splashKind!==(fxCfg.splashKind||'water')) ch.push('Splash drink → '+$('fxSplashKind').selectedOptions[0].text);
-  d.pintTap=$('fxPintTap').value; if(d.pintTap!==(fxCfg.pintTap||'face')) ch.push('Pint tap → '+$('fxPintTap').selectedOptions[0].text);
+  d.pintTap=$('fxPintTap').value; if(d.pintTap!==(fxCfg.pintTap||'pour')) ch.push('Pint tap → '+$('fxPintTap').selectedOptions[0].text);
   d.style=(document.querySelector('[name=fxStyle]:checked')||{}).value||'animated'; if(d.style!==(fxCfg.style||'animated')) ch.unshift('Website style → '+(d.style==='classic'?'Classic':'Animated'));
   const fs=readFest(); d.festivalOff=fs.off; d.festivalMsg=fs.msgs; d.festivalPreview=fs.preview;
   if(fs.preview!==(fxCfg.festivalPreview||'')) ch.push(fs.preview ? 'Festival shown now → '+fs.preview : 'Festivals back to "by the date"');
