@@ -9,6 +9,7 @@ import { firebaseConfig } from "./firebase-config.js";
 const app = getApps()[0] || initializeApp(firebaseConfig), auth = getAuth(app), db = getFirestore(app);
 const $ = id => document.getElementById(id);
 const esc = s => s==null ? '' : String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const safeImg=v=>(typeof v==='string' && /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(v)) ? v : '';   // only real pictures, never code
 const money = n => '£' + Number(n||0).toFixed(2).replace(/\.00$/,'');
 const todayISO = () => { const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
 const fmtD = iso => { const d=new Date(iso+'T00:00'); return isNaN(d) ? iso : d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}); };
@@ -227,15 +228,14 @@ $('sfBody').addEventListener('change', async e=>{
 function rOffers(body){
   const l=offers.slice().sort((a,b)=>(a.order||0)-(b.order||0)), t=todayISO();
   body.innerHTML=`<div class="sf-tools"><h3 style="margin:0;flex:1">Offers &amp; discounts</h3>${mayDo('offers','add')?'<button class="sf-btn" id="sfAddOffer">+ New offer</button>':''}</div>
-  ${isOwner?'':'<p class="sub" style="color:rgba(241,232,214,.7);margin:-6px 0 12px">You can change any offer. A <b>new</b> offer goes to the manager first and appears on the website once it is approved.</p>'}
   ${l.map(o=>{ const wait=o.pending===true, live=!wait && o.active!==false && (!o.from||o.from<=t) && (!o.to||o.to>=t);
-    return `<div class="sf-row ${wait?'urgent':''}" data-oid="${esc(o.id)}"><div class="top"><span>${wait?'⏳ Waiting for manager approval':live?'🟢 On the website':'⚪ Not showing'}</span>
+    return `<div class="sf-row" data-oid="${esc(o.id)}"><div class="top"><span>${live?'🟢 On the website':'⚪ Not showing'}</span>
       <label style="margin-left:auto;display:flex;gap:6px;align-items:center"><input type="checkbox" data-of="active" ${o.active!==false&&!wait?'checked':''} ${mayDo('offers','toggle')&&!wait?'':'disabled'}> On</label>${mayDo('offers','del')?'<button class="sf-btn danger" data-odel>Delete</button>':''}</div>
       <fieldset style="border:0;padding:0;margin:0" ${mayDo('offers','edit')?'':'disabled'}><div class="sf-mi" style="grid-template-columns:110px 1fr"><input type="text" data-of="badge" value="${esc(o.badge||'')}" placeholder="Badge" maxlength="20"><input type="text" data-of="title" value="${esc(o.title||'')}" placeholder="Title" maxlength="80"></div>
       <div class="sf-mi" style="grid-template-columns:1fr 1fr"><input type="text" data-of="text" value="${esc(o.text||'')}" placeholder="Details" maxlength="300"><input type="text" data-of="when" value="${esc(o.when||'')}" placeholder="When (e.g. Tuesdays 5–9pm)" maxlength="80"></div></fieldset></div>`; }).join('') || '<p style="color:rgba(241,232,214,.6)">No offers yet.</p>'}`;
   if($('sfAddOffer')) $('sfAddOffer').onclick=async()=>{ const who=isOwner?'Main admin':(isShared?staffName:(me?.email||'Staff'));
     try{ await addDoc(collection(db,'offers'),{badge:'NEW',title:'New offer',text:'',when:'',from:'',to:'',active:false,order:offers.length,createdAt:serverTimestamp(), ...(isOwner?{}:{pending:true, requestedBy:String(who).slice(0,80)})});
-      say(isOwner?'Offer added — fill it in and tick On.':'New offer added — fill it in. The manager will approve it before it goes on the website.'); logAct('Offers', isOwner?'New offer added':'New offer added — waiting for approval'); }catch(e){ fail(e); } };
+      say('Offer added — fill in the details.'); logAct('Offers','New offer added'); }catch(e){ fail(e); } };
 }
 $('sfBody').addEventListener('change', async e=>{
   const card=e.target.closest('[data-oid]'), f=e.target.dataset.of; if(!card||!f) return; const o=offers.find(x=>x.id===card.dataset.oid)||{};
@@ -322,7 +322,7 @@ function rPhotos(body){
   const l=pubItems();
   body.innerHTML=`<div class="sf-tools"><h3 style="margin:0;flex:1">Pub photos</h3><label class="sf-btn" style="cursor:pointer">📷 Add photos<input type="file" id="sfPf" accept="image/*" multiple hidden></label></div>
     <p class="sub" style="color:rgba(241,232,214,.7);margin:-6px 0 12px">These appear in the "Our Pub" section at the end of the website.${photoLimit()?` You can add <b>${photosLeft()}</b> more today (limit ${photoLimit()} a day).`:''}</p>
-    <div class="sf-grid">${l.map(g=>`<figure><img src="${g.img}" alt="">${mayRemovePhoto()?`<button class="sf-btn danger" style="width:100%;margin-top:5px" data-pdel="${esc(g.id)}">Remove</button>`:''}</figure>`).join('')||'<p style="color:rgba(241,232,214,.6)">No pub photos yet.</p>'}</div>`;
+    <div class="sf-grid">${l.map(g=>`<figure><img src="${safeImg(g.img)}" alt="">${mayRemovePhoto()?`<button class="sf-btn danger" style="width:100%;margin-top:5px" data-pdel="${esc(g.id)}">Remove</button>`:''}</figure>`).join('')||'<p style="color:rgba(241,232,214,.6)">No pub photos yet.</p>'}</div>`;
   $('sfPf').onchange=e=>addPhotos(e.target.files, say);
 }
 $('sfBody').addEventListener('click', e=>{ const id=e.target.dataset.pdel; if(id) removePhoto(id, say); });
