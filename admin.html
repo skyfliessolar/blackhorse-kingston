@@ -550,6 +550,8 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
         <div class="fx-row" style="background:#FBF7EE;margin:-6px -10px 6px;padding:16px 10px"><div><b>Website style</b><p><b>Animated</b> uses everything switched on below. <b>Classic</b> is the older, simpler website — plain buttons and no animations at all (the switches below are kept for when you go back).</p></div>
           <div class="chips" style="display:flex;gap:14px"><label><input type="radio" name="fxStyle" value="animated"> Animated</label><label><input type="radio" name="fxStyle" value="classic"> Classic</label></div></div>
         <div class="fx-row"><div><b>3D pint glass</b><p>A real-time 3D pint under the top banner — glowing beer, foam, bubbles and condensation on a Black Horse coaster. Customers can turn it, and tapping it takes them to Book a Table.</p></div><label class="tgl"><input type="checkbox" data-fx="pint3d"><span></span></label></div>
+        <div class="fx-row"><div><b>When a customer taps the pint</b><p><b>Splash in the face</b> — the glass is swung at the screen, the ale splats on the glass and then runs down into Book a Table.<br><b>Pour down</b> — the glass tips over and pours; the ale runs down the page and fills the Book a Table form.</p></div>
+          <select id="fxPintTap"><option value="face">Splash in the face</option><option value="pour">Pour down</option></select></div>
         <div class="fx-row"><div><b>Pub lights &amp; embers</b><p>Warm out-of-focus lights and rising embers behind the top banner.</p></div><label class="tgl"><input type="checkbox" data-fx="ambience"><span></span></label></div>
         <div class="fx-row"><div><b>Gold shimmer</b><p>A slow gold sheen across "The Black Horse" title and a glint around the logo.</p></div><label class="tgl"><input type="checkbox" data-fx="shimmer"><span></span></label></div>
         <div class="fx-row"><div><b>Scroll animations</b><p>Headings rise in word by word, cards cascade in, opening hours slide in, a gold progress line runs along the top, and the Book a Table buttons glow now and then.</p></div><label class="tgl"><input type="checkbox" data-fx="motion"><span></span></label></div>
@@ -559,6 +561,7 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
       </div>
       <div class="card" style="max-width:760px">
         <div class="fx-row" style="border-bottom:1px solid var(--line)"><div><b>🎉 British festival themes</b><p>On the right days the website dresses up by itself — snow and fairy lights at Christmas, bats and pumpkins at Halloween, fireworks for Bonfire Night and New Year, and more. A greeting ribbon shows under the menu bar (customers can close it).</p></div><label class="tgl"><input type="checkbox" data-fx="festivals"><span></span></label></div>
+        <div id="fsStatus" style="margin:14px 0 0;padding:12px 14px;background:#FBF7EE;border-left:4px solid var(--brass);font-size:14.5px"></div>
         <div class="field" style="margin-top:14px"><label>Show a festival now, for everyone (for trying it out — set back to "By the date" afterwards)</label><select id="fsPreview"><option value="">By the date (normal)</option></select></div>
         <div id="fsList" style="max-height:520px;overflow:auto"></div>
         <p class="hint">Untick a festival to skip it. You can change the greeting customers see; leave it empty for the standard one. Moving dates (Easter, Mother's Day, Pancake Day, Diwali, Eid, Lunar New Year) are worked out automatically.</p>
@@ -924,7 +927,7 @@ async function start(){
   if(isOwner) loadStatusAdmin();
   if(isOwner) loadFx();
   if(isOwner) loadTimers();
-  if(can('offers')) unsubs.push(onSnapshot(collection(db,'offers'), s=>{offers=s.docs.map(d=>({id:d.id,...d.data()})); renderOffers();}));
+  if(can('offers')) unsubs.push(onSnapshot(collection(db,'offers'), s=>{offers=s.docs.map(d=>({id:d.id,...d.data()})); renderOffers(); renderNotifs();}));
   if(isOwner) unsubs.push(onSnapshot(collection(db,'staff'), s=>{staff=s.docs.map(d=>({id:d.id,...d.data()})); renderStaff();}));
   if(can('content')) loadContent();
   if(can('hours')) loadHours();
@@ -1340,8 +1343,9 @@ $('pwSave').onclick=async()=>{
 /* ---------- offers ---------- */
 function renderOffers(){
   const l=offers.slice().sort((a,b)=>(a.order||0)-(b.order||0)), t=today();
-  $('offerList').innerHTML = l.length ? l.map((o,i)=>{ const live=o.active!==false && (!o.from||o.from<=t) && (!o.to||o.to>=t);
-    return `<div class="offer-card ${live?'':'off'}" data-oid="${esc(o.id)}">
+  $('offerList').innerHTML = l.length ? l.map((o,i)=>{ const wait=o.pending===true, live=!wait && o.active!==false && (!o.from||o.from<=t) && (!o.to||o.to>=t);
+    return `<div class="offer-card ${live?'':'off'}" data-oid="${esc(o.id)}" ${wait?'style="border-left:4px solid #C0584A;background:#FDF5F3"':''}>
+      ${wait?`<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px"><b>⏳ New offer waiting for your approval</b><span class="hint">added by ${esc(o.requestedBy||'staff')}</span><span style="flex:1"></span><button class="btn small" data-oapprove="1">✓ Approve &amp; show</button><button class="btn small danger" data-oreject="1">Reject</button></div>`:''}
       <div class="grid4"><div class="field"><label>Badge</label><input data-f="badge" value="${esc(o.badge||'')}" placeholder="20% OFF" maxlength="20"></div>
         <div class="field"><label>Title</label><input data-f="title" value="${esc(o.title||'')}" placeholder="Curry Tuesday" maxlength="80"></div>
         <div class="field"><label>When (shown to customers)</label><input data-f="when" value="${esc(o.when||'')}" placeholder="Every Tuesday 5–9pm" maxlength="80"></div></div>
@@ -1358,6 +1362,8 @@ $('offerList').addEventListener('change',async e=>{ const card=e.target.closest(
   const v = f==='active' ? e.target.checked : e.target.value.trim();
   try{ await updateDoc(doc(db,'offers',card.dataset.oid),{[f]:v}); flash('ofMsg','Saved — live on the website.'); }catch(err){ fail('ofMsg',err); } });
 $('offerList').addEventListener('click',async e=>{ const bt=e.target.closest('button'), card=e.target.closest('[data-oid]'); if(!bt||!card) return; const id=card.dataset.oid;
+  if(bt.dataset.oapprove){ const o=offers.find(x=>x.id===id)||{}; logNote=`Approved new offer "${o.title||''}" from ${o.requestedBy||'staff'}`; try{ await updateDoc(doc(db,'offers',id),{pending:false, active:true, approvedAt:serverTimestamp()}); flash('ofMsg','Approved — the offer is on the website now.'); }catch(err){ fail('ofMsg',err); } finally{ logNote=''; } return; }
+  if(bt.dataset.oreject){ const o=offers.find(x=>x.id===id)||{}; if(!confirm('Reject and delete this new offer?')) return; logNote=`Rejected new offer "${o.title||''}" from ${o.requestedBy||'staff'}`; try{ await deleteDoc(doc(db,'offers',id)); flash('ofMsg','Rejected.'); }catch(err){ fail('ofMsg',err); } finally{ logNote=''; } return; }
   if(bt.dataset.odel){ if(!confirm('Delete this offer?')) return; try{ await deleteDoc(doc(db,'offers',id)); }catch(err){ fail('ofMsg',err); } return; }
   if(bt.dataset.omove){ const l=offers.slice().sort((a,b)=>(a.order||0)-(b.order||0)); const i=l.findIndex(x=>x.id===id), j=i+Number(bt.dataset.omove); if(j<0||j>=l.length) return;
     [l[i],l[j]]=[l[j],l[i]]; const b=writeBatch(db); l.forEach((x,n)=>{ if(x.order!==n) b.update(doc(db,'offers',x.id),{order:n}); }); try{ await b.commit(); }catch(err){ fail('ofMsg',err); } } });
@@ -1704,6 +1710,7 @@ function notifications(){
     bookings.filter(b=>b.seen===false && !needsTable(b) && b.status!=='cancelled').forEach(b=>out.push({ic:'🍽', t:`New booking — ${b.name}, ${b.guests} guests`, s:`${fmtD(b.date)} ${b.time} · ${b.tableName||''}`, at:tsMs(b.createdAt), open:()=>openBooking(b)}));
   }
   if(can('hire')) hires.filter(h=>h.status==='new').forEach(h=>out.push({ic:'🎉', t:`Private hire enquiry — ${h.name}`, s:`${h.type||'Event'} · ${h.guests||'?'} guests · ${h.date?fmtD(h.date):'date tbc'}`, at:tsMs(h.createdAt), open:()=>openTab('hire')}));
+  if(isOwner) offers.filter(o=>o.pending===true).forEach(o=>out.push({urgent:true, ic:'🏷️', t:`New offer to approve — "${o.title||'New offer'}"`, s:`Added by ${o.requestedBy||'staff'} · approve it under Offers & discounts`, at:tsMs(o.createdAt), open:()=>openTab('offers')}));
   if(can('messages')) messages.filter(m=>m.seen===false).forEach(m=>out.push({ic:'✉️', t:`Message from ${m.name}`, s:String(m.message||'').slice(0,90), at:tsMs(m.createdAt), open:()=>openTab('messages')}));
   return out.sort((a,b)=>(b.urgent-a.urgent)||(b.at-a.at));
 }
@@ -1819,18 +1826,24 @@ function loadFestList(){ return festLoaded ||= new Promise(ok=>{ if(window.BHFes
 async function renderFest(){
   await loadFestList(); const F=window.BHFestivals; if(!F){ $('fsList').innerHTML='<p class="hint">Could not load the festival list — check festivals.js is uploaded.</p>'; return; }
   const y=new Date().getFullYear(), off=fxCfg.festivalOff||[], msgs=fxCfg.festivalMsg||{}, now=F.today({off, enabled:true});
+  const nx=F.next({off}), on=fxCfg.festivals!==false, pv=fxCfg.festivalPreview&&F.list.find(f=>f.id===fxCfg.festivalPreview);
+  $('fsStatus').innerHTML = pv ? `👀 Showing <b>${pv.icon} ${esc(pv.name)}</b> to everyone right now (try-out). Set it back to "By the date" when you're done.`
+    : !on ? `Festival themes are <b>off</b>. Switch them on to dress the website up on festival days.`
+    : now ? `<b>Today:</b> ${now.icon} <b>${esc(now.name)}</b> is showing on the website${F.until(now)?' until '+F.fmt(F.until(now)):''}.${nx?` Next: ${nx.f.icon} ${esc(nx.f.name)} from ${F.fmt(nx.start)}.`:''}`
+    : `<b>Nothing to celebrate today</b>, so the website looks normal.${nx?` Next up: ${nx.f.icon} <b>${esc(nx.f.name)}</b> from <b>${F.fmt(nx.start)}</b> — it will switch on by itself.`:''} To see a theme now, pick it below and press Save.`;
   $('fsPreview').innerHTML='<option value="">By the date (normal)</option>'+F.list.map(f=>`<option value="${f.id}">${f.icon} ${esc(f.name)}</option>`).join(''); $('fsPreview').value=fxCfg.festivalPreview||'';
   $('fsList').innerHTML=F.list.map(f=>`<div class="fx-row" data-fs="${f.id}" style="grid-template-columns:auto 1fr;padding:10px 0"><label style="display:flex;align-items:center;gap:8px;min-width:210px"><input type="checkbox" data-fson ${off.includes(f.id)?'':'checked'}> <span style="font-size:20px">${f.icon}</span> <b style="font-size:15px">${esc(f.name)}</b> ${now&&now.id===f.id?'<span class="pill new">Today</span>':''}</label>
     <div><div class="hint" style="margin:0 0 4px">${esc(f.when)} · this year: ${esc(F.datesFor(f,y))}</div><input data-fsmsg value="${esc(msgs[f.id]||'')}" placeholder="${esc(f.msg)}" maxlength="120" style="width:100%"></div></div>`).join('');
 }
 function readFest(){ const off=[], msgs={}; document.querySelectorAll('#fsList [data-fs]').forEach(r=>{ if(!r.querySelector('[data-fson]').checked) off.push(r.dataset.fs); const m=r.querySelector('[data-fsmsg]').value.trim(); if(m) msgs[r.dataset.fs]=m.slice(0,120); }); return {off, msgs, preview:$('fsPreview').value}; }
-function renderFx(){ renderFest(); document.querySelectorAll('[name=fxStyle]').forEach(r=>r.checked=r.value===(fxCfg.style||'animated')); document.querySelectorAll('[data-fx]').forEach(i=>i.checked=!!fxCfg[i.dataset.fx]); $('fxSplashKind').value=fxCfg.splashKind||'water'; $('fxSplashCount').value=String(fxCfg.splashCount||3); }
+function renderFx(){ renderFest(); $('fxPintTap').value=fxCfg.pintTap==='pour'?'pour':'face'; document.querySelectorAll('[name=fxStyle]').forEach(r=>r.checked=r.value===(fxCfg.style||'animated')); document.querySelectorAll('[data-fx]').forEach(i=>i.checked=!!fxCfg[i.dataset.fx]); $('fxSplashKind').value=fxCfg.splashKind||'water'; $('fxSplashCount').value=String(fxCfg.splashCount||3); }
 async function loadFx(){ try{ const s=await getDoc(doc(db,'site','effects')); if(s.exists()) fxCfg={...FX_DEF,...s.data()}; }catch(e){} renderFx(); }
 $('fxAllOff').onclick=()=>{ document.querySelectorAll('[data-fx]').forEach(i=>i.checked=false); flash('fxMsg','All switched off — press Save to apply.'); };
 $('saveFx').onclick=async()=>{
   const d=Object.fromEntries(Object.keys(FX_DEF).map(k=>[k, !!document.querySelector(`[data-fx="${k}"]`)?.checked]));
   const ch=Object.keys(d).filter(k=>d[k]!==fxCfg[k]).map(k=>`${FX_NAMES[k]} ${d[k]?'ON':'OFF'}`);
   d.splashKind=$('fxSplashKind').value; if(d.splashKind!==(fxCfg.splashKind||'water')) ch.push('Splash drink → '+$('fxSplashKind').selectedOptions[0].text);
+  d.pintTap=$('fxPintTap').value; if(d.pintTap!==(fxCfg.pintTap||'face')) ch.push('Pint tap → '+$('fxPintTap').selectedOptions[0].text);
   d.style=(document.querySelector('[name=fxStyle]:checked')||{}).value||'animated'; if(d.style!==(fxCfg.style||'animated')) ch.unshift('Website style → '+(d.style==='classic'?'Classic':'Animated'));
   const fs=readFest(); d.festivalOff=fs.off; d.festivalMsg=fs.msgs; d.festivalPreview=fs.preview;
   if(fs.preview!==(fxCfg.festivalPreview||'')) ch.push(fs.preview ? 'Festival shown now → '+fs.preview : 'Festivals back to "by the date"');
