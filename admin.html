@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>/* the admin page must never be shown inside another website (stops "clickjacking" tricks) */
+if(window.top!==window.self){ document.documentElement.style.display='none'; try{ window.top.location=window.self.location.href; }catch(e){} }</script>
+<meta name="referrer" content="strict-origin-when-cross-origin"><meta name="robots" content="noindex,nofollow">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
@@ -777,6 +780,7 @@ const writeBatch=database=>{ const b=fsBatch(database), ops=[]; return {
 
 const $ = id => document.getElementById(id);
 const esc = s => s==null ? '' : String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const safeImg=v=>(typeof v==='string' && /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(v)) ? v : '';   // only real pictures, never code
 const today = () => { const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
 const fmtD = iso => { if(!iso) return ''; const d=new Date(iso+'T00:00'); return isNaN(d)?iso:d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}); };
 const fmtTs = ts => ts && ts.toDate ? ts.toDate().toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
@@ -1209,7 +1213,7 @@ function renderGallery(){
   $('siteMap').innerHTML=PLACES.map(([p,n])=>{ const c=itemsAt(p).length; return `<span class="${c?'has':''}" data-jump="${p}">${esc(n)}${c?' · '+c:''}</span>`; }).join('');
   const used=PLACES.filter(([p])=>itemsAt(p).length);
   $('placeLists').innerHTML = used.length ? used.map(([p,n])=>{ const l=itemsAt(p); return `<div class="card place-block" id="pl-${p}"><h4>${esc(n)} <span class="cnt">${l.length}</span></h4><div class="gallery">${
-    l.map((g,i)=>`<div class="gitem">${g.url?`<div class="vbox"><b>▶</b>${esc(g.url.replace(/^https?:\/\//,'').slice(0,40))}</div>`:`<img src="${g.img}" alt="">`}<div class="gbar">
+    l.map((g,i)=>`<div class="gitem">${g.url?`<div class="vbox"><b>▶</b>${esc(g.url.replace(/^https?:\/\//,'').slice(0,40))}</div>`:`<img src="${safeImg(g.img)}" alt="">`}<div class="gbar">
       <input value="${esc(g.caption)}" placeholder="Caption" data-cap="${esc(g.id)}">
       <select data-place="${esc(g.id)}" title="Move to another place">${PLACES.map(([v,nm])=>`<option value="${v}" ${v===p?'selected':''}>${esc(nm)}</option>`).join('')}</select>
       <div class="gtools"><button data-move="-1" data-gid="${esc(g.id)}" ${i===0?'disabled':''} title="Move earlier">◀</button><button data-move="1" data-gid="${esc(g.id)}" ${i===l.length-1?'disabled':''} title="Move later">▶</button>
@@ -1757,7 +1761,7 @@ async function loadStatusAdmin(){ try{ const s=await getDoc(doc(db,'site','statu
 /* ---------- pub photos (staff) ---------- */
 function renderPubPhotos(){
   const l=itemsAt('pub');
-  $('ppGrid').innerHTML = l.length ? l.map(g=>`<figure data-pp="${esc(g.id)}"><img src="${g.img}" alt=""><input data-ppcap value="${esc(g.caption||'')}" placeholder="Caption (optional)" maxlength="120"><div class="row"><button class="btn small danger" data-ppdel style="flex:1">Remove</button></div></figure>`).join('')
+  $('ppGrid').innerHTML = l.length ? l.map(g=>`<figure data-pp="${esc(g.id)}"><img src="${safeImg(g.img)}" alt=""><input data-ppcap value="${esc(g.caption||'')}" placeholder="Caption (optional)" maxlength="120"><div class="row"><button class="btn small danger" data-ppdel style="flex:1">Remove</button></div></figure>`).join('')
     : '<p class="hint">No pub photos yet — add your first ones above.</p>';
 }
 async function addPubPhotos(files){
