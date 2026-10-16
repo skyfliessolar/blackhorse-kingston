@@ -538,7 +538,18 @@ try{if(localStorage.getItem('bh_off')==='1'){document.documentElement.classList.
   html.pint-on .hero-ctas .btn-gold{display:none;}
   .pint-cta{display:none;}
   html.pint-on .hero-ctas .pint-cta{display:inline-flex;}
-  form.book-form.poured{box-shadow:0 0 0 1px rgba(228,206,147,.6),0 0 40px rgba(228,206,147,.25);}
+  form.book-form.poured{border-color:#d6a84a !important;box-shadow:0 0 0 1px rgba(246,214,140,.85),0 0 0 4px rgba(214,168,74,.18),0 0 60px rgba(240,180,70,.35);animation:pouredGlow 3.2s ease-in-out infinite;}
+  @keyframes pouredGlow{0%,100%{box-shadow:0 0 0 1px rgba(246,214,140,.85),0 0 0 4px rgba(214,168,74,.18),0 0 46px rgba(240,180,70,.28)}50%{box-shadow:0 0 0 1px rgba(255,230,160,1),0 0 0 6px rgba(214,168,74,.26),0 0 80px rgba(240,180,70,.5)}}
+  form.book-form.poured::before{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;background:linear-gradient(115deg,transparent 35%,rgba(255,240,200,.22) 48%,transparent 60%);background-size:250% 100%;animation:pouredShine 5s ease-in-out infinite;}
+  @keyframes pouredShine{0%{background-position:150% 0}60%,100%{background-position:-60% 0}}
+  form.book-form > .pour-fill.settled{background:linear-gradient(180deg,rgba(255,226,140,.62) 0%,rgba(246,184,64,.55) 30%,rgba(222,150,40,.5) 70%,rgba(190,112,20,.55) 100%);}
+  .pour-fill.settled i{animation:aleBubble 3.4s linear infinite;}
+  @keyframes aleBubble{0%{transform:translateY(0) scale(.6);opacity:0}15%{opacity:.85}100%{transform:translateY(-420px) scale(1.1);opacity:0}}
+  .pour-fill.settled svg{animation:aleWave 2.6s linear infinite;}
+  @keyframes aleWave{to{transform:translateX(-50%)}}
+  .poured-badge{position:relative;z-index:2;margin:-6px 0 18px;padding:9px 14px;border-radius:999px;text-align:center;font-family:'Oswald',sans-serif;letter-spacing:.08em;text-transform:uppercase;font-size:12.5px;color:#1d1309;
+    background:linear-gradient(180deg,#f6e2a4,#d6ad5a 55%,#b98a3b);box-shadow:0 3px 0 #5b3e16,0 0 22px rgba(240,190,90,.5);}
+  @media (prefers-reduced-motion: reduce){ form.book-form.poured,form.book-form.poured::before,.pour-fill.settled i,.pour-fill.settled svg{animation:none;} }
   /* ---------- 3D pint (switch on/off in admin) ---------- */
   #pint3d{position:relative;padding:0;height:min(78vh,560px);min-height:420px;overflow:hidden;border-bottom:1px solid var(--line-dark);
     background:radial-gradient(ellipse 60% 70% at 50% 60%,rgba(255,155,47,.16),transparent 70%),radial-gradient(ellipse at 50% 120%,#2a170b,transparent 60%),var(--black);}
@@ -1712,9 +1723,12 @@ function pourToBooking(x0,y0){
     anime.timeline({easing:'easeOutCubic'})
       .add({targets:fill, height:['0%','100%'], duration:2400, easing:'easeInOutSine'})
       .add({targets:{}, duration:700, begin:()=>{ S.flowing=false; S.t=0; S.tailDoc=Math.max(srcDocY, scrollY-30); }})
-      .add({targets:fill, opacity:[1,0], duration:1400, easing:'easeInQuad', complete:()=>{ anime.remove(fill.querySelectorAll('i')); anime.remove(fill.querySelector('svg')); fill.remove(); }})
+      // the ale settles and STAYS: the booking box remains a glowing golden pint (still easy to read) with bubbles rising and a foam head
+      .add({targets:fill, opacity:[1,.78], duration:1600, easing:'easeInOutQuad', complete:()=>{ anime.remove(fill.querySelectorAll('i')); fill.classList.add('settled');
+          fill.querySelectorAll('i').forEach((b,k)=>{ b.style.transform=''; b.style.opacity=''; b.style.animationDelay=(k*.37%4)+'s'; b.style.animationDuration=(3+(k%5)*.6)+'s'; }); }})
       .add({targets:form, boxShadow:['0 0 0 1px rgba(228,206,147,0), 0 0 0px rgba(228,206,147,0)','0 0 0 1px rgba(228,206,147,.7), 0 0 46px rgba(228,206,147,.35)'], duration:800,
-            begin:()=>form.classList.add('poured'), complete:()=>{ const g=$('guests'); if(g) g.focus({preventScroll:true}); }}, '-=700');
+            begin:()=>{ form.classList.add('poured'); if(!form.querySelector('.poured-badge')) form.insertAdjacentHTML('afterbegin','<div class="poured-badge">🍺 Your table is poured — just pick a time</div>'); },
+            complete:()=>{ const g=$('guests'); if(g) g.focus({preventScroll:true}); }}, '-=1200');
   }
 }
 async function loadEffects(){
