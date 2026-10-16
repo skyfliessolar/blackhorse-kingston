@@ -90,10 +90,10 @@
   html.fest .hero::after{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 30%,var(--fest-glow),transparent 65%);z-index:0;}
   .fest-lights{position:absolute;left:0;right:0;bottom:-14px;height:22px;pointer-events:none;z-index:2;display:flex;justify-content:space-around;}
   .fest-lights::before{content:'';position:absolute;left:0;right:0;top:3px;height:12px;border-bottom:2px solid rgba(20,40,20,.9);border-radius:0 0 50% 50%/0 0 100% 100%;}
-  .fest-lights i{position:relative;width:8px;height:12px;border-radius:50% 50% 45% 45%;margin-top:8px;animation:festTw 1.6s ease-in-out infinite;}
+  .fest-lights i{position:relative;width:8px;height:12px;border-radius:50% 50% 45% 45%;margin-top:8px;box-shadow:0 0 8px 2px currentColor;animation:festTw 1.6s ease-in-out infinite;}
   .fest-lights i:nth-child(4n+1){background:#ff3b3b;color:#ff3b3b;} .fest-lights i:nth-child(4n+2){background:#ffd23b;color:#ffd23b;animation-delay:.4s}
   .fest-lights i:nth-child(4n+3){background:#3bff7a;color:#3bff7a;animation-delay:.8s} .fest-lights i:nth-child(4n){background:#3bb8ff;color:#3bb8ff;animation-delay:1.2s}
-  @keyframes festTw{0%,100%{box-shadow:0 0 10px 2px currentColor;opacity:1}50%{box-shadow:0 0 2px 0 currentColor;opacity:.45}}
+  @keyframes festTw{0%,100%{opacity:1}50%{opacity:.4}}
   .fest-web{position:absolute;top:0;width:min(220px,30vw);height:min(220px,30vw);pointer-events:none;z-index:1;opacity:.55;}
   .fest-web.l{left:0} .fest-web.r{right:0;transform:scaleX(-1)}
   .fest-poppy{display:block;margin:0 auto 8px;width:46px;height:46px;}
@@ -123,7 +123,7 @@
       return p; };
     parts=Array.from({length:Math.round(n)},()=>spawn(false));
     running=true; lastT=performance.now();
-    const loop=now=>{ if(!running) return; raf=requestAnimationFrame(loop); if(document.hidden) return; const dt=Math.min(.05,(now-lastT)/1000); lastT=now;
+    const loop=now=>{ if(!running) return; raf=requestAnimationFrame(loop); if(document.hidden || now-lastT<31) return; const dt=Math.min(.06,(now-lastT)/1000); lastT=now;
       ctx.clearRect(0,0,W,H);
       for(const p of parts){ p.sw+=dt*1.2; p.rot+=p.vr*dt;
         if(kind==='lanterns'||kind==='diyas'){ p.y-=dt*(14+p.s*14); p.x+=Math.sin(p.sw)*.25; if(p.y<-60) Object.assign(p,spawn(true));
@@ -182,7 +182,7 @@
   html.fest-anim .tw{animation:fdTw 2.2s ease-in-out infinite;}
   @keyframes fdTw{0%,100%{opacity:1}50%{opacity:.35}}
   html.fest-anim .glowp{animation:fdGlow 2.6s ease-in-out infinite;transform-origin:center;transform-box:fill-box;}
-  @keyframes fdGlow{0%,100%{filter:drop-shadow(0 0 4px #ffd75a)}50%{filter:drop-shadow(0 0 14px #ffe9a8)}}
+  @keyframes fdGlow{0%,100%{opacity:1}50%{opacity:.7}}
   html.fest-anim .swing{animation:fdSwing 3.4s ease-in-out infinite;}
   @keyframes fdSwing{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}}
   html.fest-anim .flick{animation:fdFlick .18s steps(2) infinite alternate;}
