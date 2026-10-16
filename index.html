@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>/* Open at the top of the page every time (browsers otherwise restore the old scroll position) — unless the link points to a section like #book */
+try{ if('scrollRestoration' in history) history.scrollRestoration='manual'; if(!location.hash || location.hash==='#') window.scrollTo(0,0); }catch(e){}
+addEventListener('load',function(){ if(!location.hash || location.hash==='#') setTimeout(function(){ if(scrollY>0 && !window.__bhUserScrolled) window.scrollTo(0,0); },0); });
+addEventListener('wheel',function(){ window.__bhUserScrolled=1; },{once:true,passive:true}); addEventListener('touchstart',function(){ window.__bhUserScrolled=1; },{once:true,passive:true}); addEventListener('keydown',function(){ window.__bhUserScrolled=1; },{once:true});</script>
 <script>/* Only hide the page while checking if the site was switched off last time — otherwise it shows instantly. */
 try{if(localStorage.getItem('bh_off')==='1'){document.documentElement.classList.add('checking');setTimeout(function(){document.documentElement.classList.remove('checking');},2500);}}catch(e){}</script>
 <meta charset="UTF-8">
@@ -108,6 +112,20 @@ try{if(localStorage.getItem('bh_off')==='1'){document.documentElement.classList.
   @keyframes btnDrain{0%{height:100%;opacity:1}100%{height:100%;opacity:0}}
   @keyframes btnFizz{0%{transform:translateY(0);opacity:0}20%{opacity:1}100%{transform:translateY(-34px);opacity:0}}
   @media (prefers-reduced-motion: reduce){ .btn .btn-pour{display:none;} }
+  /* CLASSIC (older) style, switched in admin: flat buttons and plain pickers, no animations */
+  html.classic .btn-gold{background:var(--gold);color:var(--black);border-radius:2px;border-color:transparent;box-shadow:none;text-shadow:none;}
+  html.classic .btn-gold:hover{background:var(--gold-light);filter:none;}
+  html.classic .btn-outline-light{background:transparent;border:1px solid rgba(241,232,214,.5);border-radius:2px;box-shadow:none;color:var(--cream);text-shadow:none;}
+  html.classic .btn-outline-light:hover{border-color:var(--gold);color:var(--gold-light);background:rgba(201,169,97,.08);}
+  html.classic .btn .btn-pour{display:none;}
+  html.classic .btn:active{transform:none;}
+  html.classic .st-btn{border-radius:2px !important;background:rgba(201,169,97,.12) !important;color:var(--gold-light) !important;outline:none;box-shadow:none;border:1px solid var(--line-dark) !important;}
+  html.classic .day-mat{border-radius:4px;background:rgba(241,232,214,.06);color:var(--cream);box-shadow:none;border:1px solid var(--line-dark);transform:none !important;}
+  html.classic .day-mat b{color:var(--gold-light);font-family:'Oswald',sans-serif;}
+  html.classic .day-mat[aria-checked="true"]{border-color:var(--gold);background:rgba(201,169,97,.16);box-shadow:none;}
+  html.classic .time-taps button{background:transparent;border-color:var(--line-dark);box-shadow:none;border-radius:2px;}
+  html.classic .time-taps button[aria-checked="true"]{background:var(--gold);color:var(--black);}
+  html.classic .splash-btn{display:none !important;}
 
   header{position:sticky;top:0;z-index:50;background:rgba(12,11,9,0.96);border-bottom:1px solid var(--line-dark);}
   .nav-inner{
@@ -1417,7 +1435,7 @@ function renderDayMats(){
 }
 $('dayMats').addEventListener('click',e=>{ const b=e.target.closest('.day-mat'); if(!b||b.disabled) return; $('date').value=b.dataset.d; $('date').dispatchEvent(new Event('change')); });
 $('date').addEventListener('change',()=>{ const b=$('dayMats').querySelector(`[data-d="${$('date').value}"]`);
-  $('dayMats').querySelectorAll('.day-mat').forEach(x=>x.setAttribute('aria-checked', x===b)); if(b) b.scrollIntoView({block:'nearest',inline:'nearest',behavior:'smooth'}); });
+  $('dayMats').querySelectorAll('.day-mat').forEach(x=>x.setAttribute('aria-checked', x===b)); if(b){ const box=$('dayMats'); box.scrollTo({left:Math.max(0,b.offsetLeft-box.offsetLeft-box.clientWidth/2+b.offsetWidth/2),behavior:'smooth'}); } })   // slide the mats sideways only — never move the page;
 document.querySelector('.other-date span').addEventListener('click',()=>{ try{ $('date').showPicker(); }catch(e){ $('date').focus(); } });
 const T_GROUPS=[['lunch','Lunch','12–3pm',0,900],['after','Afternoon','3–6pm',900,1080],['eve','Evening','6pm on',1080,99999]];
 let tGroup='';
@@ -1548,6 +1566,8 @@ function effective(){
   for(const r of rules){ if(!timerLive(r,n)) continue; const on=r.turn==='on';
     if(r.what==='site'){ st.offline=!on; if(!on){ st.title=r.title||st.title; st.message=r.message||st.message; } }
     else if(r.what==='anim'){ ['pint3d','ambience','shimmer','tilt','motion','splash'].forEach(k=>fx[k]=on); }
+    else if(r.what==='classic'){ fx.style = on ? 'classic' : 'animated'; }
+    else if(r.what==='festivals'){ fx.festivals = on; }
     else fx[r.what]=on; }
   return {st,fx};
 }
@@ -1567,12 +1587,12 @@ async function loadStatus(){
 }
 
 /* ================= ANIMATIONS & 3D (switched on/off in admin) ================= */
-const FX_DEF={pint3d:true, ambience:true, shimmer:true, tilt:true, motion:true, splash:false, splashKind:'water', splashCount:3};
+const FX_DEF={style:'animated', pint3d:true, ambience:true, shimmer:true, tilt:true, motion:true, splash:false, splashKind:'water', splashCount:3, festivals:true};
 function gotoBook(){ document.getElementById('book').scrollIntoView({behavior:'smooth'}); setTimeout(()=>{ const g=$('guests'); if(g) g.focus({preventScroll:true}); },900); }
 const pageIdle=()=>new Promise(ok=>{ const go=()=>('requestIdleCallback' in window) ? requestIdleCallback(()=>ok(),{timeout:1200}) : setTimeout(ok,200);
   document.readyState==='complete' ? go() : addEventListener('load',go,{once:true}); });
 async function applyPint(on){
-  const sec=$('pint3d'), reduce=matchMedia('(prefers-reduced-motion: reduce)').matches, nc=navigator.connection||{}, saveData=nc.saveData || /(^|-)2g|3g/.test(nc.effectiveType||'') || (navigator.deviceMemory && navigator.deviceMemory<=1);
+  const sec=$('pint3d'), reduce=matchMedia('(prefers-reduced-motion: reduce)').matches, nc=navigator.connection||{}, saveData=nc.saveData || /(^|-)2g$/.test(nc.effectiveType||'');
   const html=document.documentElement;
   if(!on || reduce || saveData){ sec.hidden=true; html.classList.remove('pint-on'); window.bhCine && window.bhCine(); window.BHPint && window.BHPint.unmount(); return; }
   sec.hidden=false; html.classList.add('pint-on'); window.bhImmersive && window.bhImmersive(true); window.bhCine && window.bhCine();
@@ -1689,26 +1709,38 @@ async function loadEffects(){
 }
 let lastPint=null;
 function applyFx(fx){
+  const classic = fx.style==='classic';
+  if(classic) fx={...fx, pint3d:false, ambience:false, shimmer:false, tilt:false, motion:false, splash:false};   // the older, simpler website
+  document.documentElement.classList.toggle('classic', classic);
   window.bhEffects=fx; const h=document.documentElement;
   h.classList.toggle('fx-no-ambience', !fx.ambience); h.classList.toggle('fx-no-shimmer', !fx.shimmer); h.classList.toggle('fx-no-tilt', !fx.tilt); h.classList.toggle('fx-no-motion', !fx.motion);
   window.dispatchEvent(new Event('bh-effects'));
   if(lastPint!==!!fx.pint3d){ lastPint=!!fx.pint3d; applyPint(lastPint); }
   applySplash(fx);
+  applyFestival(fx);
+}
+/* ---- British festival themes (Christmas, Halloween, Bonfire Night…) — dates are worked out in festivals.js ---- */
+let festP=null;
+function applyFestival(fx){
+  if(fx.festivals===false && !fx.festivalPreview){ if(window.BHFestivals) window.BHFestivals.apply({enabled:false}); return; }
+  festP ||= new Promise(ok=>{ const s=document.createElement('script'); s.src='./festivals.js'; s.onload=ok; s.onerror=ok; document.head.appendChild(s); });
+  festP.then(()=>{ if(window.BHFestivals) window.BHFestivals.apply({enabled:fx.festivals!==false, off:fx.festivalOff||[], preview:fx.festivalPreview||'', msgs:fx.festivalMsg||{}, still:fx.style==='classic' || fx.motion===false}); });
 }
 /* ---- "splash in the face": loaded only when the main admin switches it on ---- */
 let splashReady=null;
 function loadSplash(){ return splashReady || (splashReady=new Promise((ok,no)=>{ if(window.BHSplash) return ok(); const s=document.createElement('script'); s.src='./splash.js'; s.onload=ok; s.onerror=no; document.head.appendChild(s); })); }
-function playSplash(){ const fx=window.bhEffects||{}; if(!fx.splash) return; loadSplash().then(()=>window.BHSplash.series(fx.splashKind||'water', fx.splashCount||3)).catch(()=>{}); }
+/* one splash when the website opens; tapping "Cheers!" throws the full round (1–3, set in admin) */
+function playSplash(n){ const fx=window.bhEffects||{}; if(!fx.splash) return; loadSplash().then(()=>window.BHSplash.series(fx.splashKind||'water', n||fx.splashCount||3)).catch(()=>{}); }
 function applySplash(fx){
   let b=$('splashBtn');
   if(!fx.splash){ if(b) b.hidden=true; return; }
-  if(!b){ document.body.insertAdjacentHTML('beforeend','<button id="splashBtn" class="splash-btn" type="button" aria-label="Cheers! Play the splash">💦<span>Cheers!</span></button>'); b=$('splashBtn'); b.onclick=playSplash; }
+  if(!b){ document.body.insertAdjacentHTML('beforeend','<button id="splashBtn" class="splash-btn" type="button" aria-label="Cheers! Play the splash">💦<span>Cheers!</span></button>'); b=$('splashBtn'); b.onclick=()=>playSplash(); }
   b.hidden=false;
   if(matchMedia('(prefers-reduced-motion: reduce)').matches) { b.hidden=true; return; }
   loadSplash().catch(()=>{});
   let seen=false; try{ seen=sessionStorage.getItem('bh_splashed')==='1'; }catch(e){}
   if(!seen){ setTimeout(()=>{ if(document.hidden || document.documentElement.classList.contains('site-off') || document.querySelector('#siteOff:not([hidden])')) return;
-    try{ sessionStorage.setItem('bh_splashed','1'); }catch(e){} playSplash(); }, 1900); }
+    try{ sessionStorage.setItem('bh_splashed','1'); }catch(e){} playSplash(1); }, 1900); }
 }
 
 /* ================= MENU (edited in admin) ================= */
@@ -1721,19 +1753,26 @@ async function loadPromo(){
   try{ const s=await getDoc(doc(db,'site','promo')); if(s.exists()) cfg={...cfg,...s.data()}; }catch(e){ console.warn('Promo',e); }
   window.bhPromo=cfg;
   $('play').hidden=!cfg.enabled;
+  if(cfg.enabled) loadGames();
   document.querySelectorAll('[data-play-link]').forEach(a=>a.hidden=!cfg.enabled);
   window.dispatchEvent(new Event('bh-promo'));
   return cfg;
 }
 const pct=n=>{ n=Math.round(Number(n)); return n>=5&&n<=50 ? n : 25; };
+/* Spin & Win, Perfect Pint and Scratch the Mat: loaded once the game section is switched on, when the visitor gets near it */
+let gamesP=null;
+function loadGames(){ if(gamesP) return gamesP; gamesP=new Promise(ok=>{ const go=()=>{ const s=document.createElement('script'); s.src='./games.js'; s.onload=ok; s.onerror=ok; document.head.appendChild(s); };
+  const sec=$('play'); if(!('IntersectionObserver' in window)) return go(); const io=new IntersectionObserver(es=>{ if(es.some(e=>e.isIntersecting)){ io.disconnect(); go(); } },{rootMargin:'900px'}); io.observe(sec); }); return gamesP; }
 const CODE_CHARS='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 function newCode(){ const a=new Uint8Array(8); crypto.getRandomValues(a); return Array.from(a,x=>CODE_CHARS[x%32]).join(''); }
 window.bhCreateVoucher=async(score, det={})=>{
   let cfg=window.bhPromo||PROMO_DEF;
   for(let i=0;i<3;i++){
     const code=newCode(), exp=Date.now()+30*864e5;
+    const prize=window.__bhPrize;   // set by Spin & Win / Perfect Pint / Scratch the Mat; Wok Toss uses the standard discount
     const data={code, score:Math.max(0,Math.min(100000,Math.round(Number(score)||0))), appliesTo:cfg.appliesTo==='bill'?'bill':'food',
-      percent:pct(cfg.percent), used:false, createdAt:serverTimestamp(), expiresAt:Timestamp.fromMillis(exp)};
+      percent: prize&&prize.percent ? Math.max(1,Math.min(50,Math.round(prize.percent))) : pct(cfg.percent), game:(prize&&prize.game)||'wok',
+      used:false, createdAt:serverTimestamp(), expiresAt:Timestamp.fromMillis(exp)};
     if(det.name) data.name=String(det.name).slice(0,100);
     if(det.phone) data.phone=String(det.phone).slice(0,30);
     if(det.email) data.email=String(det.email).slice(0,150);
@@ -1927,6 +1966,7 @@ loadHours().then(loadSettings).then(()=>window.bhRenderDayMats&&window.bhRenderD
     update(dt); if(S.running) draw(); raf=requestAnimationFrame(loop);
   }
   function startGame(){
+    window.__bhPrize=null; if(window.BHGames && document.querySelector('#gTabs [data-g="wok"]:not(.on)')) window.BHGames.show('wok',true);
     reset(); S.running=true; if(window.__bhRound) window.__bhS=S; $('gStart').hidden=true; $('gEnd').hidden=true; $('gVoucher').hidden=true;
     last=performance.now(); cancelAnimationFrame(raf); raf=requestAnimationFrame(loop); tone(330,.12); setTimeout(()=>tone(494,.14),110);
     cv.focus({preventScroll:true});
@@ -2147,7 +2187,7 @@ loadHours().then(loadSettings).then(()=>window.bhRenderDayMats&&window.bhRenderD
   addEventListener('load',()=>{ if(typeof anime==='undefined') return; anime({targets:'.wb-shine', translateX:[0,260], duration:2200, delay:1500, endDelay:3500, loop:true, easing:'easeInOutSine'}); });
 })();
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js" defer></script>
+<script src="anime.min.js" defer></script><!-- animation library kept on our own site so the animations never depend on another website -->
 <script>/* every button pours a drink when tapped: ale into the brass ones, stout into the oak ones */
 (function(){ if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   document.addEventListener('pointerdown',function(e){ var b=e.target.closest&&e.target.closest('.btn'); if(!b||b.disabled) return;
