@@ -107,6 +107,9 @@
 
   /* ---------- falling / rising things ---------- */
   let cv=null, raf=0, parts=[], kind=null, fireworks=false, bursts=[], lastT=0, running=false;
+  // emojis are drawn once into little pictures — drawing text every frame is slow on phones
+  const sprites={};
+  function emojiSprite(e){ if(sprites[e]) return sprites[e]; const c=document.createElement('canvas'); c.width=c.height=48; const x=c.getContext('2d'); x.font='36px serif'; x.textAlign='center'; x.textBaseline='middle'; x.fillText(e,24,26); return sprites[e]=c; }
   function startCanvas(th){
     stopCanvas(); kind=th.fall; fireworks=!!th.fire; if(!kind && !fireworks) return;
     cv=document.createElement('canvas'); cv.className='fest-canvas'; cv.setAttribute('aria-hidden','true'); document.body.appendChild(cv);
@@ -134,7 +137,7 @@
         p.y+=dt*(kind==='snow'?18+p.s*26:22+p.s*22); p.x+=Math.sin(p.sw)*(kind==='snow'?.5:.7); if(p.y>H+30) Object.assign(p,spawn(true));
         if(kind==='snow'){ ctx.fillStyle=`rgba(255,255,255,${.45+p.s*.3})`; ctx.beginPath(); ctx.arc(p.x,p.y,1+p.s*2,0,7); ctx.fill(); }
         else if(kind==='confetti'){ ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillStyle=p.c; ctx.fillRect(-3*p.s,-1.5*p.s,6*p.s,3*p.s); ctx.restore(); }
-        else if(p.e){ ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(Math.sin(p.rot)*.5); ctx.globalAlpha=.85; ctx.font=`${Math.round(14+p.s*10)}px serif`; ctx.textAlign='center'; ctx.fillText(p.e,0,0); ctx.restore(); } }
+        else if(p.e){ const sp=emojiSprite(p.e), z=(14+p.s*10)/40; ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(Math.sin(p.rot)*.5); ctx.globalAlpha=.85; ctx.drawImage(sp,-24*z,-24*z,48*z,48*z); ctx.restore(); } }
       if(fireworks){ if(Math.random()<dt*.9) { const x=W*(.15+Math.random()*.7), y=H*(.12+Math.random()*.35), hue=Math.floor(Math.random()*360); for(let i=0;i<46;i++){ const a=i/46*6.283, sp=60+Math.random()*90; bursts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,l:1,h:hue}); } }
         for(const b of bursts){ b.vy+=60*dt; b.x+=b.vx*dt; b.y+=b.vy*dt; b.vx*=.985; b.vy*=.985; b.l-=dt*.75; if(b.l>0){ ctx.fillStyle=`hsla(${b.h},90%,${60+b.l*20}%,${b.l})`; ctx.beginPath(); ctx.arc(b.x,b.y,1.6,0,7); ctx.fill(); } }
         bursts=bursts.filter(b=>b.l>0); }
