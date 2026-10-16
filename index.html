@@ -543,9 +543,10 @@ try{if(localStorage.getItem('bh_off')==='1'){document.documentElement.classList.
   form.book-form.poured::before{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;background:linear-gradient(115deg,transparent 35%,rgba(255,240,200,.22) 48%,transparent 60%);background-size:250% 100%;animation:pouredShine 5s ease-in-out infinite;}
   @keyframes pouredShine{0%{background-position:150% 0}60%,100%{background-position:-60% 0}}
   form.book-form > .pour-fill.settled{background:linear-gradient(180deg,rgba(255,226,140,.62) 0%,rgba(246,184,64,.55) 30%,rgba(222,150,40,.5) 70%,rgba(190,112,20,.55) 100%);}
-  .pour-fill.settled i{animation:aleBubble 3.4s linear infinite;}
+  .pour-fill i{animation:aleBubble 3.4s linear infinite;}
+  .pour-fill svg{animation:aleWave 1.4s linear infinite;}
   @keyframes aleBubble{0%{transform:translateY(0) scale(.6);opacity:0}15%{opacity:.85}100%{transform:translateY(-420px) scale(1.1);opacity:0}}
-  .pour-fill.settled svg{animation:aleWave 2.6s linear infinite;}
+
   @keyframes aleWave{to{transform:translateX(-50%)}}
   .poured-badge{position:relative;z-index:2;margin:-6px 0 18px;padding:9px 14px;border-radius:999px;text-align:center;font-family:'Oswald',sans-serif;letter-spacing:.08em;text-transform:uppercase;font-size:12.5px;color:#1d1309;
     background:linear-gradient(180deg,#f6e2a4,#d6ad5a 55%,#b98a3b);box-shadow:0 3px 0 #5b3e16,0 0 22px rgba(240,190,90,.5);}
@@ -1647,7 +1648,7 @@ window.bhPour=(x,y)=> pintMode()==='pour' ? pourToBooking(x,y) : pintToFace(x,y)
 /* Tap the pint: the ale runs down the page — the page follows it — and fills the booking form. Scrolling or tapping skips ahead. */
 function pourToBooking(x0,y0){
   const form=document.querySelector('form.book-form'), reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if(!form || reduce || typeof anime==='undefined' || document.documentElement.classList.contains('fx-no-motion')) return gotoBook();
+  if(!form || reduce || document.documentElement.classList.contains('fx-no-motion')) return gotoBook();
   if(document.querySelector('.pour-layer')) return;
   const dpr=Math.min(devicePixelRatio||1,2), cv=document.createElement('canvas'); cv.className='pour-layer'; document.body.appendChild(cv);
   const ctx=cv.getContext('2d'); const fit=()=>{ cv.width=innerWidth*dpr; cv.height=innerHeight*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); }; fit(); addEventListener('resize',fit);
@@ -1655,7 +1656,8 @@ function pourToBooking(x0,y0){
   const startScroll=scrollY, srcDocY=y0+scrollY, srcX=x0;
   const formDocTop=()=>form.getBoundingClientRect().top+scrollY+18;
   const finalScroll=()=>Math.max(0, form.getBoundingClientRect().top+scrollY-110);
-  const dist=Math.max(200, formDocTop()-srcDocY), travel=Math.min(5.6, Math.max(3.4, dist/430));   // seconds for the ale to reach the form
+  const dist=Math.max(200, formDocTop()-srcDocY), travel=Math.min(3.8, Math.max(2.3, dist/650));   // seconds for the ale to reach the form
+  html.classList.add('pouring');   // sections appear instantly while the ale runs past (keeps it smooth on phones)
   const S={p:0, flowing:true, tailDoc:srcDocY, landed:false, splash:[], skip:false, t:0};
   const skip=()=>{ if(S.landed) return; S.skip=true; };
   const stopKeys=e=>{ if(['ArrowDown','ArrowUp','PageDown','PageUp','Space',' ','End','Home'].includes(e.key)) skip(); };
@@ -1681,7 +1683,7 @@ function pourToBooking(x0,y0){
     drawDrops(dt);
     S.splash.forEach(p=>{ p.vy+=1100*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.l-=dt*1.3; if(p.l>0) lensDrop(p.x,p.y,p.r,Math.min(1,p.l+.15),1+Math.min(1,Math.abs(p.vy)/900)); });
     S.splash=S.splash.filter(p=>p.l>0&&p.y<innerHeight+20);
-    if(!S.flowing && tailY>=headY-2 && !S.splash.length && !S.drops.length){ cancelAnimationFrame(raf); cv.remove(); removeEventListener('resize',fit); html.style.scrollBehavior=prevSB; }
+    if(!S.flowing && tailY>=headY-2 && !S.splash.length && !S.drops.length){ cancelAnimationFrame(raf); cv.remove(); removeEventListener('resize',fit); html.style.scrollBehavior=prevSB; html.classList.remove('pouring'); }
   }
   /* REAL-LOOKING ALE STREAM
      - it thins as it speeds up and has ripples running down it (like a real pour)
@@ -1713,7 +1715,7 @@ function pourToBooking(x0,y0){
     // warm light the ale casts on the page
     ctx.globalCompositeOperation='lighter'; along(0,BW*5,'rgba(255,140,30,.05)'); along(0,BW*2.4,'rgba(255,170,60,.07)'); ctx.globalCompositeOperation='source-over';
     // its shadow on the page
-    ctx.filter='blur(6px)'; ctx.fillStyle='rgba(0,0,0,.32)'; edge(1,0,7,5); ctx.fill(); ctx.filter='none';
+    ctx.fillStyle='rgba(0,0,0,.14)'; edge(1.5,0,8,6); ctx.fill(); ctx.fillStyle='rgba(0,0,0,.2)'; edge(1,0,6,4); ctx.fill();
     // see-through amber body: darker at the edges, bright through the middle
     const cx=C.reduce((a,c)=>a+c[0],0)/C.length, g=ctx.createLinearGradient(cx-BW*.6,0,cx+BW*.6,0);
     g.addColorStop(0,'rgba(104,44,4,.95)'); g.addColorStop(.18,'rgba(196,108,18,.9)'); g.addColorStop(.42,'rgba(246,176,60,.82)'); g.addColorStop(.55,'rgba(255,206,110,.8)'); g.addColorStop(.78,'rgba(206,118,22,.9)'); g.addColorStop(1,'rgba(96,40,4,.95)');
@@ -1745,21 +1747,16 @@ function pourToBooking(x0,y0){
   }
   raf=requestAnimationFrame(draw);
   function land(){
-    const fill=document.createElement('div'); fill.className='pour-fill';
+    // the box fills with golden ale (plain CSS, so it works on every phone), then stays a glowing golden pint
+    const fill=document.createElement('div'); fill.className='pour-fill rising';
     fill.innerHTML='<svg viewBox="0 0 200 16" preserveAspectRatio="none"><path d="M0 8 Q12.5 0 25 8 T50 8 T75 8 T100 8 T125 8 T150 8 T175 8 T200 8 V16 H0Z" fill="rgba(255,244,222,.9)"/></svg><div class="foam"></div>'+
-      Array.from({length:22},()=>`<i style="left:${4+Math.random()*92}%;"></i>`).join('');
-    form.prepend(fill);
-    anime({targets:fill.querySelector('svg'), translateX:['0%','-50%'], duration:1300, loop:true, easing:'linear'});
-    anime({targets:fill.querySelectorAll('i'), translateY:()=>[0,-anime.random(90,300)], opacity:[.9,0], scale:[.6,1.2], delay:anime.stagger(110), duration:1700, loop:true, easing:'easeOutSine'});
-    anime.timeline({easing:'easeOutCubic'})
-      .add({targets:fill, height:['0%','100%'], duration:2400, easing:'easeInOutSine'})
-      .add({targets:{}, duration:700, begin:()=>{ S.flowing=false; S.t=0; S.tailDoc=Math.max(srcDocY, scrollY-30); }})
-      // the ale settles and STAYS: the booking box remains a glowing golden pint (still easy to read) with bubbles rising and a foam head
-      .add({targets:fill, opacity:[1,.78], duration:1600, easing:'easeInOutQuad', complete:()=>{ anime.remove(fill.querySelectorAll('i')); fill.classList.add('settled');
-          fill.querySelectorAll('i').forEach((b,k)=>{ b.style.transform=''; b.style.opacity=''; b.style.animationDelay=(k*.37%4)+'s'; b.style.animationDuration=(3+(k%5)*.6)+'s'; }); }})
-      .add({targets:form, boxShadow:['0 0 0 1px rgba(228,206,147,0), 0 0 0px rgba(228,206,147,0)','0 0 0 1px rgba(228,206,147,.7), 0 0 46px rgba(228,206,147,.35)'], duration:800,
-            begin:()=>{ form.classList.add('poured'); if(!form.querySelector('.poured-badge')) form.insertAdjacentHTML('afterbegin','<div class="poured-badge">🍺 Your table is poured — just pick a time</div>'); },
-            complete:()=>{ const g=$('guests'); if(g) g.focus({preventScroll:true}); }}, '-=1200');
+      Array.from({length:22},(_,k)=>`<i style="left:${4+Math.random()*92}%;animation-delay:${(k*.29%3).toFixed(2)}s;animation-duration:${(2.6+(k%5)*.5).toFixed(1)}s"></i>`).join('');
+    form.prepend(fill); void fill.offsetHeight;
+    fill.style.transition='height 1.9s cubic-bezier(.45,.05,.35,1)'; fill.style.height='100%';
+    setTimeout(()=>{ S.flowing=false; S.t=0; S.tailDoc=Math.max(srcDocY, scrollY-30);
+      form.classList.add('poured'); if(!form.querySelector('.poured-badge')) form.insertAdjacentHTML('afterbegin','<div class="poured-badge">🍺 Your table is poured — just pick a time</div>');
+      fill.style.transition='opacity 1.4s ease'; fill.style.opacity='.8'; fill.classList.add('settled');
+      const g=$('guests'); if(g) g.focus({preventScroll:true}); }, 2000);
   }
 }
 async function loadEffects(){
@@ -2125,8 +2122,14 @@ loadHours().then(loadSettings).then(()=>window.bhRenderDayMats&&window.bhRenderD
     const [r,gg,b]=rgb; g.addColorStop(0,`rgba(${r},${gg},${b},1)`); g.addColorStop(soft?.35:.62,`rgba(${r},${gg},${b},${soft?.45:.85})`); g.addColorStop(soft?.75:.8,`rgba(${r},${gg},${b},${soft?.12:.25})`); g.addColorStop(1,`rgba(${r},${gg},${b},0)`);
     x.fillStyle=g; x.fillRect(0,0,s,s); return c; }
   const SOFT=WARM.map(c=>sprite(c,true)), RIM=WARM.map(c=>sprite(c,false)), EMB=sprite([255,170,80],true);
-  function size(){ const r=hero.getBoundingClientRect(); DPR=Math.min(devicePixelRatio||1, W*H>900000?1.25:1.75); W=r.width; H=r.height; cv.width=W*DPR; cv.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
-    const n=Math.round(Math.min(34, W/34));
+  let lamps=null;
+  function size(){ const r=hero.getBoundingClientRect(); W=r.width; H=r.height; DPR=Math.min(devicePixelRatio||1, W<700?1:1.25); cv.width=W*DPR; cv.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
+    // the three lamp pools are painted once, small, and stretched — far cheaper than repainting full-screen gradients every frame
+    lamps=document.createElement('canvas'); lamps.width=Math.max(60,Math.round(W/6)); lamps.height=Math.max(60,Math.round(H/6)); const lx=lamps.getContext('2d'), lw=lamps.width, lh=lamps.height;
+    lx.globalCompositeOperation='lighter';
+    [[.18,.08,.55],[.82,.1,.5],[.5,-.06,.75]].forEach(([fx,fy,s])=>{ const rad=Math.max(lw,lh)*s*.6, g=lx.createRadialGradient(lw*fx,lh*fy,0,lw*fx,lh*fy,rad);
+      g.addColorStop(0,'rgba(242,163,58,.11)'); g.addColorStop(.5,'rgba(201,140,60,.045)'); g.addColorStop(1,'rgba(0,0,0,0)'); lx.fillStyle=g; lx.fillRect(0,0,lw,lh); });
+    const n=Math.round(Math.min(W<700?18:34, W/34));
     bokeh=Array.from({length:n},()=>{ const z=Math.random(); return {x:R(0,W), y:R(0,H*.85), z, r:8+z*z*46, a:.05+ (1-z)*.12, ci:Math.floor(R(0,4)), rim:Math.random()<.35, ph:R(0,6.3), sp:R(.3,1.1), vx:R(-4,4), vy:R(-3,1)}; });
     embers=[]; }
   function ember(){ return {x:R(W*.1,W*.9), y:H+R(0,30), vx:R(-8,8), vy:-R(26,60), r:R(.8,2.4), life:0, max:R(4,8), ph:R(0,6.3), hot:Math.random()}; }
@@ -2136,9 +2139,7 @@ loadHours().then(loadSettings).then(()=>window.bhRenderDayMats&&window.bhRenderD
     ctx.clearRect(0,0,W,H);
     // lamp pools that breathe like candle light
     ctx.globalCompositeOperation='lighter';
-    [[.18,.08,.55],[.82,.1,.5],[.5,-.06,.75]].forEach(([fx,fy,s],i)=>{ const k=flick(i*2.1), rad=Math.max(W,H)*s*.6;
-      const g=ctx.createRadialGradient(W*fx,H*fy,0,W*fx,H*fy,rad); g.addColorStop(0,`rgba(242,163,58,${.11*k})`); g.addColorStop(.5,`rgba(201,140,60,${.045*k})`); g.addColorStop(1,'rgba(0,0,0,0)');
-      ctx.fillStyle=g; ctx.fillRect(0,0,W,H); });
+    ctx.globalAlpha=Math.min(1,(flick(0)+flick(2.1)+flick(4.2))/3*1.25); if(lamps) ctx.drawImage(lamps,0,0,W,H); ctx.globalAlpha=1;
     // bokeh: far = small & crisp, near = big & soft, parallax by depth
     for(const b of bokeh){
       b.x+=b.vx*dt*b.sp; b.y+=b.vy*dt*b.sp; if(b.x<-60) b.x=W+60; if(b.x>W+60) b.x=-60; if(b.y<-60) b.y=H*.9; if(b.y>H+60) b.y=-40;
@@ -2146,7 +2147,7 @@ loadHours().then(loadSettings).then(()=>window.bhRenderDayMats&&window.bhRenderD
       ctx.globalAlpha=b.a*tw; const img=b.rim?RIM[b.ci]:SOFT[b.ci]; ctx.drawImage(img,px-b.r,py-b.r,b.r*2,b.r*2);
     }
     // embers rising through turbulent air
-    if(!reduce && embers.length<Math.min(46,W/22) && Math.random()<dt*9) embers.push(ember());
+    if(!reduce && embers.length<Math.min(W<700?22:46,W/22) && Math.random()<dt*9) embers.push(ember());
     for(const e of embers){ e.life+=dt; const curl=Math.sin(e.y*.018+t*1.3+e.ph)*14+Math.sin(e.y*.05+e.ph*2)*5;
       e.x+=(e.vx+curl)*dt; e.y+=e.vy*dt; e.vy*=1-dt*.05;
       const f=e.life/e.max, a=f<.12?f/.12:1-((f-.12)/.88), fl=.7+.3*Math.sin(t*18+e.ph);
@@ -2155,7 +2156,8 @@ loadHours().then(loadSettings).then(()=>window.bhRenderDayMats&&window.bhRenderD
     embers=embers.filter(e=>e.life<e.max && e.y>-20);
     ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
   }
-  function loop(ts){ if(!run) return; const dt=Math.min(.05,((ts-last)/1000)||.016); last=ts; frame(dt); requestAnimationFrame(loop); }
+  // 30 frames a second is plenty for soft drifting light, and halves the work
+  function loop(ts){ if(!run) return; requestAnimationFrame(loop); if(ts-last<31) return; const dt=Math.min(.06,((ts-last)/1000)||.033); last=ts; frame(dt); }
   const fxOn=()=>!document.documentElement.classList.contains('fx-no-ambience');
   window.addEventListener('bh-effects',()=>play(fxOn() && hero.getBoundingClientRect().bottom>0));
   function play(on){ if(reduce) return; if(on && !fxOn()) on=false; if(on&&!run){ run=true; last=performance.now(); requestAnimationFrame(loop); } else if(!on) run=false; }
@@ -2262,7 +2264,10 @@ loadHours().then(loadSettings).then(()=>window.bhRenderDayMats&&window.bhRenderD
 })();</script>
 <script>
 /* ================= MOTION (anime.js) ================= */
-window.addEventListener('DOMContentLoaded',()=>{ setTimeout(startMotion, 50); });
+// if our own copy of the animation library is missing, fetch the public one so the animations never silently stop
+function ensureAnime(cb){ if(window.anime) return cb(); const s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js'; s.onload=cb; s.onerror=cb; document.head.appendChild(s); }
+window.bhEnsureAnime=ensureAnime;
+window.addEventListener('DOMContentLoaded',()=>{ setTimeout(()=>ensureAnime(startMotion), 50); });
 function startMotion(){
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(reduce || typeof anime==='undefined'){ document.documentElement.classList.add('no-motion'); return; }
@@ -2289,15 +2294,22 @@ function startMotion(){
   anime({targets:'.art-fire .sparks circle', translateY:[0,-26], opacity:[1,0], duration:1400, delay:anime.stagger(350), loop:true, easing:'easeOutQuad'});
   anime({targets:'.art-party .confetti > *', translateY:[0,10], translateX:()=>anime.random(-6,6), rotate:()=>anime.random(-40,40), direction:'alternate', loop:true, duration:900, delay:anime.stagger(110), easing:'easeInOutSine'});
   anime({targets:'.art-lantern .flame, .art-lantern .flame2', scaleY:[1,1.12], transformOrigin:'50% 100%', direction:'alternate', loop:true, duration:500, easing:'easeInOutSine'});
+  // the little looping illustrations only run while one of them is on screen, and rest during the pour
+  const loops=anime.running.filter(x=>x.loop===true||x.loop>1);
+  let seen=0, looping=true; const vis=new Set();
+  const setLoops=()=>{ const want=vis.size>0 && !document.documentElement.classList.contains('pouring') && !document.hidden; if(want===looping) return; looping=want; loops.forEach(x=>want?x.play():x.pause()); };
+  const lio=new IntersectionObserver(es=>{ es.forEach(e=>e.isIntersecting?vis.add(e.target):vis.delete(e.target)); setLoops(); },{rootMargin:'120px'});
+  document.querySelectorAll('.art,.hero-medallion').forEach(el=>lio.observe(el));
+  new MutationObserver(setLoops).observe(document.documentElement,{attributes:true,attributeFilter:['class']}); document.addEventListener('visibilitychange',setLoops);
   // ================= richer scroll motion (admin switch: "Scroll animations") =================
-  const H=document.documentElement, motionOn=()=>!H.classList.contains('fx-no-motion');
+  const H=document.documentElement, motionOn=()=>!H.classList.contains('fx-no-motion'), pouring=()=>H.classList.contains('pouring');
   // gold reading-progress line + header that tightens when scrolling
   const bar=document.createElement('div'); bar.id='scrollBar'; document.body.appendChild(bar);
   const head=document.querySelector('header'); let ticking=false;
   const onScroll=()=>{ if(ticking) return; ticking=true; requestAnimationFrame(()=>{ ticking=false;
     const max=document.documentElement.scrollHeight-innerHeight; bar.style.transform=`scaleX(${max>0?Math.min(1,scrollY/max):0})`;
     if(head) head.classList.toggle('scrolled', scrollY>40);
-    if(motionOn()) document.querySelectorAll('.art').forEach(a=>{ const r=a.getBoundingClientRect(); if(r.bottom<0||r.top>innerHeight) return; a.style.transform=`translateY(${((r.top+r.height/2)/innerHeight-.5)*-14}px)`; });
+    if(motionOn() && !pouring()) document.querySelectorAll('.art').forEach(a=>{ const r=a.getBoundingClientRect(); if(r.bottom<0||r.top>innerHeight) return; a.style.transform=`translateY(${((r.top+r.height/2)/innerHeight-.5)*-14}px)`; });
   }); };
   addEventListener('scroll',onScroll,{passive:true}); onScroll();
   // headings rise in word by word
@@ -2317,8 +2329,9 @@ function startMotion(){
     if(el.matches('.mat,.offer,.menu-card,.highlight-card,figure')) return anime({targets:el, opacity:[0,1], translateY:[46,0], scale:[.94,1], rotateX:[12,0], duration:1000, delay:d, easing:'easeOutExpo'});
     anime({targets:el, opacity:[0,1], translateY:[30,0], duration:900, delay:d, easing:'easeOutCubic'});
   };
+  const instant=el=>{ el.style.opacity=1; el.querySelectorAll('.w-split>span').forEach(s=>{ s.style.transform='none'; s.style.opacity=1; }); };
   const io=new IntersectionObserver(entries=>{ let i=0; entries.forEach(en=>{ if(!en.isIntersecting) return; io.unobserve(en.target); en.target.classList.add('in');
-      if(!motionOn()){ en.target.style.opacity=1; return; } play(en.target, i++); }); }, {rootMargin:'0px 0px -10% 0px'});
+      if(!motionOn()||pouring()){ instant(en.target); return; } play(en.target, i++); }); }, {rootMargin:'0px 0px -10% 0px'});
   const watch=()=>{ mark(); document.querySelectorAll('.reveal:not(.in)').forEach(el=>io.observe(el)); };
   watch(); window.addEventListener('content-added', watch); window.addEventListener('bh-gallery', ()=>setTimeout(watch,60));
   // safety sweep: anything already on screen (or scrolled past) is always revealed, even if the observer missed it
