@@ -21,6 +21,7 @@
 <script>/* Only hide the page while checking if the site was switched off last time — otherwise it shows instantly. */
 try{if(localStorage.getItem('bh_off')==='1'){document.documentElement.classList.add('checking');setTimeout(function(){document.documentElement.classList.remove('checking');},2500);}}catch(e){}</script>
 <meta charset="UTF-8">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Black Horse — Drunken Wok, Kingston upon Thames</title>
 <link rel="icon" href="logo.jpg">
@@ -90,6 +91,8 @@ try{if(localStorage.getItem('bh_off')==='1'){document.documentElement.classList.
   .ornate-rule .bar{width:60px;height:1px;background:var(--gold-dark);}
   .ornate-rule .diamonds{font-size:10px;letter-spacing:4px;color:var(--gold);}
   .divider{display:flex;justify-content:center;padding:0;}
+  .hp-field{position:absolute !important;left:-9999px !important;width:1px;height:1px;opacity:0;pointer-events:none;}
+  main > section:not(.hero):not(#book):not(#pint3d):not(#play){content-visibility:auto;contain-intrinsic-size:auto 900px;}
 
   .mark{border-radius:50%;object-fit:cover;display:block;flex:none;background:var(--cream);}
 
@@ -489,18 +492,18 @@ try{if(localStorage.getItem('bh_off')==='1'){document.documentElement.classList.
   body:has(.sf-bar:not([hidden])) .splash-btn{bottom:calc(64px + env(safe-area-inset-bottom));}
   #scrollBar{position:fixed;left:0;top:0;height:2px;width:100%;z-index:60;transform-origin:0 50%;transform:scaleX(0);background:linear-gradient(90deg,var(--gold-dark),var(--gold-light),#ffcf7a);box-shadow:0 0 10px rgba(228,206,147,.6);pointer-events:none;}
   header{transition:background .35s,box-shadow .35s;}
-  header.scrolled{background:rgba(12,11,9,.86);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,.35);}
+  header.scrolled{background:rgba(12,11,9,.97);box-shadow:0 10px 30px rgba(0,0,0,.35);}
   .nav-inner{transition:padding .35s;}
   header.scrolled .nav-inner{padding-top:8px;padding-bottom:8px;}
   .w-split{display:inline-block;overflow:hidden;vertical-align:bottom;padding-bottom:.08em;}
-  .w-split>span{display:inline-block;will-change:transform;}
+  .w-split>span{display:inline-block;}
   .glow-cta{position:relative;}
   html.fx-no-motion .reveal{opacity:1 !important;transform:none !important;}
   html.fx-no-motion #scrollBar{display:none;}
   /* ================= IMMERSIVE PUB MODE (on together with the 3D pint) ================= */
   #pubScene{position:fixed;left:0;top:0;width:100vw;height:115vh;z-index:-1;pointer-events:none;display:none;will-change:transform;}
-  #pubGlow{position:fixed;inset:0;z-index:-1;pointer-events:none;display:none;mix-blend-mode:screen;animation:pubFlicker 5.5s ease-in-out infinite;}
-  @keyframes pubFlicker{0%,100%{opacity:.85}18%{opacity:1}31%{opacity:.78}47%{opacity:.95}62%{opacity:.82}80%{opacity:1}}
+  #pubGlow{position:fixed;inset:0;z-index:-1;pointer-events:none;display:none;opacity:.6;animation:pubFlicker 5.5s ease-in-out infinite;will-change:opacity;}
+  @keyframes pubFlicker{0%,100%{opacity:.5}18%{opacity:.62}31%{opacity:.46}47%{opacity:.58}62%{opacity:.48}80%{opacity:.62}}
   html.pint-on{background:#0c0b09;}
   html.pint-on #pubScene, html.pint-on #pubGlow{display:block;}
   html.pint-on body{background:transparent;}
@@ -508,7 +511,7 @@ try{if(localStorage.getItem('bh_off')==='1'){document.documentElement.classList.
   html.pint-on main > section.section-panel{background:rgba(21,19,16,.8);}
   html.pint-on .hero{background:radial-gradient(ellipse at 50% -10%,rgba(201,169,97,.16),transparent 60%),rgba(12,11,9,.45);}
   html.pint-on #pint3d{background:transparent;}
-  html.pint-on header{background:rgba(12,11,9,.82);backdrop-filter:blur(8px);}
+  html.pint-on header{background:rgba(12,11,9,.95);}
   html.pint-on footer{background:rgba(12,11,9,.88);}
   html.pint-on .media-slot{background:rgba(12,11,9,.66);}
   /* customers book by pouring the pint: both Book a Table buttons step aside */
@@ -538,10 +541,9 @@ try{if(localStorage.getItem('bh_off')==='1'){document.documentElement.classList.
   html.pint-on .hero-ctas .btn-gold{display:none;}
   .pint-cta{display:none;}
   html.pint-on .hero-ctas .pint-cta{display:inline-flex;}
-  form.book-form.poured{border-color:#d6a84a !important;box-shadow:0 0 0 1px rgba(246,214,140,.85),0 0 0 4px rgba(214,168,74,.18),0 0 60px rgba(240,180,70,.35);animation:pouredGlow 3.2s ease-in-out infinite;}
-  @keyframes pouredGlow{0%,100%{box-shadow:0 0 0 1px rgba(246,214,140,.85),0 0 0 4px rgba(214,168,74,.18),0 0 46px rgba(240,180,70,.28)}50%{box-shadow:0 0 0 1px rgba(255,230,160,1),0 0 0 6px rgba(214,168,74,.26),0 0 80px rgba(240,180,70,.5)}}
-  form.book-form.poured::before{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;background:linear-gradient(115deg,transparent 35%,rgba(255,240,200,.22) 48%,transparent 60%);background-size:250% 100%;animation:pouredShine 5s ease-in-out infinite;}
-  @keyframes pouredShine{0%{background-position:150% 0}60%,100%{background-position:-60% 0}}
+  form.book-form.poured{border-color:#d6a84a !important;box-shadow:0 0 0 1px rgba(246,214,140,.85),0 0 0 4px rgba(214,168,74,.18),0 0 56px rgba(240,180,70,.36);}
+  form.book-form.poured::before{content:'';position:absolute;top:0;bottom:0;left:-60%;width:50%;z-index:0;pointer-events:none;background:linear-gradient(105deg,transparent,rgba(255,240,200,.2),transparent);animation:pouredShine 6s ease-in-out infinite;will-change:transform;}
+  @keyframes pouredShine{0%{transform:translateX(0)}55%,100%{transform:translateX(420%)}}
   form.book-form > .pour-fill.settled{background:linear-gradient(180deg,rgba(255,226,140,.62) 0%,rgba(246,184,64,.55) 30%,rgba(222,150,40,.5) 70%,rgba(190,112,20,.55) 100%);}
   .pour-fill i{animation:aleBubble 3.4s linear infinite;}
   .pour-fill svg{animation:aleWave 1.4s linear infinite;}
@@ -550,7 +552,7 @@ try{if(localStorage.getItem('bh_off')==='1'){document.documentElement.classList.
   @keyframes aleWave{to{transform:translateX(-50%)}}
   .poured-badge{position:relative;z-index:2;margin:-6px 0 18px;padding:9px 14px;border-radius:999px;text-align:center;font-family:'Oswald',sans-serif;letter-spacing:.08em;text-transform:uppercase;font-size:12.5px;color:#1d1309;
     background:linear-gradient(180deg,#f6e2a4,#d6ad5a 55%,#b98a3b);box-shadow:0 3px 0 #5b3e16,0 0 22px rgba(240,190,90,.5);}
-  @media (prefers-reduced-motion: reduce){ form.book-form.poured,form.book-form.poured::before,.pour-fill.settled i,.pour-fill.settled svg{animation:none;} }
+  @media (prefers-reduced-motion: reduce){ form.book-form.poured::before,.pour-fill i,.pour-fill svg{animation:none;} }
   /* ---------- 3D pint (switch on/off in admin) ---------- */
   #pint3d{position:relative;padding:0;height:min(78vh,560px);min-height:420px;overflow:hidden;border-bottom:1px solid var(--line-dark);
     background:radial-gradient(ellipse 60% 70% at 50% 60%,rgba(255,155,47,.16),transparent 70%),radial-gradient(ellipse at 50% 120%,#2a170b,transparent 60%),var(--black);}
@@ -574,8 +576,9 @@ try{if(localStorage.getItem('bh_off')==='1'){document.documentElement.classList.
   .hero>.wrap{position:relative;z-index:2;}
   #heroFx{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none;}
   .hero::after{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse 120% 90% at 50% 40%,transparent 55%,rgba(0,0,0,.55) 100%);}
-  .hero h1{background:linear-gradient(100deg,var(--gold-light) 0%,var(--gold-light) 42%,#FFF4D6 50%,var(--gold-light) 58%,var(--gold-light) 100%);background-size:260% 100%;background-position:100% 0;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:gild 8s ease-in-out 1.6s infinite;}
-  @keyframes gild{0%{background-position:100% 0}35%,100%{background-position:0 0}}
+  .hero h1{background:linear-gradient(100deg,var(--gold-light) 0%,var(--gold-light) 42%,#FFF4D6 50%,var(--gold-light) 58%,var(--gold-light) 100%);background-size:260% 100%;background-position:100% 0;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  .hero h1.sheen{animation:gild 2.4s ease-in-out;}
+  @keyframes gild{0%{background-position:100% 0}100%{background-position:0 0}}
   .hero-medallion .ring::after{content:'';position:absolute;inset:-2px;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 68%,rgba(255,236,190,.9) 78%,transparent 88%);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 2.5px));mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 2.5px));animation:ringSpin 9s linear infinite;}
   .hero-medallion::after{content:'';position:absolute;inset:-26px;border-radius:50%;z-index:-1;background:radial-gradient(circle,rgba(242,163,58,.22),transparent 65%);animation:candle 3.2s ease-in-out infinite;}
   @keyframes ringSpin{to{transform:rotate(360deg)}}
@@ -951,7 +954,7 @@ try{if(localStorage.getItem('bh_off')==='1'){document.documentElement.classList.
           <path d="M28 230c0-10 4-20 10-28v300c-6-2-10-6-10-12z" fill="#fff" opacity=".1"/>
         </svg></div>
       </div>
-      <form class="book-form" id="bookingForm" novalidate>
+      <form class="book-form" id="bookingForm" novalidate><input class="hp-field" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
         <div class="wine-head" aria-hidden="true"><div class="crest">❦ Réserve ❦</div><div class="sub">The Black Horse · Table Booking</div><div class="rule"></div></div>
         <div class="form-row one">
           <div class="field"><label for="guests">How many of you? <span class="g-hint">(any group size)</span></label>
@@ -1009,7 +1012,7 @@ try{if(localStorage.getItem('bh_off')==='1'){document.documentElement.classList.
         <h2 style="font-size:clamp(28px,3.6vw,38px);margin:14px 0 8px;color:var(--gold-light);">Send us a message</h2>
         <p style="margin:0;">Questions, feedback or takeaway enquiries — we'll get back to you.</p>
       </div>
-      <form class="contact-card" id="contactForm" novalidate>
+      <form class="contact-card" id="contactForm" novalidate><input class="hp-field" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
         <div class="form-row">
           <div class="field"><label for="m-name">Name</label><input id="m-name" maxlength="100" required></div>
           <div class="field"><label for="m-phone">Phone (optional)</label><input id="m-phone" type="tel" maxlength="30"></div>
@@ -1095,7 +1098,7 @@ try{if(localStorage.getItem('bh_off')==='1'){document.documentElement.classList.
   </div>
 </div>
 <div class="hire-modal" id="hireModal" hidden role="dialog" aria-modal="true" aria-labelledby="hireTitle">
-  <form class="hire-card" id="hireForm" novalidate>
+  <form class="hire-card" id="hireForm" novalidate><input class="hp-field" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
     <div class="hm-head"><h3 id="hireTitle">Private hire enquiry</h3><button type="button" class="mm-close" id="hireClose" aria-label="Close">&times;</button></div>
     <p class="hm-sub">Up to 250 guests · Drunken Wok catering available · No obligation</p>
     <div class="form-row">
@@ -1125,6 +1128,7 @@ try{if(localStorage.getItem('bh_off')==='1'){document.documentElement.classList.
 (function(){
 const $ = id => document.getElementById(id);
 const esc = s => s==null ? '' : String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const safeImg=v=>(typeof v==='string' && /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(v)) ? v : '';   // only real pictures, never code
 /* ================= LIGHTBOX ================= */
 const lb = $('lightbox'); let lbList = [], lbIdx = 0;
 function openLb(list, i){ lbList=list; lbIdx=i; showLb(); lb.classList.add('open'); document.body.style.overflow='hidden'; }
@@ -1208,7 +1212,7 @@ function renderMenu(){
   const t=$('menuText'), p=$('menuPages'), cb=$('catBtns'), m=window.currentMenu;
   $('menuTabs').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x.dataset.menu===m));
   if(m==='pages'){ t.hidden=true; cb.hidden=true; p.hidden=false;
-    p.innerHTML=window.MENU_PAGES.map((x,i)=>`<figure data-i="${i}"><img src="${x.src}" alt="${esc(x.cap)}" loading="lazy"><figcaption>${esc(x.cap)}</figcaption></figure>`).join(''); return; }
+    p.innerHTML=window.MENU_PAGES.map((x,i)=>`<figure data-i="${i}"><img src="${safeImg(x.src)}" alt="${esc(x.cap)}" loading="lazy"><figcaption>${esc(x.cap)}</figcaption></figure>`).join(''); return; }
   p.hidden=true; t.hidden=false; cb.hidden=false;
   const list = m==='lunch' ? LUNCH : FOOD;
   cb.innerHTML = list.map((c,i)=>`<button type="button" data-ci="${i}" class="${i===0?'on':''}">${esc(c.t)}</button>`).join('');
@@ -1252,6 +1256,10 @@ import { firebaseConfig } from "./firebase-config.js";
 const db = getFirestore(initializeApp(firebaseConfig));
 const $ = id => document.getElementById(id);
 const esc = s => s==null ? '' : String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const safeImg=v=>(typeof v==='string' && /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(v)) ? v : '';   // only real pictures, never code
+/* spam trap: robots fill in the hidden "website" box or submit within a second or two of the page opening — people don't */
+const PAGE_T0=Date.now();
+const isBot=f=>{ const hp=f.querySelector('.hp-field'); return (hp && hp.value) || Date.now()-PAGE_T0<2500; };
 const money = n => '£' + Number(n||0).toFixed(2).replace(/\.00$/,'');
 const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const todayISO = () => { const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
@@ -1270,7 +1278,7 @@ function renderGrid(grid, items){
   grid.classList.toggle('one', items.length===1);
   grid.innerHTML = items.map(g => g.url
       ? `<figure><div class="vid">${videoEmbed(g.url)}</div>${g.caption?`<figcaption>${esc(g.caption)}</figcaption>`:''}</figure>`
-      : `<figure class="ph" data-pi="${photos.findIndex(p=>p.src===g.img)}"><img src="${g.img}" alt="${esc(g.caption||'The Black Horse')}" loading="lazy">${g.caption?`<figcaption>${esc(g.caption)}</figcaption>`:''}</figure>`).join('');
+      : `<figure class="ph" data-pi="${photos.findIndex(p=>p.src===g.img)}"><img src="${safeImg(g.img)}" alt="${esc(g.caption||'The Black Horse')}" loading="lazy">${g.caption?`<figcaption>${esc(g.caption)}</figcaption>`:''}</figure>`).join('');
   grid.onclick=e=>{ const f=e.target.closest('figure.ph'); if(f) window.openLb(photos, Number(f.dataset.pi)); };
 }
 async function loadGallery(){
@@ -1490,6 +1498,7 @@ function showOk(html){ $('book-confirm').innerHTML=html; $('book-confirm').style
 function showErr(html){ $('book-error').innerHTML=html; $('book-error').style.display='block'; }
 form.addEventListener('submit', async e=>{
   e.preventDefault(); $('book-confirm').style.display='none'; $('book-error').style.display='none';
+  if(isBot(form)) return showOk('<b>Thank you!</b> We\u2019ve received your request.');
   const name=$('name').value.trim(), phone=$('phone').value.trim(), email=$('email').value.trim(), date=$('date').value, guests=Number($('guests').value), time=$('time').value;
   if(!name||!phone||!email||!date||!guests||!time) return showErr('Please fill in the date, time, guests, your name, phone and email.');
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return showErr('Please check your email address.');
@@ -1536,6 +1545,7 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape' && !$('hireModal').
 $('h-date').min=todayISO();
 $('hireForm').addEventListener('submit', async e=>{
   e.preventDefault(); $('h-ok').hidden=true; $('h-err').hidden=true;
+  if(isBot($('hireForm'))){ $('h-ok').hidden=false; return; }
   const name=$('h-name').value.trim(), phone=$('h-phone').value.trim(), email=$('h-email').value.trim();
   if(!name||!phone||!email){ $('h-err').textContent='Please add your name, phone and email.'; $('h-err').hidden=false; return; }
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ $('h-err').textContent='Please check your email address.'; $('h-err').hidden=false; return; }
@@ -1564,6 +1574,7 @@ async function loadOffers(){
 /* ================= CONTACT ================= */
 $('contactForm').addEventListener('submit', async e=>{
   e.preventDefault(); $('m-ok').style.display='none'; $('m-err').style.display='none';
+  if(isBot($('contactForm'))){ $('m-ok').style.display='block'; return; }
   const name=$('m-name').value.trim(), email=$('m-email').value.trim(), message=$('m-msg').value.trim();
   if(!name||!email||!message){ $('m-err').textContent='Please add your name, email and a message.'; $('m-err').style.display='block'; return; }
   $('m-btn').disabled=true;
@@ -1650,7 +1661,7 @@ function pourToBooking(x0,y0){
   const form=document.querySelector('form.book-form'), reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(!form || reduce || document.documentElement.classList.contains('fx-no-motion')) return gotoBook();
   if(document.querySelector('.pour-layer')) return;
-  const dpr=Math.min(devicePixelRatio||1,2), cv=document.createElement('canvas'); cv.className='pour-layer'; document.body.appendChild(cv);
+  const dpr=Math.min(devicePixelRatio||1, innerWidth<700?1.25:2), cv=document.createElement('canvas'); cv.className='pour-layer'; document.body.appendChild(cv);
   const ctx=cv.getContext('2d'); const fit=()=>{ cv.width=innerWidth*dpr; cv.height=innerHeight*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); }; fit(); addEventListener('resize',fit);
   const html=document.documentElement, prevSB=html.style.scrollBehavior; html.style.scrollBehavior='auto';
   const startScroll=scrollY, srcDocY=y0+scrollY, srcX=x0;
@@ -1678,10 +1689,8 @@ function pourToBooking(x0,y0){
     ctx.clearRect(0,0,innerWidth,innerHeight);
     if(headY>tailY+2) drawAle(tailY, headY, srcY, landDoc-scrollY, tx);
     if(S.p>=1 && !S.landed){ S.landed=true; cleanupInput(); scrollTo(0,finalScroll()); land(); }
-    if(S.landed && S.flowing){ for(let i=0;i<3;i++){ const a=-Math.PI/2+(Math.random()-.5)*2.4, sp=140+Math.random()*260; S.splash.push({x:tx+(Math.random()-.5)*10,y:landY,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:1.4+Math.random()*2.4,l:1}); }
-      if(Math.random()<dt*5) S.rip.push({x:tx,y:landY+6,r:BW*.5,l:1}); }
-    drawDrops(dt);
-    S.splash.forEach(p=>{ p.vy+=1100*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.l-=dt*1.3; if(p.l>0) lensDrop(p.x,p.y,p.r,Math.min(1,p.l+.15),1+Math.min(1,Math.abs(p.vy)/900)); });
+    if(S.landed && S.flowing) for(let i=0;i<2;i++) S.splash.push({x:tx+(Math.random()-.5)*12,y:landY,vx:(Math.random()-.5)*200,vy:-110-Math.random()*190,l:1});
+    S.splash.forEach(p=>{ p.vy+=880*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.l-=dt*1.4; if(p.l>0){ ctx.fillStyle=`rgba(226,148,40,${p.l})`; ctx.beginPath(); ctx.arc(p.x,p.y,2.6,0,7); ctx.fill(); } });
     S.splash=S.splash.filter(p=>p.l>0&&p.y<innerHeight+20);
     if(!S.flowing && tailY>=headY-2 && !S.splash.length && !S.drops.length){ cancelAnimationFrame(raf); cv.remove(); removeEventListener('resize',fit); html.style.scrollBehavior=prevSB; html.classList.remove('pouring'); }
   }
@@ -1696,48 +1705,18 @@ function pourToBooking(x0,y0){
     g.addColorStop(0,`rgba(255,214,130,${a})`); g.addColorStop(.6,`rgba(214,128,26,${a})`); g.addColorStop(1,`rgba(110,48,6,${a})`);
     ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(x,y,r,r*(stretch||1),0,0,7); ctx.fill();
     ctx.fillStyle=`rgba(255,255,255,${.8*a})`; ctx.beginPath(); ctx.ellipse(x-r*.35,y-r*.38*(stretch||1),r*.28,r*.16,-.5,0,7); ctx.fill(); }
+  // the stream — yesterday's look (glowing amber pour with a bright highlight and foam flecks), drawn without the costly blur
   function drawAle(tailY, headY, srcY, landYv, tx){
-    const span=Math.max(1,landYv-srcY), breakup=S.landed?0:Math.min(70,(headY-tailY)*.35);
-    const bodyEnd=headY-breakup, n=Math.max(12,Math.round((bodyEnd-tailY)/5)), C=[], Wd=[];
-    for(let i=0;i<=n;i++){ const y=tailY+(bodyEnd-tailY)*i/n, k=Math.min(1,Math.max(0,(y-srcY)/span)), sm=k*k*(3-2*k);
-      const x=srcX+(tx-srcX)*sm + Math.sin(y*.011+S.t*2)*2.6*(1-k*.5) + Math.sin(y*.07-S.t*14)*.6;
-      const fall=Math.max(0,y-srcY), speedThin=Math.max(.46,1/Math.pow(1+fall/240,.33));            // faster lower down = thinner
-      let w=BW*speedThin*(1+.16*Math.sin(y*.05-S.t*11)+.08*Math.sin(y*.13+S.t*5));                 // ripples travelling down
-      if(!S.flowing) w*=Math.min(1,(i/n)*1.5+.2);
-      if(i<5 && S.flowing) w*=.7+i*.06;
-      C.push([x,y]); Wd.push(w); }
-    if(C.length<2) return;
-    const edge=(f,dx,ox,oy)=>{ ctx.beginPath(); C.forEach(([x,y],i)=>{ const X=x-Wd[i]*f/2+dx*Wd[i]+(ox||0), Y=y+(oy||0); i?ctx.lineTo(X,Y):ctx.moveTo(X,Y); });
-      for(let i=C.length-1;i>=0;i--){ const [x,y]=C[i]; ctx.lineTo(x+Wd[i]*f/2+dx*Wd[i]+(ox||0),y+(oy||0)); } ctx.closePath(); };
-    const along=(off,lw,col,dash,speed)=>{ ctx.beginPath(); C.forEach(([x,y],i)=>i?ctx.lineTo(x+off*Wd[i],y):ctx.moveTo(x+off*Wd[i],y));
-      ctx.lineWidth=lw; ctx.strokeStyle=col; ctx.lineCap='round'; ctx.setLineDash(dash||[]); ctx.lineDashOffset=-S.t*(speed||0); ctx.stroke(); ctx.setLineDash([]); };
-    ctx.save();
-    // warm light the ale casts on the page
-    ctx.globalCompositeOperation='lighter'; along(0,BW*5,'rgba(255,140,30,.05)'); along(0,BW*2.4,'rgba(255,170,60,.07)'); ctx.globalCompositeOperation='source-over';
-    // its shadow on the page
-    ctx.fillStyle='rgba(0,0,0,.14)'; edge(1.5,0,8,6); ctx.fill(); ctx.fillStyle='rgba(0,0,0,.2)'; edge(1,0,6,4); ctx.fill();
-    // see-through amber body: darker at the edges, bright through the middle
-    const cx=C.reduce((a,c)=>a+c[0],0)/C.length, g=ctx.createLinearGradient(cx-BW*.6,0,cx+BW*.6,0);
-    g.addColorStop(0,'rgba(104,44,4,.95)'); g.addColorStop(.18,'rgba(196,108,18,.9)'); g.addColorStop(.42,'rgba(246,176,60,.82)'); g.addColorStop(.55,'rgba(255,206,110,.8)'); g.addColorStop(.78,'rgba(206,118,22,.9)'); g.addColorStop(1,'rgba(96,40,4,.95)');
-    ctx.fillStyle=g; edge(1,0); ctx.fill();
-    const vg=ctx.createLinearGradient(0,tailY,0,bodyEnd); vg.addColorStop(0,'rgba(255,220,150,.18)'); vg.addColorStop(1,'rgba(120,50,0,.18)'); ctx.fillStyle=vg; edge(1,0); ctx.fill();
-    // light bending at the edges
-    along(-.47,1.3,'rgba(70,28,0,.55)'); along(.47,1.3,'rgba(70,28,0,.55)');
-    // highlights: a steady window reflection plus glints sliding down with the flow
-    along(-.28,1.6,'rgba(255,250,235,.45)'); along(-.28,2.6,'rgba(255,255,245,.9)',[14,30],340); along(.2,1.4,'rgba(255,236,200,.5)',[5,40],420); along(.05,.8,'rgba(255,246,220,.35)',[2,12],520);
-    // bubbles and foam carried down inside
-    for(let i=0;i<16;i++){ const u=((i*.0731+S.t*(.5+(i%4)*.09))%1), idx=Math.min(C.length-1,Math.floor(u*C.length)), [x,y]=C[idx], w=Wd[idx];
-      ctx.strokeStyle='rgba(255,248,230,.7)'; ctx.lineWidth=.8; ctx.beginPath(); ctx.arc(x+Math.sin(i*7.3)*w*.28, y, .9+(i%3)*.6, 0, 7); ctx.stroke(); }
-    // stray droplets thrown off the sides
-    if(S.flowing && Math.random()<.35){ const idx=Math.floor(Math.random()*C.length), [x,y]=C[idx], side=Math.random()<.5?-1:1;
-      S.drops.push({x:x+side*Wd[idx]*.45, y, vx:side*(20+Math.random()*50), vy:260+Math.random()*220, r:1.2+Math.random()*2.2, l:1}); }
-    // while falling, the front of the stream breaks into drops
-    if(breakup>4){ const [bx]=C[C.length-1], wEnd=Wd[Wd.length-1];
-      for(let k=0;k<5;k++){ const f=(k+1)/5, y=bodyEnd+breakup*Math.pow(f,1.25), r=wEnd*.62*(1-.12*k)*(1+.08*Math.sin(S.t*20+k)), stretch=1.25-.05*k;
-        lensDrop(bx+Math.sin(S.t*6+k)*1.4, y, Math.max(2,r), .96, stretch); }
-      const hy=headY, hx=bx; ctx.globalCompositeOperation='lighter'; const hg=ctx.createRadialGradient(hx,hy,0,hx,hy,BW*2.2); hg.addColorStop(0,'rgba(255,190,90,.35)'); hg.addColorStop(1,'rgba(255,190,90,0)');
-      ctx.fillStyle=hg; ctx.beginPath(); ctx.arc(hx,hy,BW*2.2,0,7); ctx.fill(); ctx.globalCompositeOperation='source-over'; }
-    ctx.restore();
+    const steps=Math.max(14,Math.round((headY-tailY)/12)), pts=[], span=Math.max(1,landYv-srcY);
+    for(let i=0;i<=steps;i++){ const y=tailY+(headY-tailY)*i/steps, k=Math.min(1,Math.max(0,(y-srcY)/span)), sm=k*k*(3-2*k);
+      pts.push([srcX+(tx-srcX)*sm+Math.sin(y*.016+S.t*6)*3.2*(1-k*.5), y]); }
+    const line=(w,style)=>{ ctx.beginPath(); pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.lineWidth=w; ctx.strokeStyle=style; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.stroke(); };
+    line(34,'rgba(255,170,60,.10)'); line(22,'rgba(255,170,60,.16)');                    // warm glow around it
+    const g=ctx.createLinearGradient(0,tailY,0,headY); g.addColorStop(0,'rgba(236,160,52,.96)'); g.addColorStop(1,'rgba(170,84,10,.96)');
+    line(14,g);
+    ctx.save(); ctx.translate(-3.5,0); line(3,'rgba(255,238,196,.7)'); ctx.restore();       // highlight down one side
+    for(let i=0;i<pts.length;i+=2){ const [x,y]=pts[i]; ctx.fillStyle='rgba(255,242,210,.55)'; ctx.beginPath(); ctx.arc(x+Math.sin(S.t*9+i)*3.5,y+Math.sin(S.t*5+i)*2,1.5,0,7); ctx.fill(); }
+    if(!S.landed){ const [hx,hy]=pts[pts.length-1]; const hg=ctx.createRadialGradient(hx,hy,0,hx,hy,16); hg.addColorStop(0,'rgba(255,214,140,.9)'); hg.addColorStop(1,'rgba(214,128,24,0)'); ctx.fillStyle=hg; ctx.beginPath(); ctx.arc(hx,hy,16,0,7); ctx.fill(); }
   }
   function drawDrops(dt){
     S.drops.forEach(d=>{ d.vy+=1500*dt; d.x+=d.vx*dt; d.y+=d.vy*dt; d.l-=dt*.9; if(d.l>0) lensDrop(d.x,d.y,d.r,Math.min(1,d.l+.2),1+Math.min(1.2,d.vy/1400)); });
@@ -2123,7 +2102,8 @@ loadHours().then(loadSettings).then(()=>window.bhRenderDayMats&&window.bhRenderD
     x.fillStyle=g; x.fillRect(0,0,s,s); return c; }
   const SOFT=WARM.map(c=>sprite(c,true)), RIM=WARM.map(c=>sprite(c,false)), EMB=sprite([255,170,80],true);
   let lamps=null;
-  function size(){ const r=hero.getBoundingClientRect(); W=r.width; H=r.height; DPR=Math.min(devicePixelRatio||1, W<700?1:1.25); cv.width=W*DPR; cv.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
+  // soft, out-of-focus light doesn't need full resolution: draw at half size and let the browser stretch it (4x less work)
+  function size(){ const r=hero.getBoundingClientRect(); W=r.width; H=r.height; DPR=.5; cv.width=Math.ceil(W*DPR); cv.height=Math.ceil(H*DPR); ctx.setTransform(DPR,0,0,DPR,0,0);
     // the three lamp pools are painted once, small, and stretched — far cheaper than repainting full-screen gradients every frame
     lamps=document.createElement('canvas'); lamps.width=Math.max(60,Math.round(W/6)); lamps.height=Math.max(60,Math.round(H/6)); const lx=lamps.getContext('2d'), lw=lamps.width, lh=lamps.height;
     lx.globalCompositeOperation='lighter';
@@ -2236,7 +2216,7 @@ loadHours().then(loadSettings).then(()=>window.bhRenderDayMats&&window.bhRenderD
   let rt; addEventListener('resize',()=>{ clearTimeout(rt); rt=setTimeout(()=>{ const cv=document.getElementById('pubScene'); if(cv && document.documentElement.classList.contains('pint-on')){ painted=false; paint(cv, document.getElementById('pubGlow')); parallax(); } },300); });
   addEventListener('scroll',()=>{ if(!document.documentElement.classList.contains('pint-on')) return; cancelAnimationFrame(raf); raf=requestAnimationFrame(parallax); },{passive:true});
   /* cinematic sections: each one swings up into place in 3D as it scrolls into view */
-  const cine=()=>{ const h=document.documentElement; const on=h.classList.contains('pint-on') && !h.classList.contains('fx-no-motion') && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const cine=()=>{ const h=document.documentElement; const on=h.classList.contains('pint-on') && !h.classList.contains('fx-no-motion') && !h.classList.contains('pouring') && innerWidth>=900 && !matchMedia('(prefers-reduced-motion: reduce)').matches;
     h.classList.toggle('cine', on);
     document.querySelectorAll('main > section:not(.hero):not(#pint3d)').forEach(s=>{ if(!on){ s.style.transform=''; s.style.opacity=''; return; }
       const r=s.getBoundingClientRect(); if(r.top>innerHeight*1.2 || r.bottom<-50){ return; }
@@ -2267,7 +2247,9 @@ loadHours().then(loadSettings).then(()=>window.bhRenderDayMats&&window.bhRenderD
 // if our own copy of the animation library is missing, fetch the public one so the animations never silently stop
 function ensureAnime(cb){ if(window.anime) return cb(); const s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js'; s.onload=cb; s.onerror=cb; document.head.appendChild(s); }
 window.bhEnsureAnime=ensureAnime;
-window.addEventListener('DOMContentLoaded',()=>{ setTimeout(()=>ensureAnime(startMotion), 50); });
+window.addEventListener('DOMContentLoaded',()=>{ setTimeout(()=>ensureAnime(startMotion), 50);
+  const h1=document.querySelector('.hero h1'); const sheen=()=>{ if(!h1||document.hidden||scrollY>innerHeight) return; h1.classList.remove('sheen'); void h1.offsetWidth; h1.classList.add('sheen'); };
+  setTimeout(sheen,1600); setInterval(sheen,9000); });
 function startMotion(){
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(reduce || typeof anime==='undefined'){ document.documentElement.classList.add('no-motion'); return; }
@@ -2302,14 +2284,15 @@ function startMotion(){
   document.querySelectorAll('.art,.hero-medallion').forEach(el=>lio.observe(el));
   new MutationObserver(setLoops).observe(document.documentElement,{attributes:true,attributeFilter:['class']}); document.addEventListener('visibilitychange',setLoops);
   // ================= richer scroll motion (admin switch: "Scroll animations") =================
-  const H=document.documentElement, motionOn=()=>!H.classList.contains('fx-no-motion'), pouring=()=>H.classList.contains('pouring');
+  const H=document.documentElement, motionOn=()=>!H.classList.contains('fx-no-motion'), pouring=()=>H.classList.contains('pouring'), wide=matchMedia('(min-width: 900px) and (pointer: fine)').matches;
   // gold reading-progress line + header that tightens when scrolling
   const bar=document.createElement('div'); bar.id='scrollBar'; document.body.appendChild(bar);
   const head=document.querySelector('header'); let ticking=false;
   const onScroll=()=>{ if(ticking) return; ticking=true; requestAnimationFrame(()=>{ ticking=false;
     const max=document.documentElement.scrollHeight-innerHeight; bar.style.transform=`scaleX(${max>0?Math.min(1,scrollY/max):0})`;
     if(head) head.classList.toggle('scrolled', scrollY>40);
-    if(motionOn() && !pouring()) document.querySelectorAll('.art').forEach(a=>{ const r=a.getBoundingClientRect(); if(r.bottom<0||r.top>innerHeight) return; a.style.transform=`translateY(${((r.top+r.height/2)/innerHeight-.5)*-14}px)`; });
+    if(wide && motionOn() && !pouring()){ const arts=[...document.querySelectorAll('.art')], rs=arts.map(a=>a.getBoundingClientRect());   // read all first, then write (no layout thrashing)
+      arts.forEach((a,i)=>{ const r=rs[i]; if(r.bottom<0||r.top>innerHeight) return; a.style.transform=`translateY(${((r.top+r.height/2)/innerHeight-.5)*-14}px)`; }); }
   }); };
   addEventListener('scroll',onScroll,{passive:true}); onScroll();
   // headings rise in word by word
@@ -2326,7 +2309,8 @@ function startMotion(){
     if(el.matches('.eyebrow')) return anime({targets:el, opacity:[0,1], letterSpacing:['.6em','.22em'], duration:1100, delay:d, easing:'easeOutExpo'});
     if(el.matches('.ornate-rule')){ el.style.opacity=1; anime({targets:el.querySelectorAll('.bar'), scaleX:[0,1], duration:900, delay:d, easing:'easeOutQuart'}); return anime({targets:el.querySelector('.diamonds'), rotate:[180,0], scale:[0,1], opacity:[0,1], duration:900, delay:d+150, easing:'easeOutBack'}); }
     if(el.matches('.hours-row')) return anime({targets:el, opacity:[0,1], translateX:[-28,0], duration:700, delay:d, easing:'easeOutCubic', complete:()=>{ if(el.classList.contains('today')) anime({targets:el, backgroundColor:['rgba(201,169,97,0)','rgba(201,169,97,.14)','rgba(201,169,97,.06)'], duration:1600, easing:'easeInOutSine'}); }});
-    if(el.matches('.mat,.offer,.menu-card,.highlight-card,figure')) return anime({targets:el, opacity:[0,1], translateY:[46,0], scale:[.94,1], rotateX:[12,0], duration:1000, delay:d, easing:'easeOutExpo'});
+    if(el.matches('.mat,.offer,.menu-card,.highlight-card,figure')) return wide ? anime({targets:el, opacity:[0,1], translateY:[46,0], scale:[.94,1], rotateX:[12,0], duration:1000, delay:d, easing:'easeOutExpo'})
+      : anime({targets:el, opacity:[0,1], translateY:[26,0], duration:650, delay:Math.min(d,240), easing:'easeOutCubic'});   // lighter on phones
     anime({targets:el, opacity:[0,1], translateY:[30,0], duration:900, delay:d, easing:'easeOutCubic'});
   };
   const instant=el=>{ el.style.opacity=1; el.querySelectorAll('.w-split>span').forEach(s=>{ s.style.transform='none'; s.style.opacity=1; }); };
@@ -2339,7 +2323,7 @@ function startMotion(){
   let sw; addEventListener('scroll',()=>{ clearTimeout(sw); sw=setTimeout(sweep,140); },{passive:true}); setInterval(sweep,1500); setTimeout(sweep,600);
   window.addEventListener('bh-effects',()=>{ if(!motionOn()) document.querySelectorAll('.reveal').forEach(el=>{ el.classList.add('in'); el.style.opacity=1; el.querySelectorAll('.w-split>span').forEach(s=>{ s.style.transform='none'; s.style.opacity=1; }); }); });
   // "Book a Table" buttons breathe a warm glow now and then
-  anime({targets:'.hero-ctas .btn-gold, .nav-cta .btn-gold', filter:['drop-shadow(0 0 0px rgba(228,206,147,0))','drop-shadow(0 0 14px rgba(255,214,130,.75))','drop-shadow(0 0 0px rgba(228,206,147,0))'],
+  anime({targets:'.hero-ctas .btn-gold, .nav-cta .btn-gold', scale:[1,1.045,1],
     duration:2600, delay:2400, endDelay:5200, loop:true, easing:'easeInOutSine', update:a=>{ if(!motionOn()) a.pause(); }});
   // menu opens with its categories cascading in
   const mm=document.getElementById('menuModal');
