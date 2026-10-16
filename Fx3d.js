@@ -209,29 +209,29 @@
       let lift=Math.sin(t*1.1)*.025, tipX=0, tipZ=0, toward=0, level=1;
       if(pourT>=0 && pourMode==='pour'){ pourT+=dt;
         /* POUR DOWN: the glass tips over to the right and pours a glossy stream onto the bar; the page carries it down to the booking */
-        const tip=ease.inOut(seg(pourT,0,1.1)), back2=ease.inOut(seg(pourT,4.6,5.6)), k=tip*(1-back2);
+        const tip=ease.inOut(seg(pourT,0,.55)), back2=ease.inOut(seg(pourT,2.7,3.3)), k=tip*(1-back2);
         tipZ=-1.15*k; lift+=k*.28; toward=k*.15;
-        level = pourT<5 ? 1-.75*ease.out(seg(pourT,.7,4.4)) : .25+.75*ease.out(seg(pourT,5.8,8.2));
+        level = pourT<3.1 ? 1-.75*ease.out(seg(pourT,.4,2.6)) : .25+.75*ease.out(seg(pourT,3.3,4.6));
         spin+=((Math.round(spin/(Math.PI*2))*Math.PI*2)-spin)*Math.min(1,dt*6);
-        const strength = pourT<.75 ? 0 : pourT<1.1 ? (pourT-.75)/.35 : pourT<4.2 ? 1-.35*(pourT-1.1)/3.1 : Math.max(0,.65-(pourT-4.2)/.5);
+        const strength = pourT<.38 ? 0 : pourT<.6 ? (pourT-.38)/.22 : pourT<2.5 ? 1-.35*(pourT-.6)/1.9 : Math.max(0,.65-(pourT-2.5)/.35);
         rimWorld.set(.7,1.18,0); pint.localToWorld(rimWorld);
         drawStream(rimWorld, strength);
         if(strength>0){ puddle.material.opacity=Math.min(.9,puddle.material.opacity+dt*.6); const ps=Math.min(.9,puddle.scale.x+dt*.22); puddle.scale.set(ps,ps*.7,1); }
-        else if(pourT>6) { puddle.material.opacity=Math.max(0,puddle.material.opacity-dt*.25); }
-        if(!handed && pourT>1.45){ handed=true; const end=streamPts[streamPts.length-1], s2=screenOf(end); hooks&&hooks.onPour&&hooks.onPour(s2.x,s2.y); }
-        if(pourT>8.4){ pourT=-1; drawStream(rimWorld,0); puddle.scale.set(.01,.01,1); puddle.material.opacity=0; if(!visible) setRun(false); } }
+        else if(pourT>3) { puddle.material.opacity=Math.max(0,puddle.material.opacity-dt*.5); }
+        if(!handed && pourT>.7){ handed=true; const end=streamPts[streamPts.length-1], s2=screenOf(end); hooks&&hooks.onPour&&hooks.onPour(s2.x,s2.y); }
+        if(pourT>4.8){ pourT=-1; drawStream(rimWorld,0); puddle.scale.set(.01,.01,1); puddle.material.opacity=0; if(!visible) setRun(false); } }
       else if(pourT>=0){ pourT+=dt;
         /* "Cheers!" — the glass is swung at the viewer and the ale is thrown straight at the screen (one direction: toward you) */
         const wind=ease.inOut(seg(pourT,0,.32)), up=ease.out(seg(pourT,.32,.62)), down=ease.inOut(seg(pourT,1.5,2.5)), k=up*(1-down);
         tipX = -.18*wind*(1-up) + k*1.05; toward = k*1.25 - .15*wind*(1-up); lift += k*.35;
-        level = pourT<2.6 ? 1-.78*ease.out(seg(pourT,.5,1.05)) : .22+.78*ease.out(seg(pourT,2.9,5.2));
+        level = pourT<2.6 ? 1-.78*ease.out(seg(pourT,.5,1.05)) : .22+.78*ease.out(seg(pourT,2.6,3.8));
         spin+=((Math.round(spin/(Math.PI*2))*Math.PI*2)-spin)*Math.min(1,dt*6);
         const flow = pourT>.45 && pourT<.95 ? 1 : 0;
         rimWorld.set(0,1.2,.35); pint.localToWorld(rimWorld);
         if(flow>0){ const n=Math.ceil(dt*260); for(let j=0;j<n;j++){ const i=pIdx++%P; pp[i*3]=rimWorld.x+(Math.random()-.5)*.35; pp[i*3+1]=rimWorld.y+(Math.random()-.5)*.12; pp[i*3+2]=rimWorld.z+(Math.random()-.5)*.1;
             pv[i*3]=(Math.random()-.5)*1.6; pv[i*3+1]=.6+Math.random()*1.2; pv[i*3+2]=6+Math.random()*4; pl[i]=1; } }
         if(!handed && pourT>.62){ handed=true; const s=screenOf(rimWorld); hooks&&hooks.onPour&&hooks.onPour(s.x,s.y); }
-        if(pourT>5.6){ pourT=-1; if(!visible) setRun(false); } }
+        if(pourT>4){ pourT=-1; if(!visible) setRun(false); } }
       pint.rotation.set(tiltX+tipX, spin, tiltY*.35+tipZ); pint.position.set(0, lift, toward);
       const hs=hover?1.035:1; pint.scale.lerp(s3.set(hs,hs,hs), Math.min(1,dt*8));
       /* liquid level: the beer column shortens and the head rides down on top of it */
