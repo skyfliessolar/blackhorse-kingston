@@ -99,8 +99,19 @@ try{if(localStorage.getItem('bh_off')==='1'){document.documentElement.classList.
   .cin-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
   .cin-slide{position:relative;z-index:3;max-width:640px;}
   #cinema.cin-live .cin-slide{position:absolute;bottom:12%;left:max(24px,5vw);pointer-events:none;}
-  #cinema.cin-live .cin-slide{opacity:0;visibility:hidden;transition:opacity .6s ease,visibility 0s linear .6s;}
-  #cinema.cin-live .cin-slide.on{pointer-events:auto;opacity:1;visibility:visible;transition:opacity .3s ease;}
+  #cinema.cin-live .cin-slide{opacity:0;transition:opacity .6s ease;}
+  #cinema.cin-live .cin-slide.on,#cinema.cin-live .cin-slide:focus-within{pointer-events:auto;opacity:1;transition:opacity .3s ease;}
+  #cinema.cin-live .cin-slide:focus-within .ch,#cinema.cin-live .cin-slide:focus-within .cin-desc{opacity:1;transform:none;filter:none;}
+  .cin-kicker{display:block;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:.32em;text-transform:uppercase;color:#e4c48a;margin-bottom:14px;text-shadow:0 1px 10px rgba(0,0,0,.8);}
+  #cinema .cin-title .w{display:inline-block;white-space:nowrap;}
+  .cin-link{display:inline-block;margin-top:16px;font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#f2e7d5;text-decoration:none;border-bottom:1px solid rgba(198,154,82,.6);padding:6px 0;min-height:24px;}
+  .cin-link:hover,.cin-link:focus-visible{color:#ffd29a;border-color:#ffd29a;}
+  .cin-cta{display:flex;align-items:center;gap:22px;flex-wrap:wrap;}
+  .cin-cta .cin-link{margin-top:0;}
+  #cinema .cin-skip{display:none;}
+  #cinema.cin-live .cin-skip{display:block;position:absolute;right:max(20px,4vw);bottom:22px;z-index:4;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:rgba(242,231,213,.7);text-decoration:none;padding:10px 14px;border:1px solid rgba(198,154,82,.35);border-radius:2px;background:rgba(5,4,3,.45);}
+  #cinema.cin-live .cin-skip:hover,#cinema.cin-live .cin-skip:focus-visible{color:#ffd29a;border-color:#c69a52;}
+  #cinema a:focus-visible,#cinema .btn:focus-visible{outline:2px solid #ffd29a;outline-offset:4px;}
   .cin-title{font-family:'Cinzel',serif;font-weight:500;font-size:clamp(44px,7.6vw,112px);line-height:1;letter-spacing:1px;color:#fff2dc;margin:0 0 18px;text-shadow:0 4px 30px rgba(0,0,0,.6);}
   .cin-cols{display:flex;gap:40px;flex-wrap:wrap;}
   .cin-cols .cin-desc{flex:1 1 240px;max-width:320px;}
@@ -133,6 +144,7 @@ try{if(localStorage.getItem('bh_off')==='1'){document.documentElement.classList.
     #cinema.cin-live .cin-slide,#cinema.cin-live .cin-slide[data-s="2"],#cinema.cin-live .cin-slide[data-s="3"]{left:20px;right:20px;text-align:left;bottom:9%;}
     #cinema.cin-live .cin-slide[data-s="2"] .cin-desc{margin-left:0;}
     .cin-cols{gap:6px;} #cinema.cin-live .cin-grid,#cinema.cin-live .cin-mask{display:none;}
+    #cinema.cin-live .cin-skip{top:86px;bottom:auto;right:14px;padding:8px 10px;font-size:10.5px;}
     #cinema.cin-live .cin-stage::after{content:'';position:absolute;left:0;right:0;bottom:0;height:55%;background:linear-gradient(transparent,rgba(5,4,3,.82));z-index:2;pointer-events:none;}
   }
   .hp-field{position:absolute !important;left:-9999px !important;width:1px;height:1px;opacity:0;pointer-events:none;}
@@ -728,23 +740,29 @@ try{if(localStorage.getItem('bh_off')==='1'){document.documentElement.classList.
       <div class="cin-grid" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="cin-prog"><b><s></s></b><b><s></s></b><b><s></s></b><b><s></s></b></i></div>
       <div class="cin-mask" aria-hidden="true"><img alt="" src="drunkenwok-logo.jpg" loading="lazy"></div>
       <div class="cin-slide" data-s="1">
-        <h2 class="cin-title">Amber <br>and Time</h2>
-        <div class="cin-cols"><p class="cin-desc">A proper Kingston local on London Road. Cask ales, cold lagers and a warm welcome — pints poured the way they always should be.</p>
-          <p class="cin-desc">Lamplight on the brass, a fire in the grate and a seat at the bar. Settle in; the night is young.</p></div>
+        <span class="cin-kicker">Amber &amp; Time · 204 London Road</span>
+        <h2 class="cin-title" data-content="cin1t">A proper <br>Kingston local.</h2>
+        <p class="cin-desc" data-content="cin1d">Good drinks, familiar faces and the kind of evenings that never need much of a plan.</p>
       </div>
       <div class="cin-slide" data-s="2">
-        <h2 class="cin-title">The Drunken <br>Wok</h2>
-        <p class="cin-desc">Behind the bar, our Thai kitchen fires the woks — fragrant curries, crisp stir-fries and plates made for sharing.</p>
+        <span class="cin-kicker">The Drunken Wok</span>
+        <h2 class="cin-title" data-content="cin2t">A little taste <br>of Thailand.</h2>
+        <p class="cin-desc" data-content="cin2d">Discover Thai flavours from the Drunken Wok, right here at The Black Horse.</p>
+        <a class="cin-link" href="#menu">See the Thai menu →</a>
       </div>
       <div class="cin-slide" data-s="3">
-        <h2 class="cin-title">Match Night</h2>
-        <p class="cin-desc">Sky Sports and TNT Sports on the big screens. Every goal, every try, every roar — better with a pint in hand.</p>
+        <span class="cin-kicker">Match Night</span>
+        <h2 class="cin-title" data-content="cin3t">When the whole room <br>gets behind it.</h2>
+        <p class="cin-desc" data-content="cin3d">Catch the game, share the moment and settle in for match night.</p>
+        <a class="cin-link" href="#sport">What's on →</a>
       </div>
       <div class="cin-slide" data-s="4">
-        <h2 class="cin-title">Pull Up <br>a Stool</h2>
-        <p class="cin-desc">Your table is waiting. Tap the pint to pour it — or book straight away.</p>
-        <div class="cin-cta"><a class="btn btn-gold" href="#book" data-cin-pour>🍺 Pour my table</a></div>
+        <span class="cin-kicker">Pull Up a Stool</span>
+        <h2 class="cin-title" data-content="cin4t">Your table <br>is waiting.</h2>
+        <p class="cin-desc" data-content="cin4d">Bring your people. We'll make room for a good evening.</p>
+        <div class="cin-cta"><a class="btn btn-gold" href="#book" data-cin-pour>🍺 Book a table</a><a class="cin-link" href="#menu">Explore the menu →</a></div>
       </div>
+      <a class="cin-skip" href="#welcome" data-cin-skip>Skip the story ↓</a>
       <div class="cin-hint" aria-hidden="true">Scroll</div>
     </div>
   </section>
@@ -1400,7 +1418,8 @@ window.bhReloadHours=()=>loadHours();
 window.bhReloadContent=()=>loadContent();
 async function loadContent(){
   try{ const s=await getDoc(doc(db,'site','content')); if(!s.exists()) return; const c=s.data();
-    document.querySelectorAll('[data-content]').forEach(el=>{ const v=c[el.dataset.content]; if(v!==undefined && v!==null && String(v).trim()!=='') el.textContent=v; });
+    document.querySelectorAll('[data-content]').forEach(el=>{ const v=c[el.dataset.content]; if(v!==undefined && v!==null && String(v).trim()!==''){ el.textContent=v; if(el.classList.contains('cin-title')) delete el.dataset.split; } });
+    window.dispatchEvent(new Event('bh-content'));
   }catch(e){ console.warn('Content', e); }
 }
 
@@ -1707,14 +1726,14 @@ async function applyPint(on){
   await pageIdle();
   try{ if(!window.BHPint) await loadJs('fx3d.js').catch(()=>loadJs('Fx3d.js'));
     if(!window.BHPint.supported()) throw new Error('no-webgl');
-    await window.BHPint.mount($('pint3dStage'), {mode:pintMode, onPour:(x,y)=> pintMode()==='pour' ? pourToBooking(x,y) : pintToFace(x,y)}); }
+    await window.BHPint.mount($('pint3dStage'), {mode:pintMode, onPour:(x,y)=> window.bhPour(x,y)}); }
   catch(e){ console.warn('3D pint', e); sec.hidden=true; html.classList.remove('pint-on'); window.bhCine && window.bhCine(); }
 }
 document.querySelectorAll('a[href="#book"]').forEach(l=>l.addEventListener('click',e=>{ if(!document.documentElement.classList.contains('pint-on') || l.closest('#menuModal,#play,#pint3d,#book')) return; e.preventDefault(); document.getElementById('pint3d').scrollIntoView({behavior:'smooth', block:'center'}); }));
 document.querySelectorAll('.pint-cta').forEach(l=>l.addEventListener('click',e=>{ e.preventDefault(); if(window.bhCinemaOn && window.BHCinema){ window.BHCinema.goEnd(); return; } document.getElementById('pint3d').scrollIntoView({behavior:'smooth', block:'center'}); }));
 $('p3Book').onclick=()=>{ if(window.BHPint && $('pint3dStage').querySelector('canvas')) window.BHPint.pour(); else gotoBook(); };
 /* What tapping the pint does (set in admin): 'face' = thrown at the screen, then runs down; 'pour' = the glass tips and pours down the page */
-const pintMode=()=> (window.bhEffects&&window.bhEffects.pintTap)==='pour' ? 'pour' : 'face';
+const pintMode=()=>{ const m=window.bhEffects&&window.bhEffects.pintTap; return m==='face'||m==='none' ? m : 'pour'; };
 /* ---------- tap the pint: it's thrown at the screen ("Cheers!"), the ale splats on the glass and runs straight down into the booking form ---------- */
 function pintToFace(x,y){
   const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1726,7 +1745,7 @@ function pintToFace(x,y){
 }
 window.bhPintToFace=pintToFace;
 /* ---------- the ale runs down the page into the booking form ---------- */
-window.bhPour=(x,y)=> pintMode()==='pour' ? pourToBooking(x,y) : pintToFace(x,y);
+window.bhPour=(x,y)=> pintMode()==='none' ? gotoBook() : pintMode()==='pour' ? pourToBooking(x,y) : pintToFace(x,y);
 /* Tap the pint: the ale runs down the page — the page follows it — and fills the booking form. Scrolling or tapping skips ahead. */
 function pourToBooking(x0,y0){
   const form=document.querySelector('form.book-form'), reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1740,9 +1759,9 @@ function pourToBooking(x0,y0){
   const finalScroll=()=>Math.max(0, form.getBoundingClientRect().top+scrollY-110);
   const dist=Math.max(200, formDocTop()-srcDocY), travel=Math.min(3.8, Math.max(2.3, dist/650));   // seconds for the ale to reach the form
   html.classList.add('pouring');   // sections appear instantly while the ale runs past (keeps it smooth on phones)
-  const S={p:0, flowing:true, tailDoc:srcDocY, landed:false, splash:[], skip:false, t:0};
+  const S={p:0, flowing:true, tailDoc:srcDocY, landed:false, skip:false, t:0, sy:scrollY};
   const skip=()=>{ if(S.landed) return; S.skip=true; };
-  const stopKeys=e=>{ if(['ArrowDown','ArrowUp','PageDown','PageUp','Space',' ','End','Home'].includes(e.key)) skip(); };
+  const stopKeys=e=>{ if(['ArrowDown','ArrowUp','PageDown','PageUp','Space',' ','End','Home','Escape','Tab'].includes(e.key)) skip(); };
   addEventListener('wheel',skip,{passive:true}); addEventListener('touchstart',skip,{passive:true}); addEventListener('keydown',stopKeys);
   const cleanupInput=()=>{ removeEventListener('wheel',skip); removeEventListener('touchstart',skip); removeEventListener('keydown',stopKeys); };
   const easeIO=k=>k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
@@ -1760,34 +1779,56 @@ function pourToBooking(x0,y0){
     ctx.clearRect(0,0,innerWidth,innerHeight);
     if(headY>tailY+2) drawAle(tailY, headY, srcY, landDoc-scrollY, tx);
     if(S.p>=1 && !S.landed){ S.landed=true; cleanupInput(); scrollTo(0,finalScroll()); land(); }
-    if(S.landed && S.flowing) for(let i=0;i<2;i++) S.splash.push({x:tx+(Math.random()-.5)*12,y:landY,vx:(Math.random()-.5)*200,vy:-110-Math.random()*190,l:1});
-    S.splash.forEach(p=>{ p.vy+=880*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.l-=dt*1.4; if(p.l>0){ ctx.fillStyle=`rgba(226,148,40,${p.l})`; ctx.beginPath(); ctx.arc(p.x,p.y,2.6,0,7); ctx.fill(); } });
-    S.splash=S.splash.filter(p=>p.l>0&&p.y<innerHeight+20);
-    if(!S.flowing && tailY>=headY-2 && !S.splash.length && !S.drops.length){ cancelAnimationFrame(raf); cv.remove(); removeEventListener('resize',fit); html.style.scrollBehavior=prevSB; html.classList.remove('pouring'); }
+    const dS=scrollY-S.sy; S.sy=scrollY; S.drops.forEach(d=>d.y-=dS); S.rip.forEach(r=>r.y-=dS);   // droplets live on the page, not the screen
+    if(!S.landed && headY>tailY+30 && Math.random()<dt*9){ const w=BW*.5; S.drops.push({x:tx+(Math.random()-.5)*w*.4+(srcX-tx)*(1-S.p)*.0, y:headY-Math.random()*20, vx:(Math.random()-.5)*60, vy:250+Math.random()*250, r:1.4+Math.random()*2.2, l:.7}); }
+    if(S.landed && !S.crown){ S.crown=true; S.sy=scrollY; const ly=form.getBoundingClientRect().top+18; for(let i=0;i<24;i++){ const a=-Math.PI*(.1+.8*Math.random()), v=160+Math.random()*260; S.drops.push({x:tx+(Math.random()-.5)*10,y:ly,vx:Math.cos(a)*v,vy:Math.sin(a)*v,r:1+Math.random()*2.2,l:.9}); }
+      S.rip.push({x:tx,y:ly+4,r:6,l:1},{x:tx,y:ly+4,r:2,l:1.2}); }
+    if(S.landed && S.flowing && Math.random()<dt*28) S.drops.push({x:tx+(Math.random()-.5)*10,y:landY,vx:(Math.random()-.5)*170,vy:-90-Math.random()*170,r:1+Math.random()*1.8,l:.8});
+    if(S.landed && S.flowing && Math.random()<dt*3) S.rip.push({x:tx,y:landY+4,r:4,l:.8});
+    drawDrops(dt);
+    if(!S.flowing && tailY>=headY-2 && !S.drops.length && !S.rip.length){ cancelAnimationFrame(raf); cv.remove(); removeEventListener('resize',fit); html.style.scrollBehavior=prevSB; html.classList.remove('pouring'); }
   }
   /* REAL-LOOKING ALE STREAM
      - it thins as it speeds up and has ripples running down it (like a real pour)
      - see-through amber body with darker edges where light bends, moving highlights and bubbles
      - a soft shadow on the page behind it and warm light cast around it
      - while falling, the front breaks into drops; stray droplets fly off; on landing a crown splash and ripples */
-  const BW=innerWidth<600?16:22;
+  const BW=innerWidth<600?17:23;
   S.drops=[]; S.rip=[];
   function lensDrop(x,y,r,a,stretch){ const g=ctx.createRadialGradient(x-r*.35,y-r*.35,r*.1,x,y,r*1.05);
     g.addColorStop(0,`rgba(255,214,130,${a})`); g.addColorStop(.6,`rgba(214,128,26,${a})`); g.addColorStop(1,`rgba(110,48,6,${a})`);
     ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(x,y,r,r*(stretch||1),0,0,7); ctx.fill();
     ctx.fillStyle=`rgba(255,255,255,${.8*a})`; ctx.beginPath(); ctx.ellipse(x-r*.35,y-r*.38*(stretch||1),r*.28,r*.16,-.5,0,7); ctx.fill(); }
-  // the stream — yesterday's look (glowing amber pour with a bright highlight and foam flecks), drawn without the costly blur
+  /* the stream: a see-through column of ale, not a line or a stick
+     - a translucent amber body (the page shows through it, tinted, like real liquid)
+     - darker edges where the light bends, a warmer core, and a thin rim light
+     - broken glints that travel down it at pour speed, so it visibly flows
+     - widest at the lip, thinner as it speeds up, with small ripples, a soft shadow and a rounded drop at the front */
   function drawAle(tailY, headY, srcY, landYv, tx){
-    const steps=Math.max(14,Math.round((headY-tailY)/12)), pts=[], span=Math.max(1,landYv-srcY);
-    for(let i=0;i<=steps;i++){ const y=tailY+(headY-tailY)*i/steps, k=Math.min(1,Math.max(0,(y-srcY)/span)), sm=k*k*(3-2*k);
-      pts.push([srcX+(tx-srcX)*sm+Math.sin(y*.016+S.t*6)*3.2*(1-k*.5), y]); }
-    const line=(w,style)=>{ ctx.beginPath(); pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.lineWidth=w; ctx.strokeStyle=style; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.stroke(); };
-    line(34,'rgba(255,170,60,.10)'); line(22,'rgba(255,170,60,.16)');                    // warm glow around it
-    const g=ctx.createLinearGradient(0,tailY,0,headY); g.addColorStop(0,'rgba(236,160,52,.96)'); g.addColorStop(1,'rgba(170,84,10,.96)');
-    line(14,g);
-    ctx.save(); ctx.translate(-3.5,0); line(3,'rgba(255,238,196,.7)'); ctx.restore();       // highlight down one side
-    for(let i=0;i<pts.length;i+=2){ const [x,y]=pts[i]; ctx.fillStyle='rgba(255,242,210,.55)'; ctx.beginPath(); ctx.arc(x+Math.sin(S.t*9+i)*3.5,y+Math.sin(S.t*5+i)*2,1.5,0,7); ctx.fill(); }
-    if(!S.landed){ const [hx,hy]=pts[pts.length-1]; const hg=ctx.createRadialGradient(hx,hy,0,hx,hy,16); hg.addColorStop(0,'rgba(255,214,140,.9)'); hg.addColorStop(1,'rgba(214,128,24,0)'); ctx.fillStyle=hg; ctx.beginPath(); ctx.arc(hx,hy,16,0,7); ctx.fill(); }
+    const n=Math.max(4,Math.ceil((headY-tailY)/6)), span=Math.max(1,landYv-srcY), P=[];
+    for(let i=0;i<=n;i++){ const y=tailY+(headY-tailY)*i/n, k=Math.min(1,Math.max(0,(y-srcY)/span)), sm=k*k*(3-2*k);
+      const rip=Math.sin(y*.07-S.t*22);
+      P.push({x:srcX+(tx-srcX)*sm+Math.sin(y*.012+S.t*3)*2*(1-k)+rip*.6*k, y, w:BW*(0.4+0.6/Math.sqrt(1+7*k))*(1+0.1*k*rip)}); }
+    const poly=(f,dx,dy)=>{ ctx.beginPath(); P.forEach((p,i)=>{ const X=p.x-p.w*f+dx; i?ctx.lineTo(X,p.y+dy):ctx.moveTo(X,p.y+dy); });
+      for(let i=P.length-1;i>=0;i--) ctx.lineTo(P[i].x+P[i].w*f+dx,P[i].y+dy); ctx.closePath(); };
+    const along=(f,w,style,dash,speed)=>{ ctx.beginPath(); P.forEach((p,i)=>{ const X=p.x+p.w*f; i?ctx.lineTo(X,p.y):ctx.moveTo(X,p.y); });
+      ctx.lineWidth=w; ctx.strokeStyle=style; ctx.lineCap='round'; ctx.lineJoin='round';
+      if(dash){ ctx.setLineDash(dash); ctx.lineDashOffset=-S.t*speed; } ctx.stroke(); if(dash) ctx.setLineDash([]); };
+    poly(.5,7,5); ctx.fillStyle='rgba(12,5,0,.22)'; ctx.fill();                                // soft shadow on the page
+    poly(.5,0,0); const g=ctx.createLinearGradient(0,tailY,0,headY); g.addColorStop(0,'rgba(206,114,20,.74)'); g.addColorStop(1,'rgba(168,76,8,.8)'); ctx.fillStyle=g; ctx.fill();
+    ctx.lineWidth=1.6; ctx.strokeStyle='rgba(92,34,3,.9)'; ctx.stroke();                         // edges darken where light bends
+    poly(.2,P[0]?P[0].w*.08:0,0); ctx.fillStyle='rgba(246,170,58,.55)'; ctx.fill();             // warmer, brighter core
+    // the highlight: one smooth streak whose brightness rolls down it at pour speed
+    const L=Math.max(1,headY-tailY), hl=(a0,a1)=>{ const gg=ctx.createLinearGradient(0,tailY,0,headY);
+      for(let j=0;j<=16;j++){ const q=j/16, v=.5+.5*Math.sin(6.283*(q*L/170 - S.t*3.6)+Math.sin(q*L/60)); gg.addColorStop(q,`rgba(255,246,220,${(a0+(a1-a0)*v).toFixed(3)})`); } return gg; };
+    along(-.24,BW*.2,hl(.06,.3));                                                              // soft sheen
+    along(-.26,Math.max(1.2,BW*.06),hl(.35,.95));                                              // bright glint
+    along(.36,1.1,'rgba(255,212,140,.45)');                                                    // rim light on the far side
+    for(let i=0;i<10;i++){ const k=((S.t*1.4+i*.1)%1), j=Math.floor(k*(P.length-1)), p=P[j]; if(!p) continue;                  // fizz carried down
+      ctx.fillStyle='rgba(255,246,222,.6)'; ctx.beginPath(); ctx.ellipse(p.x+Math.sin(i*7.3)*p.w*.25,p.y,.9,1.8,0,0,7); ctx.fill(); }
+    if(!S.flowing && P.length) lensDrop(P[0].x,P[0].y,P[0].w*.42,.95,1.3);                     // the last of it breaking off
+    if(!S.landed){ const h=P[P.length-1]; const hg=ctx.createRadialGradient(h.x,h.y,0,h.x,h.y,h.w*1.8); hg.addColorStop(0,'rgba(255,190,90,.25)'); hg.addColorStop(1,'rgba(255,190,90,0)'); ctx.fillStyle=hg; ctx.beginPath(); ctx.arc(h.x,h.y,h.w*1.8,0,7); ctx.fill();
+      lensDrop(h.x,h.y,h.w*.56,.95,1.35); }
   }
   function drawDrops(dt){
     S.drops.forEach(d=>{ d.vy+=1500*dt; d.x+=d.vx*dt; d.y+=d.vy*dt; d.l-=dt*.9; if(d.l>0) lensDrop(d.x,d.y,d.r,Math.min(1,d.l+.2),1+Math.min(1.2,d.vy/1400)); });
