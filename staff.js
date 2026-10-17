@@ -117,7 +117,7 @@ const allowed = (area, key) => { const l=allowList(area); return !l || l.include
 const mayDo = (area, act) => isOwner || !scope[area] || typeof scope[area]!=='object' || scope[area][act]!==false;
 const photoLimit = () => isOwner ? 0 : (Number(scope.photos)||0);
 const mayRemovePhoto = () => isOwner || scope.photoDel!==false;
-const CF_NAMES={tagline:'Hero tagline',welcome:'Welcome paragraph',food:'Drunken Wok paragraph',drinks:'Drinks paragraph',terrace:'Terrace paragraph',capacity:'Guest capacity',hire:'Private hire paragraph'};
+const CF_NAMES={tagline:'Hero tagline',welcome:'Welcome paragraph',food:'Drunken Wok paragraph',drinks:'Drinks paragraph',terrace:'Terrace paragraph',capacity:'Guest capacity',hire:'Private hire paragraph',cin1t:'Story 1 headline',cin1d:'Story 1 words',cin2t:'Story 2 headline (Drunken Wok)',cin2d:'Story 2 words',cin3t:'Story 3 headline (Match night)',cin3d:'Story 3 words',cin4t:'Story 4 headline (Your table)',cin4d:'Story 4 words'};
 const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 const DEF_HOURS={Monday:{open:'12:00',close:'23:00',closed:false},Tuesday:{open:'12:00',close:'23:00',closed:false},Wednesday:{open:'12:00',close:'23:00',closed:false},
   Thursday:{open:'12:00',close:'23:00',closed:false},Friday:{open:'12:00',close:'00:00',closed:false},Saturday:{open:'12:00',close:'00:00',closed:false},Sunday:{open:'12:00',close:'22:00',closed:false}};
