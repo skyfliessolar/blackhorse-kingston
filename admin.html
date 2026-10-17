@@ -529,7 +529,7 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
         <div class="grid3">
           <div class="field"><label>What</label><select id="tmWhat">
             <option value="site">The whole website</option><option value="classic">Classic (older) style</option><option value="anim">All animations</option><option value="pint3d">3D pint</option><option value="splash">Splash in the face</option>
-            <option value="festivals">Festival themes</option><option value="ambience">Pub lights &amp; embers</option><option value="motion">Scroll animations</option><option value="shimmer">Gold shimmer</option><option value="tilt">Card spotlight &amp; tilt</option></select></div>
+            <option value="cinema">Cinematic story</option><option value="festivals">Festival themes</option><option value="ambience">Pub lights &amp; embers</option><option value="motion">Scroll animations</option><option value="shimmer">Gold shimmer</option><option value="tilt">Card spotlight &amp; tilt</option></select></div>
           <div class="field"><label>Turn it</label><select id="tmTurn"><option value="off">OFF</option><option value="on">ON</option></select></div>
           <div class="field"><label>When</label><select id="tmMode"><option value="once">Once — between two dates</option><option value="weekly">Every week — on chosen days</option></select></div>
         </div>
@@ -552,6 +552,8 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
       <div class="card" style="max-width:760px">
         <div class="fx-row" style="background:#FBF7EE;margin:-6px -10px 6px;padding:16px 10px"><div><b>Website style</b><p><b>Animated</b> uses everything switched on below. <b>Classic</b> is the older, simpler website — plain buttons and no animations at all (the switches below are kept for when you go back).</p></div>
           <div class="chips" style="display:flex;gap:14px"><label><input type="radio" name="fxStyle" value="animated"> Animated</label><label><input type="radio" name="fxStyle" value="classic"> Classic</label></div></div>
+        <div class="fx-row"><div><b>🎬 Cinematic story ("Amber and Time")</b><p>Right under the top banner: a film-like chapter where the camera circles a pint on the bar under the Black Horse sign as customers scroll, with four short story panels (the pub, the Drunken Wok, match nights, pull up a stool). At the end, tapping the pint pours their table. When this is on it takes the place of the 3D pint section.</p>
+          <select id="fxCinemaPhones" style="margin-top:6px"><option value="1">On computers and phones (lighter on phones)</option><option value="0">Computers only</option></select></div><label class="tgl"><input type="checkbox" data-fx="cinema"><span></span></label></div>
         <div class="fx-row"><div><b>3D pint glass</b><p>A real-time 3D pint under the top banner — glowing beer, foam, bubbles and condensation on a Black Horse coaster. Customers can turn it, and tapping it takes them to Book a Table.</p></div><label class="tgl"><input type="checkbox" data-fx="pint3d"><span></span></label></div>
         <div class="fx-row"><div><b>When a customer taps the pint</b><p><b>Splash in the face</b> — the glass is swung at the screen, the ale splats on the glass and then runs down into Book a Table.<br><b>Pour down</b> — the glass tips over and pours; the ale runs down the page and fills the Book a Table form.</p></div>
           <select id="fxPintTap"><option value="pour">Pour down (ale runs down into Book a Table)</option><option value="face">Splash in the face</option></select></div>
@@ -1783,7 +1785,7 @@ $('ppGrid').addEventListener('click',async e=>{ if(!e.target.matches('[data-ppde
 
 
 /* ---------- timers: automatic on/off ---------- */
-const TM_WHAT={site:'The whole website',classic:'Classic (older) style',festivals:'Festival themes',anim:'All animations',pint3d:'3D pint',splash:'Splash in the face',ambience:'Pub lights & embers',motion:'Scroll animations',shimmer:'Gold shimmer',tilt:'Card spotlight & tilt'};
+const TM_WHAT={cinema:'Cinematic story',site:'The whole website',classic:'Classic (older) style',festivals:'Festival themes',anim:'All animations',pint3d:'3D pint',splash:'Splash in the face',ambience:'Pub lights & embers',motion:'Scroll animations',shimmer:'Gold shimmer',tilt:'Card spotlight & tilt'};
 const TM_DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 let timers=[];
 function londonNow(){ const p=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',weekday:'short',hour12:false}).formatToParts(new Date()).map(x=>[x.type,x.value]));
@@ -1823,8 +1825,8 @@ $('tmList').addEventListener('change',async e=>{ if(!e.target.matches('[data-tac
 setInterval(()=>{ if($('p-timers').classList.contains('active')) renderTimers(); },30000);
 
 /* ---------- animations & 3D ---------- */
-const FX_DEF={pint3d:true, ambience:true, shimmer:true, tilt:true, motion:true, splash:false, festivals:true}; let fxCfg={...FX_DEF, splashKind:'water'};
-const FX_NAMES={pint3d:'3D pint', ambience:'Pub lights & embers', shimmer:'Gold shimmer', tilt:'Card spotlight & tilt', motion:'Scroll animations', splash:'Splash in the face', festivals:'Festival themes'};
+const FX_DEF={cinema:true, pint3d:true, ambience:true, shimmer:true, tilt:true, motion:true, splash:false, festivals:true}; let fxCfg={...FX_DEF, splashKind:'water'};
+const FX_NAMES={cinema:'Cinematic story', pint3d:'3D pint', ambience:'Pub lights & embers', shimmer:'Gold shimmer', tilt:'Card spotlight & tilt', motion:'Scroll animations', splash:'Splash in the face', festivals:'Festival themes'};
 let festLoaded=null;
 function loadFestList(){ return festLoaded ||= new Promise(ok=>{ if(window.BHFestivals) return ok(); const sc=document.createElement('script'); sc.src='./festivals.js'; sc.onload=ok; sc.onerror=ok; document.head.appendChild(sc); }); }
 async function renderFest(){
@@ -1840,13 +1842,14 @@ async function renderFest(){
     <div><div class="hint" style="margin:0 0 4px">${esc(f.when)} · this year: ${esc(F.datesFor(f,y))}</div><input data-fsmsg value="${esc(msgs[f.id]||'')}" placeholder="${esc(f.msg)}" maxlength="120" style="width:100%"></div></div>`).join('');
 }
 function readFest(){ const off=[], msgs={}; document.querySelectorAll('#fsList [data-fs]').forEach(r=>{ if(!r.querySelector('[data-fson]').checked) off.push(r.dataset.fs); const m=r.querySelector('[data-fsmsg]').value.trim(); if(m) msgs[r.dataset.fs]=m.slice(0,120); }); return {off, msgs, preview:$('fsPreview').value}; }
-function renderFx(){ renderFest(); $('fxPintTap').value=fxCfg.pintTap==='face'?'face':'pour'; document.querySelectorAll('[name=fxStyle]').forEach(r=>r.checked=r.value===(fxCfg.style||'animated')); document.querySelectorAll('[data-fx]').forEach(i=>i.checked=!!fxCfg[i.dataset.fx]); $('fxSplashKind').value=fxCfg.splashKind||'water'; $('fxSplashCount').value=String(fxCfg.splashCount||3); }
+function renderFx(){ renderFest(); $('fxCinemaPhones').value=fxCfg.cinemaPhones===false?'0':'1'; $('fxPintTap').value=fxCfg.pintTap==='face'?'face':'pour'; document.querySelectorAll('[name=fxStyle]').forEach(r=>r.checked=r.value===(fxCfg.style||'animated')); document.querySelectorAll('[data-fx]').forEach(i=>i.checked=!!fxCfg[i.dataset.fx]); $('fxSplashKind').value=fxCfg.splashKind||'water'; $('fxSplashCount').value=String(fxCfg.splashCount||3); }
 async function loadFx(){ try{ const s=await getDoc(doc(db,'site','effects')); if(s.exists()) fxCfg={...FX_DEF,...s.data()}; }catch(e){} renderFx(); }
 $('fxAllOff').onclick=()=>{ document.querySelectorAll('[data-fx]').forEach(i=>i.checked=false); flash('fxMsg','All switched off — press Save to apply.'); };
 $('saveFx').onclick=async()=>{
   const d=Object.fromEntries(Object.keys(FX_DEF).map(k=>[k, !!document.querySelector(`[data-fx="${k}"]`)?.checked]));
   const ch=Object.keys(d).filter(k=>d[k]!==fxCfg[k]).map(k=>`${FX_NAMES[k]} ${d[k]?'ON':'OFF'}`);
   d.splashKind=$('fxSplashKind').value; if(d.splashKind!==(fxCfg.splashKind||'water')) ch.push('Splash drink → '+$('fxSplashKind').selectedOptions[0].text);
+  d.cinemaPhones=$('fxCinemaPhones').value==='1'; if(d.cinemaPhones!==(fxCfg.cinemaPhones!==false)) ch.push('Cinematic story on phones '+(d.cinemaPhones?'ON':'OFF'));
   d.pintTap=$('fxPintTap').value; if(d.pintTap!==(fxCfg.pintTap||'pour')) ch.push('Pint tap → '+$('fxPintTap').selectedOptions[0].text);
   d.style=(document.querySelector('[name=fxStyle]:checked')||{}).value||'animated'; if(d.style!==(fxCfg.style||'animated')) ch.unshift('Website style → '+(d.style==='classic'?'Classic':'Animated'));
   const fs=readFest(); d.festivalOff=fs.off; d.festivalMsg=fs.msgs; d.festivalPreview=fs.preview;
