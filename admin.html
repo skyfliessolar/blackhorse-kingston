@@ -556,7 +556,7 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
           <select id="fxCinemaPhones" style="margin-top:6px"><option value="1">On computers and phones (lighter on phones)</option><option value="0">Computers only</option></select></div><label class="tgl"><input type="checkbox" data-fx="cinema"><span></span></label></div>
         <div class="fx-row"><div><b>3D pint glass</b><p>A real-time 3D pint under the top banner — glowing beer, foam, bubbles and condensation on a Black Horse coaster. Customers can turn it, and tapping it takes them to Book a Table.</p></div><label class="tgl"><input type="checkbox" data-fx="pint3d"><span></span></label></div>
         <div class="fx-row"><div><b>When a customer taps the pint</b><p><b>Splash in the face</b> — the glass is swung at the screen, the ale splats on the glass and then runs down into Book a Table.<br><b>Pour down</b> — the glass tips over and pours; the ale runs down the page and fills the Book a Table form.</p></div>
-          <select id="fxPintTap"><option value="pour">Pour down (ale runs down into Book a Table)</option><option value="face">Splash in the face</option></select></div>
+          <select id="fxPintTap"><option value="pour">Pour down (ale runs down into Book a Table)</option><option value="face">Splash in the face</option><option value="none">No effect (go straight to Book a Table)</option></select></div>
         <div class="fx-row"><div><b>Pub lights &amp; embers</b><p>Warm out-of-focus lights and rising embers behind the top banner.</p></div><label class="tgl"><input type="checkbox" data-fx="ambience"><span></span></label></div>
         <div class="fx-row"><div><b>Gold shimmer</b><p>A slow gold sheen across "The Black Horse" title and a glint around the logo.</p></div><label class="tgl"><input type="checkbox" data-fx="shimmer"><span></span></label></div>
         <div class="fx-row"><div><b>Scroll animations</b><p>Headings rise in word by word, cards cascade in, opening hours slide in, a gold progress line runs along the top, and the Book a Table buttons glow now and then.</p></div><label class="tgl"><input type="checkbox" data-fx="motion"><span></span></label></div>
@@ -614,6 +614,16 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
         <div class="field"><label>Terrace paragraph</label><textarea id="c-terrace"></textarea></div>
         <div class="grid2"><div class="field"><label>Guest capacity</label><input id="c-capacity" type="number"></div></div>
         <div class="field"><label>Private hire paragraph</label><textarea id="c-hire"></textarea></div>
+      </div>
+      <div class="card"><h3 style="margin-top:0">Cinematic story (the 3D pint chapter)</h3><p class="hint">Four short panels customers scroll through. In a headline, press Enter for a new line. Leave empty to keep the original words.</p>
+        <div class="field"><label>Story 1 headline</label><textarea rows=2 id="c-cin1t"></textarea></div>
+        <div class="field"><label>Story 1 words</label><textarea id="c-cin1d"></textarea></div>
+        <div class="field"><label>Story 2 headline (Drunken Wok)</label><textarea rows=2 id="c-cin2t"></textarea></div>
+        <div class="field"><label>Story 2 words</label><textarea id="c-cin2d"></textarea></div>
+        <div class="field"><label>Story 3 headline (Match night)</label><textarea rows=2 id="c-cin3t"></textarea></div>
+        <div class="field"><label>Story 3 words</label><textarea id="c-cin3d"></textarea></div>
+        <div class="field"><label>Story 4 headline (Your table)</label><textarea rows=2 id="c-cin4t"></textarea></div>
+        <div class="field"><label>Story 4 words</label><textarea id="c-cin4d"></textarea></div>
       </div>
       <div class="msg" id="cMsg"></div>
     </section>
@@ -1313,7 +1323,7 @@ $('saveSettings').onclick=async()=>{
 };
 
 /* ---------- content ---------- */
-const CF={tagline:'c-tagline',welcome:'c-welcome',food:'c-food',drinks:'c-drinks',terrace:'c-terrace',capacity:'c-capacity',hire:'c-hire'};
+const CF={tagline:'c-tagline',welcome:'c-welcome',food:'c-food',drinks:'c-drinks',terrace:'c-terrace',capacity:'c-capacity',hire:'c-hire',cin1t:'c-cin1t',cin1d:'c-cin1d',cin2t:'c-cin2t',cin2d:'c-cin2d',cin3t:'c-cin3t',cin3d:'c-cin3d',cin4t:'c-cin4t',cin4d:'c-cin4d'};
 async function loadContent(){ try{ const s=await getDoc(doc(db,'site','content')); const c=s.exists()?s.data():{}; for(const[k,id] of Object.entries(CF)) $(id).value=c[k]??''; }catch(e){} }
 $('saveContent').onclick=async()=>{ const d={}; for(const[k,id] of Object.entries(CF)) d[k]=$(id).value.trim(); d.capacity=d.capacity?Number(d.capacity):'';
   try{ await setDoc(doc(db,'site','content'),d); flash('cMsg','Saved — live on the website.'); }catch(err){ fail('cMsg',err); } };
@@ -1409,7 +1419,7 @@ async function changeSharedPassword(em){
 /* ---------- fine-grained staff scope ----------
    Stored on the staff record as scope:{content:[...], hours:[...], menu:[...], photos:n, photoDel:bool, offers:{...}, bookings:{...}}.
    A missing list means "everything in that area". Site text and opening hours are also enforced by the database rules. */
-const CF_NAMES={tagline:'Hero tagline',welcome:'Welcome paragraph',food:'Drunken Wok paragraph',drinks:'Drinks paragraph',terrace:'Terrace paragraph',capacity:'Guest capacity',hire:'Private hire paragraph'};
+const CF_NAMES={tagline:'Hero tagline',welcome:'Welcome paragraph',food:'Drunken Wok paragraph',drinks:'Drinks paragraph',terrace:'Terrace paragraph',capacity:'Guest capacity',hire:'Private hire paragraph',cin1t:'Story 1 headline',cin1d:'Story 1 words',cin2t:'Story 2 headline (Drunken Wok)',cin2d:'Story 2 words',cin3t:'Story 3 headline (Match night)',cin3d:'Story 3 words',cin4t:'Story 4 headline (Your table)',cin4d:'Story 4 words'};
 const SC_DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 const OFFER_ACTS={add:'Add new offers',edit:'Edit wording',toggle:'Switch offers on/off',del:'Delete offers'};
 const BOOK_ACTS={confirm:'Confirm bookings',cancel:'Cancel bookings'};
@@ -1842,7 +1852,7 @@ async function renderFest(){
     <div><div class="hint" style="margin:0 0 4px">${esc(f.when)} · this year: ${esc(F.datesFor(f,y))}</div><input data-fsmsg value="${esc(msgs[f.id]||'')}" placeholder="${esc(f.msg)}" maxlength="120" style="width:100%"></div></div>`).join('');
 }
 function readFest(){ const off=[], msgs={}; document.querySelectorAll('#fsList [data-fs]').forEach(r=>{ if(!r.querySelector('[data-fson]').checked) off.push(r.dataset.fs); const m=r.querySelector('[data-fsmsg]').value.trim(); if(m) msgs[r.dataset.fs]=m.slice(0,120); }); return {off, msgs, preview:$('fsPreview').value}; }
-function renderFx(){ renderFest(); $('fxCinemaPhones').value=fxCfg.cinemaPhones===false?'0':'1'; $('fxPintTap').value=fxCfg.pintTap==='face'?'face':'pour'; document.querySelectorAll('[name=fxStyle]').forEach(r=>r.checked=r.value===(fxCfg.style||'animated')); document.querySelectorAll('[data-fx]').forEach(i=>i.checked=!!fxCfg[i.dataset.fx]); $('fxSplashKind').value=fxCfg.splashKind||'water'; $('fxSplashCount').value=String(fxCfg.splashCount||3); }
+function renderFx(){ renderFest(); $('fxCinemaPhones').value=fxCfg.cinemaPhones===false?'0':'1'; $('fxPintTap').value=['face','none'].includes(fxCfg.pintTap)?fxCfg.pintTap:'pour'; document.querySelectorAll('[name=fxStyle]').forEach(r=>r.checked=r.value===(fxCfg.style||'animated')); document.querySelectorAll('[data-fx]').forEach(i=>i.checked=!!fxCfg[i.dataset.fx]); $('fxSplashKind').value=fxCfg.splashKind||'water'; $('fxSplashCount').value=String(fxCfg.splashCount||3); }
 async function loadFx(){ try{ const s=await getDoc(doc(db,'site','effects')); if(s.exists()) fxCfg={...FX_DEF,...s.data()}; }catch(e){} renderFx(); }
 $('fxAllOff').onclick=()=>{ document.querySelectorAll('[data-fx]').forEach(i=>i.checked=false); flash('fxMsg','All switched off — press Save to apply.'); };
 $('saveFx').onclick=async()=>{
