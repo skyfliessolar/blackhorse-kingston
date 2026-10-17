@@ -192,7 +192,7 @@
     addEventListener('pointerup',()=>{ drag=null; });
     cv.addEventListener('click',e=>{ if(drag&&drag.moved>6) return; if(hit(e)) startPour(); });
     let pourMode='face';
-    function startPour(){ if(pourT>=0) return; pourMode=(hooks&&hooks.mode&&hooks.mode())==='pour'?'pour':'face'; pourT=0; handed=false; hover=false; setRun(true); }
+    function startPour(){ if(pourT>=0) return; if(hooks&&hooks.mode&&hooks.mode()==='none'){ if(hooks.onPour) hooks.onPour(innerWidth/2,innerHeight/2); return; } pourMode=(hooks&&hooks.mode&&hooks.mode())==='pour'?'pour':'face'; pourT=0; handed=false; hover=false; setRun(true); }
     const rimWorld=new THREE.Vector3();
     const screenOf=v=>{ const p=v.clone().project(camera), r=cv.getBoundingClientRect(); return {x:r.left+(p.x+1)/2*r.width, y:r.top+(1-p.y)/2*r.height}; };
 
