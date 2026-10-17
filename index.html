@@ -91,8 +91,52 @@ try{if(localStorage.getItem('bh_off')==='1'){document.documentElement.classList.
   .ornate-rule .bar{width:60px;height:1px;background:var(--gold-dark);}
   .ornate-rule .diamonds{font-size:10px;letter-spacing:4px;color:var(--gold);}
   .divider{display:flex;justify-content:center;padding:0;}
+  /* ---------- CINEMATIC CHAPTER (switch in admin) ---------- */
+  #cinema{position:relative;background:#050403;color:#fff2dc;}
+  #cinema.cin-live{height:var(--cin-h,420vh);}
+  .cin-stage{position:relative;padding:70px max(20px,5vw);display:grid;gap:56px;}
+  #cinema.cin-live .cin-stage{position:sticky;top:0;height:100vh;padding:0;display:block;overflow:hidden;}
+  .cin-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
+  .cin-slide{position:relative;z-index:3;max-width:640px;}
+  #cinema.cin-live .cin-slide{position:absolute;bottom:12%;left:max(24px,5vw);pointer-events:none;}
+  #cinema.cin-live .cin-slide{opacity:0;visibility:hidden;transition:opacity .6s ease,visibility 0s linear .6s;}
+  #cinema.cin-live .cin-slide.on{pointer-events:auto;opacity:1;visibility:visible;transition:opacity .3s ease;}
+  .cin-title{font-family:'Cinzel',serif;font-weight:500;font-size:clamp(44px,7.6vw,112px);line-height:1;letter-spacing:1px;color:#fff2dc;margin:0 0 18px;text-shadow:0 4px 30px rgba(0,0,0,.6);}
+  .cin-cols{display:flex;gap:40px;flex-wrap:wrap;}
+  .cin-cols .cin-desc{flex:1 1 240px;max-width:320px;}
+  .cin-desc{font-size:16px;line-height:1.7;font-weight:400;color:#d8cdb8;letter-spacing:.3px;max-width:420px;margin:0 0 12px;text-shadow:0 2px 14px rgba(0,0,0,.8);}
+  #cinema.cin-live .cin-desc{opacity:0;transform:translateY(30px);transition:opacity .8s cubic-bezier(.25,1,.5,1) .4s,transform .8s cubic-bezier(.25,1,.5,1) .4s;}
+  #cinema.cin-live .cin-slide.on .cin-desc{opacity:1;transform:none;}
+  .cin-title .ch{display:inline-block;}
+  #cinema.cin-live .cin-title .ch{opacity:0;transform:translateY(50px);filter:blur(10px);transition:opacity .8s cubic-bezier(.25,1,.5,1),transform .8s cubic-bezier(.25,1,.5,1),filter .8s cubic-bezier(.25,1,.5,1);}
+  #cinema.cin-live .cin-slide.on .cin-title .ch{opacity:1;transform:none;filter:none;}
+  #cinema.cin-live .cin-slide[data-s="2"]{left:auto;right:max(24px,6vw);text-align:right;}
+  #cinema.cin-live .cin-slide[data-s="2"] .cin-desc{margin-left:auto;}
+  #cinema.cin-live .cin-slide[data-s="3"]{left:auto;right:max(24px,6vw);}
+  .cin-cta{margin-top:14px;}
+  .cin-mask{display:none;}
+  #cinema.cin-live .cin-mask{display:block;position:absolute;top:96px;left:max(24px,5vw);width:min(22vw,300px);aspect-ratio:1;overflow:hidden;z-index:2;clip-path:inset(0 0 100% 0);opacity:0;transition:clip-path 1.8s cubic-bezier(.16,1,.3,1),opacity .8s ease;border:1px solid rgba(228,206,147,.35);}
+  #cinema.cin-live .cin-mask img{width:100%;height:100%;object-fit:cover;transform:scale(1.15);transition:transform 1.8s cubic-bezier(.16,1,.3,1);}
+  #cinema.cin-live .cin-mask.on{clip-path:inset(0 0 0 0);opacity:1;} #cinema.cin-live .cin-mask.on img{transform:scale(1);}
+  .cin-grid{display:none;}
+  #cinema.cin-live .cin-grid{display:flex;position:absolute;top:0;left:40px;right:40px;height:100%;justify-content:space-between;z-index:1;pointer-events:none;}
+  .cin-grid i{position:relative;width:1px;height:100%;background:rgba(228,206,147,.09);}
+  .cin-grid i:nth-child(3){margin-top:70px;height:calc(100% - 70px);}
+  .cin-prog{background:transparent !important;}
+  .cin-prog{display:flex;flex-direction:column;justify-content:center;gap:12px;align-items:center;}
+  .cin-prog b{display:block;width:2px;height:40px;background:rgba(228,206,147,.18);border-radius:2px;overflow:hidden;}
+  .cin-prog s{display:block;width:100%;height:100%;background:#e4ce93;transform-origin:50% 0;transform:scaleY(0);text-decoration:none;}
+  .cin-hint{display:none;}
+  #cinema.cin-live .cin-hint{display:block;position:absolute;left:50%;bottom:22px;transform:translateX(-50%);font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:.35em;text-transform:uppercase;color:rgba(241,232,214,.5);z-index:3;transition:opacity .6s;}
+  #cinema.cin-live.scrolled .cin-hint{opacity:0;}
+  @media (max-width:760px){
+    #cinema.cin-live .cin-slide,#cinema.cin-live .cin-slide[data-s="2"],#cinema.cin-live .cin-slide[data-s="3"]{left:20px;right:20px;text-align:left;bottom:9%;}
+    #cinema.cin-live .cin-slide[data-s="2"] .cin-desc{margin-left:0;}
+    .cin-cols{gap:6px;} #cinema.cin-live .cin-grid,#cinema.cin-live .cin-mask{display:none;}
+    #cinema.cin-live .cin-stage::after{content:'';position:absolute;left:0;right:0;bottom:0;height:55%;background:linear-gradient(transparent,rgba(5,4,3,.82));z-index:2;pointer-events:none;}
+  }
   .hp-field{position:absolute !important;left:-9999px !important;width:1px;height:1px;opacity:0;pointer-events:none;}
-  main > section:not(.hero):not(#book):not(#pint3d):not(#play){content-visibility:auto;contain-intrinsic-size:auto 900px;}
+  main > section:not(.hero):not(#book):not(#pint3d):not(#play):not(#cinema){content-visibility:auto;contain-intrinsic-size:auto 900px;}
 
   .mark{border-radius:50%;object-fit:cover;display:block;flex:none;background:var(--cream);}
 
@@ -507,7 +551,7 @@ try{if(localStorage.getItem('bh_off')==='1'){document.documentElement.classList.
   html.pint-on{background:#0c0b09;}
   html.pint-on #pubScene, html.pint-on #pubGlow{display:block;}
   html.pint-on body{background:transparent;}
-  html.pint-on main > section{background-color:rgba(12,11,9,.66);}
+  html.pint-on main > section:not(#cinema){background-color:rgba(12,11,9,.66);}
   html.pint-on main > section.section-panel{background:rgba(21,19,16,.8);}
   html.pint-on .hero{background:radial-gradient(ellipse at 50% -10%,rgba(201,169,97,.16),transparent 60%),rgba(12,11,9,.45);}
   html.pint-on #pint3d{background:transparent;}
@@ -517,7 +561,7 @@ try{if(localStorage.getItem('bh_off')==='1'){document.documentElement.classList.
   /* customers book by pouring the pint: both Book a Table buttons step aside */
   html.pint-on .nav-cta .btn-gold, html.pint-on .hero-ctas a.btn-gold[href="#book"]{display:none !important;}
   /* cinematic sections */
-  html.pint-on.cine main > section:not(.hero):not(#pint3d){transform-origin:50% 0;will-change:transform,opacity;}
+  html.pint-on.cine main > section:not(.hero):not(#pint3d):not(#cinema){transform-origin:50% 0;will-change:transform,opacity;}
   /* booking: a vintage wine label beside a bottle of the house red */
   .wine-head,.wine-bottle{display:none;}
   html.pint-on form.book-form{background:radial-gradient(ellipse at 50% 0%,#3a1418 0%,#22090c 55%,#140507 100%);border:1px solid #8B6F35;
@@ -679,6 +723,32 @@ try{if(localStorage.getItem('bh_off')==='1'){document.documentElement.classList.
   <div class="media-slot" data-place="hero-after" hidden><div class="wrap"><div class="media-grid"></div></div></div>
 
   <!-- 3D PINT (switched on/off in the admin portal) -->
+  <section id="cinema" hidden aria-label="The Black Horse story">
+    <div class="cin-stage">
+      <div class="cin-grid" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="cin-prog"><b><s></s></b><b><s></s></b><b><s></s></b><b><s></s></b></i></div>
+      <div class="cin-mask" aria-hidden="true"><img alt="" src="drunkenwok-logo.jpg" loading="lazy"></div>
+      <div class="cin-slide" data-s="1">
+        <h2 class="cin-title">Amber <br>and Time</h2>
+        <div class="cin-cols"><p class="cin-desc">A proper Kingston local on London Road. Cask ales, cold lagers and a warm welcome — pints poured the way they always should be.</p>
+          <p class="cin-desc">Lamplight on the brass, a fire in the grate and a seat at the bar. Settle in; the night is young.</p></div>
+      </div>
+      <div class="cin-slide" data-s="2">
+        <h2 class="cin-title">The Drunken <br>Wok</h2>
+        <p class="cin-desc">Behind the bar, our Thai kitchen fires the woks — fragrant curries, crisp stir-fries and plates made for sharing.</p>
+      </div>
+      <div class="cin-slide" data-s="3">
+        <h2 class="cin-title">Match Night</h2>
+        <p class="cin-desc">Sky Sports and TNT Sports on the big screens. Every goal, every try, every roar — better with a pint in hand.</p>
+      </div>
+      <div class="cin-slide" data-s="4">
+        <h2 class="cin-title">Pull Up <br>a Stool</h2>
+        <p class="cin-desc">Your table is waiting. Tap the pint to pour it — or book straight away.</p>
+        <div class="cin-cta"><a class="btn btn-gold" href="#book" data-cin-pour>🍺 Pour my table</a></div>
+      </div>
+      <div class="cin-hint" aria-hidden="true">Scroll</div>
+    </div>
+  </section>
+
   <section id="pint3d" hidden aria-label="Interactive 3D pint">
     <div id="pint3dStage"></div>
     <div class="p3-copy"><span class="eyebrow">Pull up a stool</span><h2>Your pint is poured</h2></div>
@@ -1623,7 +1693,7 @@ async function loadStatus(){
 }
 
 /* ================= ANIMATIONS & 3D (switched on/off in admin) ================= */
-const FX_DEF={style:'animated', pintTap:'pour', pint3d:true, ambience:true, shimmer:true, tilt:true, motion:true, splash:false, splashKind:'water', splashCount:3, festivals:true};
+const FX_DEF={style:'animated', cinema:true, cinemaPhones:true, pintTap:'pour', pint3d:true, ambience:true, shimmer:true, tilt:true, motion:true, splash:false, splashKind:'water', splashCount:3, festivals:true};
 function gotoBook(){ document.getElementById('book').scrollIntoView({behavior:'smooth'}); setTimeout(()=>{ const g=$('guests'); if(g) g.focus({preventScroll:true}); },900); }
 const pageIdle=()=>new Promise(ok=>{ const go=()=>('requestIdleCallback' in window) ? requestIdleCallback(()=>ok(),{timeout:1200}) : setTimeout(ok,200);
   document.readyState==='complete' ? go() : addEventListener('load',go,{once:true}); });
@@ -1631,6 +1701,7 @@ async function applyPint(on){
   const sec=$('pint3d'), reduce=matchMedia('(prefers-reduced-motion: reduce)').matches, nc=navigator.connection||{}, saveData=nc.saveData || /(^|-)2g$/.test(nc.effectiveType||'');
   const html=document.documentElement;
   if(!on || reduce || saveData){ sec.hidden=true; html.classList.remove('pint-on'); window.bhCine && window.bhCine(); window.BHPint && window.BHPint.unmount(); return; }
+  if(window.bhCinemaOn){ sec.hidden=true; html.classList.add('pint-on'); window.bhImmersive && window.bhImmersive(true); return; }
   sec.hidden=false; html.classList.add('pint-on'); window.bhImmersive && window.bhImmersive(true); window.bhCine && window.bhCine();
   const loadJs=src=>new Promise((ok,no)=>{ const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=()=>{ s.remove(); no(new Error('load '+src)); }; document.head.appendChild(s); });
   await pageIdle();
@@ -1640,7 +1711,7 @@ async function applyPint(on){
   catch(e){ console.warn('3D pint', e); sec.hidden=true; html.classList.remove('pint-on'); window.bhCine && window.bhCine(); }
 }
 document.querySelectorAll('a[href="#book"]').forEach(l=>l.addEventListener('click',e=>{ if(!document.documentElement.classList.contains('pint-on') || l.closest('#menuModal,#play,#pint3d,#book')) return; e.preventDefault(); document.getElementById('pint3d').scrollIntoView({behavior:'smooth', block:'center'}); }));
-document.querySelectorAll('.pint-cta').forEach(l=>l.addEventListener('click',e=>{ e.preventDefault(); document.getElementById('pint3d').scrollIntoView({behavior:'smooth', block:'center'}); }));
+document.querySelectorAll('.pint-cta').forEach(l=>l.addEventListener('click',e=>{ e.preventDefault(); if(window.bhCinemaOn && window.BHCinema){ window.BHCinema.goEnd(); return; } document.getElementById('pint3d').scrollIntoView({behavior:'smooth', block:'center'}); }));
 $('p3Book').onclick=()=>{ if(window.BHPint && $('pint3dStage').querySelector('canvas')) window.BHPint.pour(); else gotoBook(); };
 /* What tapping the pint does (set in admin): 'face' = thrown at the screen, then runs down; 'pour' = the glass tips and pours down the page */
 const pintMode=()=> (window.bhEffects&&window.bhEffects.pintTap)==='pour' ? 'pour' : 'face';
@@ -1751,9 +1822,21 @@ function applyFx(fx){
   window.bhEffects=fx; const h=document.documentElement;
   h.classList.toggle('fx-no-ambience', !fx.ambience); h.classList.toggle('fx-no-shimmer', !fx.shimmer); h.classList.toggle('fx-no-tilt', !fx.tilt); h.classList.toggle('fx-no-motion', !fx.motion);
   window.dispatchEvent(new Event('bh-effects'));
+  applyCinema(fx);
   if(lastPint!==!!fx.pint3d){ lastPint=!!fx.pint3d; applyPint(lastPint); }
   applySplash(fx);
   applyFestival(fx);
+}
+/* ---- the cinematic chapter: loaded only when switched on, and only on devices that can run it ---- */
+let cinP=null;
+function applyCinema(fx){
+  const sec=$('cinema'), small=matchMedia('(max-width: 899px), (pointer: coarse)').matches, nc=navigator.connection||{};
+  const ok = fx.cinema!==false && fx.style!=='classic' && !(small && fx.cinemaPhones===false) && !nc.saveData;
+  window.bhCinemaOn = ok;
+  if(!ok){ sec.hidden=true; if(window.BHCinema) window.BHCinema.stop(); return; }
+  sec.hidden=false;
+  cinP ||= new Promise(r=>{ const sc=document.createElement('script'); sc.src='./cinematic.js'; sc.onload=r; sc.onerror=r; document.head.appendChild(sc); });
+  cinP.then(()=>window.BHCinema && window.BHCinema.start({lite:small}));
 }
 /* ---- British festival themes (Christmas, Halloween, Bonfire Night…) — dates are worked out in festivals.js ---- */
 let festP=null;
@@ -2218,7 +2301,7 @@ loadHours().then(loadSettings).then(()=>window.bhRenderDayMats&&window.bhRenderD
   /* cinematic sections: each one swings up into place in 3D as it scrolls into view */
   const cine=()=>{ const h=document.documentElement; const on=h.classList.contains('pint-on') && !h.classList.contains('fx-no-motion') && !h.classList.contains('pouring') && innerWidth>=900 && !matchMedia('(prefers-reduced-motion: reduce)').matches;
     h.classList.toggle('cine', on);
-    document.querySelectorAll('main > section:not(.hero):not(#pint3d)').forEach(s=>{ if(!on){ s.style.transform=''; s.style.opacity=''; return; }
+    document.querySelectorAll('main > section:not(.hero):not(#pint3d):not(#cinema)').forEach(s=>{ if(!on){ s.style.transform=''; s.style.opacity=''; return; }
       const r=s.getBoundingClientRect(); if(r.top>innerHeight*1.2 || r.bottom<-50){ return; }
       const p=Math.max(0,Math.min(1,(innerHeight-r.top)/(innerHeight*.55)));
       if(p>=1){ if(s.style.transform){ s.style.transform=''; s.style.opacity=''; } return; }
@@ -2298,9 +2381,9 @@ function startMotion(){
   // headings rise in word by word
   const splitWords=el=>{ if(el.dataset.split||el.children.length) return false; const words=el.textContent.trim().split(/\s+/);
     el.innerHTML=words.map(w=>`<span class="w-split"><span>${w.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}</span></span>`).join(' '); el.dataset.split='1'; return true; };
-  const heads=[...document.querySelectorAll('main section:not(.hero) h2')].filter(splitWords);
+  const heads=[...document.querySelectorAll('main section:not(.hero):not(#cinema) h2')].filter(splitWords);
   // what reveals, and how
-  const groups=['.why-grid .mat','.offer-grid .offer','.menu-card','.highlight-card','.hours-row','.find-grid > *','.contact-card','.addr-card','.capacity-stat','.firepit','.book-form','.play-copy','.game-box','.media-grid figure','.gallery-grid figure','main section:not(.hero) .eyebrow','main section:not(.hero) .ornate-rule'];
+  const groups=['.why-grid .mat','.offer-grid .offer','.menu-card','.highlight-card','.hours-row','.find-grid > *','.contact-card','.addr-card','.capacity-stat','.firepit','.book-form','.play-copy','.game-box','.media-grid figure','.gallery-grid figure','main section:not(.hero):not(#cinema) .eyebrow','main section:not(.hero):not(#cinema) .ornate-rule'];
   const mark=()=>{ document.querySelectorAll(groups.join(',')).forEach(el=>{ if(!el.classList.contains('reveal')) el.classList.add('reveal'); });
     heads.forEach(h=>h.classList.add('reveal')); };
   mark();
