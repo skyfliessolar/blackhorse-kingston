@@ -19,8 +19,14 @@
   const webglOK=()=>{ try{ const c=document.createElement('canvas'); return !!(c.getContext('webgl2')||c.getContext('webgl')); }catch(e){ return false; } };
 
   /* ---------- titles: one span per letter, staggered (the blur-up reveal) ---------- */
-  sec.querySelectorAll('.cin-title').forEach(t=>{ if(t.dataset.split) return; t.dataset.split='1'; let n=0;
-    t.innerHTML=t.innerHTML.split(/(<br\s*\/?>)/i).map(part=>/^<br/i.test(part)?part:[...part].map(c=>c===' '?' ':`<span class="ch" style="transition-delay:${(n++*0.035).toFixed(3)}s">${c.replace(/[&<>]/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[x]))}</span>`).join('')).join(''); });
+  // screen readers get the whole headline (aria-label); the letter spans are for the eye only.
+  // A new line in admin text (or <br>) starts a new line here.
+  const esc=c=>c.replace(/[&<>]/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[x]));
+  function splitTitles(){ sec.querySelectorAll('.cin-title').forEach(t=>{ if(t.dataset.split) return; t.dataset.split='1'; let n=0;
+    const lines = t.querySelector('br') ? t.innerHTML.split(/<br\s*\/?>/i).map(h=>{ const d=document.createElement('div'); d.innerHTML=h; return d.textContent; }) : t.textContent.split(/\n|\s\/\s/);
+    t.setAttribute('aria-label', lines.map(l=>l.trim()).join(' '));
+    t.innerHTML=lines.map(l=>`<span aria-hidden="true">${l.trim().split(/\s+/).map(w=>`<span class="w">${[...w].map(c=>`<span class="ch" style="transition-delay:${(n++*0.03).toFixed(3)}s">${esc(c)}</span>`).join('')}</span>`).join(' ')}</span>`).join('<br>'); }); }
+  splitTitles(); addEventListener('bh-content', splitTitles);
 
   let state=null, started=false;
 
@@ -99,10 +105,23 @@
     /* --- the pint: nonic glass, ale, creamy head, rising bubbles, condensation glint --- */
     const pint=new T.Group(); scene.add(pint);
     const prof=[[0.001,0],[0.29,0],[0.31,0.02],[0.33,0.18],[0.39,1.18],[0.425,1.32],[0.43,1.38],[0.405,1.5],[0.41,1.6]].map(([r,y])=>new T.Vector2(r,y));
-    const glass=new T.Mesh(new T.LatheGeometry(prof,64), new T.MeshPhysicalMaterial({color:0xffffff, metalness:0, roughness:.04, transparent:true, opacity:.16, clearcoat:1, clearcoatRoughness:.03, envMapIntensity:2.2, side:T.DoubleSide, depthWrite:false}));
+    const glass=new T.Mesh(new T.LatheGeometry(prof,64), new T.MeshPhysicalMaterial({color:0xffffff, metalness:0, roughness:.04, transparent:true, opacity:.1, clearcoat:1, clearcoatRoughness:.03, envMapIntensity:2.2, side:T.DoubleSide, depthWrite:false}));
     glass.castShadow=true; glass.renderOrder=3; pint.add(glass);
     const inner=[[0.001,0.05],[0.285,0.05],[0.305,0.2],[0.365,1.18],[0.39,1.3]].map(([r,y])=>new T.Vector2(r,y));
-    const ale=new T.Mesh(new T.LatheGeometry(inner,48), new T.MeshPhysicalMaterial({color:0x8a3a06, emissive:0x2e0e00, emissiveIntensity:.6, roughness:.16, metalness:0, transparent:true, opacity:.96, clearcoat:.7, envMapIntensity:.9}));
+    /* the ale is shaded by hand, not by the lights: lit ale saturates to pale lager under tone mapping.
+       Real ale is deep amber looking straight through it and glows lighter at the edges and just under the head,
+       where the light has less liquid to cross. */
+    const aleU={uFlick:{value:1}};
+    const ale=new T.Mesh(new T.LatheGeometry(inner,48), new T.ShaderMaterial({uniforms:aleU, transparent:true, toneMapped:false,
+      vertexShader:'varying vec3 vN; varying vec3 vV; varying float vY; void main(){ vec4 mv=modelViewMatrix*vec4(position,1.); vN=normalize(normalMatrix*normal); vV=normalize(-mv.xyz); vY=position.y; gl_Position=projectionMatrix*mv; }',
+      fragmentShader:`uniform float uFlick; varying vec3 vN; varying vec3 vV; varying float vY;
+        void main(){ float f=1.-abs(dot(normalize(vN),normalize(vV))); float h=clamp((vY-.05)/1.25,0.,1.);
+          vec3 deep=vec3(.34,.09,.006), mid=vec3(.74,.31,.03), edge=vec3(1.,.66,.24);
+          vec3 c=mix(deep,mid,.25+.55*smoothstep(.0,1.,h));
+          c=mix(c,edge,pow(f,2.4)*.8);
+          c+=vec3(.25,.12,.03)*smoothstep(.86,1.,h);
+          vec3 n=normalize(vN); c+=vec3(.55,.3,.07)*exp(-pow((n.x+.5)*4.,2.))*.45*(.6+.4*h);   // lamp light bending through the glass
+          c*=.93+.07*uFlick; gl_FragColor=vec4(c,.97); }`}));
     ale.renderOrder=1; pint.add(ale);
     const headGeo=new T.CylinderGeometry(0.405,0.392,0.14,48,3,false); const hp=headGeo.attributes.position;
     for(let i=0;i<hp.count;i++){ if(hp.getY(i)>0.06) hp.setY(i, hp.getY(i)+ (Math.random()*0.012) + Math.sin(hp.getX(i)*20)*0.004); }
@@ -174,25 +193,27 @@
     addEventListener('bh-gallery',()=>setTimeout(usePhoto,100)); usePhoto();
 
     /* ---------- loop: draws only while the chapter is on screen ---------- */
-    const clock=new T.Clock(); let raf=0, running=false, frames=0, acc=0, quality=lite?1:2;
+    const clock=new T.Clock(); let raf=0, running=false, frames=0, acc=0, quality=lite?1:2, slow=0, cool=2;
     const tmpV=new T.Vector3(), look=new T.Vector3();
     function frame(){
       raf=requestAnimationFrame(frame);
       const raw=clock.getDelta(), dt=Math.min(raw,.05), t=clock.elapsedTime;
       // automatic quality: if the device can't keep up, lower resolution, then drop shadows
-      frames++; acc+=raw; if(frames>=50){ const fps=frames/acc; frames=0; acc=0;
-        if(fps<34 && quality>0){ quality--; if(DPR>1){ DPR=1; renderer.setPixelRatio(1); size(); } else { renderer.shadowMap.enabled=false; motes.visible=false; } } }
+      frames++; acc+=raw; if(frames>=60){ const fps=frames/acc; frames=0; acc=0;
+        if(t<cool){ /* settling after a change */ } else if(fps<34){ if(++slow>=2 && quality>0){ slow=0; cool=t+4; quality--;
+            if(DPR>1){ DPR=1; renderer.setPixelRatio(1); size(); } else { renderer.shadowMap.enabled=false; motes.visible=false; } } }
+        else slow=0; }
       target=progress(); const kS=reduce?1:1-Math.exp(-dt*4.5); cur+=(target-cur)*kS;
       const kM=1-Math.exp(-dt*3); mx+=(tmx-mx)*kM; my+=(tmy-my)*kM;
       // the camera circles the pint as you scroll (one full turn), rising and closing in through the middle
       const p=cur, phi=p*Math.PI*2 - 0.35, wide=innerWidth>=900;
-      const y=1.25+Math.sin(p*Math.PI)*0.6, rad=(wide?5.4:6.3)-Math.sin(p*Math.PI)*0.7;
+      const y=1.25+Math.sin(p*Math.PI)*0.6, rad=(wide?5.4:6.9)-Math.sin(p*Math.PI)*0.7;
       tmpV.set(Math.sin(phi)*rad + mx*0.25, y - my*0.15, Math.cos(phi)*rad);
       camera.position.lerp(tmpV, reduce?1:1-Math.exp(-dt*5));
       // move the pint away from whichever side the words are on (left for 1 & 4, right for 2 & 3)
       const sm=(a,b,x)=>{x=Math.min(1,Math.max(0,(x-a)/(b-a)));return x*x*(3-2*x);};
       const side=wide ? (-1 + 2*sm(0.15,0.27,p) - 2*sm(0.70,0.80,p)) : 0;
-      look.set(0, 0.85 - (wide?0:0.15), 0); camera.lookAt(look);
+      look.set(0, wide ? 0.85 : 0.2, 0); camera.lookAt(look);   // phones: pint sits in the top half, words below
       const fo=side*7.5; if(Math.abs(fo-camera.filmOffset)>0.01){ camera.filmOffset=fo; camera.updateProjectionMatrix(); }
       // the sign swings a little; bubbles rise in the ale
       swing.rotation.z=Math.sin(t*0.9)*0.05+Math.sin(t*0.37)*0.02;
@@ -206,7 +227,7 @@
         if(spos[k+1]>3.6||Math.abs(spos[k])>3.5||Math.abs(spos[k+2])>3.5){ spos[k+1]=-0.8; spos[k]=(Math.random()-.5)*3; spos[k+2]=(Math.random()-.5)*3; } }
       sGeo.attributes.position.needsUpdate=true;
       motes.position.copy(camera.position); motes.rotation.y=t*0.02; motes.rotation.x=Math.sin(t*0.05)*0.2;
-      lampGlow.intensity=1.3+Math.sin(t*2.1)*0.12+Math.sin(t*5.3)*0.06;
+      lampGlow.intensity=1.3+Math.sin(t*2.1)*0.12+Math.sin(t*5.3)*0.06; aleU.uFlick.value=0.5+Math.sin(t*2.1)*0.35+Math.sin(t*5.3)*0.15;
       U.uTime.value=t; U.uScroll.value=cur; U.uMouse.value.set(mx,-my);
       if(Math.abs(cur-lastShown)>0.002){ story(cur); lastShown=cur; }
       renderer.render(scene,camera);
@@ -214,8 +235,15 @@
     const setRun=on=>{ if(on&&!running){ running=true; clock.getDelta(); frame(); } else if(!on&&running){ running=false; cancelAnimationFrame(raf); } };
     const io=new IntersectionObserver(es=>setRun(es[0].isIntersecting && !document.hidden),{rootMargin:'200px'}); io.observe(sec);
     const vis=()=>setRun(!document.hidden && sec.getBoundingClientRect().bottom>0 && sec.getBoundingClientRect().top<innerHeight); document.addEventListener('visibilitychange',vis);
+    const onSkip=e=>{ e.preventDefault(); const tgt=document.getElementById('welcome')||sec; scrollTo({top:tgt.getBoundingClientRect().top+scrollY-70, behavior:reduce?'auto':'smooth'}); };
+    sec.querySelectorAll('[data-cin-skip]').forEach(a=>a.addEventListener('click',onSkip));
+    function destroy(){ setRun(false); io.disconnect(); document.removeEventListener('visibilitychange',vis); removeEventListener('resize',size); removeEventListener('pointermove',onMove);
+      scene.traverse(o=>{ if(o.geometry) o.geometry.dispose(); const ms=o.material?[].concat(o.material):[]; ms.forEach(m=>{ ['map','emissiveMap','roughnessMap','normalMap'].forEach(k=>m[k]&&m[k].dispose()); m.dispose(); }); });
+      if(scene.environment) scene.environment.dispose(); renderer.dispose(); canvas.remove(); }
+    // if the graphics card drops the scene, fall back to the plain story rather than a frozen picture
+    canvas.addEventListener('webglcontextlost',e=>{ e.preventDefault(); setRun(false); sec.classList.remove('cin-live'); sec.style.removeProperty('--cin-h'); },false);
     story(cur); renderer.render(scene,camera);
-    return { stop(){ setRun(false); }, resume(){ vis(); } };
+    return { stop(){ setRun(false); }, resume(){ vis(); }, destroy };
   }
 
   function start(o){
@@ -225,8 +253,10 @@
     started=true;
     sec.style.setProperty('--cin-h', o.lite ? '320vh' : '420vh');
     sec.classList.add('cin-live');
-    loadThree().then(()=>{ state=build(!!o.lite); }).catch(e=>{ console.warn('cinema',e); sec.classList.remove('cin-live'); started=false; });
+    loadThree().then(()=>{ state=build(!!o.lite); }).catch(e=>{ console.warn('cinema',e); sec.classList.remove('cin-live'); sec.style.removeProperty('--cin-h'); started=false; });
   }
   function goEnd(){ const top=sec.getBoundingClientRect().top+scrollY, span=sec.offsetHeight-innerHeight; scrollTo({top:top+span*0.9, behavior:reduce?'auto':'smooth'}); }
-  window.BHCinema={ start, stop(){ state&&state.stop(); }, goEnd };
+  // switched off by the admin (or a timer): free the graphics memory, not just pause
+  function stop(){ if(state){ try{ state.destroy(); }catch(e){} state=null; } started=false; sec.classList.remove('cin-live','scrolled'); sec.style.removeProperty('--cin-h'); }
+  window.BHCinema={ start, stop, goEnd };
 })();
