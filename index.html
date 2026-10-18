@@ -1703,6 +1703,7 @@ function effective(){
     else if(r.what==='anim'){ ['pint3d','ambience','shimmer','tilt','motion','splash'].forEach(k=>fx[k]=on); }
     else if(r.what==='classic'){ fx.style = on ? 'classic' : 'animated'; }
     else if(r.what==='festivals'){ fx.festivals = on; }
+    else if(r.what==='cinema'||r.what==='cinemaOn'){ fx.cinemaOn = on; }
     else fx[r.what]=on; }
   return {st,fx};
 }
@@ -1723,7 +1724,7 @@ async function loadStatus(){
 
 /* ================= ANIMATIONS & 3D (switched on/off in admin) ================= */
 // defaults = the version you liked; everything added after it is an admin switch that starts OFF
-const FX_DEF={style:'animated', cinema:false, cinemaTilt:false, pourStyle:'classic', cinemaPhones:true, pintTap:'pour', pint3d:true, ambience:true, shimmer:true, tilt:true, motion:true, splash:false, splashKind:'water', splashCount:3, festivals:true};
+const FX_DEF={style:'animated', cinemaOn:false, cinemaTilt:false, pint3dPour:'fall', pourStyle:'classic', cinemaPhones:true, pintTap:'pour', pint3d:true, ambience:true, shimmer:true, tilt:true, motion:true, splash:false, splashKind:'water', splashCount:3, festivals:true};
 function gotoBook(){ document.getElementById('book').scrollIntoView({behavior:'smooth'}); setTimeout(()=>{ const g=$('guests'); if(g) g.focus({preventScroll:true}); },900); }
 const pageIdle=()=>new Promise(ok=>{ const go=()=>('requestIdleCallback' in window) ? requestIdleCallback(()=>ok(),{timeout:1200}) : setTimeout(ok,200);
   document.readyState==='complete' ? go() : addEventListener('load',go,{once:true}); });
@@ -1737,7 +1738,7 @@ async function applyPint(on){
   await pageIdle();
   try{ if(!window.BHPint) await loadJs('fx3d.js').catch(()=>loadJs('Fx3d.js'));
     if(!window.BHPint.supported()) throw new Error('no-webgl');
-    await window.BHPint.mount($('pint3dStage'), {mode:pintMode, onPour:(x,y)=> window.bhPour(x,y)}); }
+    await window.BHPint.mount($('pint3dStage'), {mode:pintMode, fall:()=> (window.bhEffects||{}).pint3dPour!=='tip', onPour:(x,y)=> window.bhPour(x,y)}); }
   catch(e){ console.warn('3D pint', e); sec.hidden=true; html.classList.remove('pint-on'); window.bhCine && window.bhCine(); }
 }
 document.querySelectorAll('a[href="#book"]').forEach(l=>l.addEventListener('click',e=>{ if(!document.documentElement.classList.contains('pint-on') || l.closest('#menuModal,#play,#pint3d,#book')) return; e.preventDefault(); document.getElementById('pint3d').scrollIntoView({behavior:'smooth', block:'center'}); }));
@@ -1751,7 +1752,7 @@ function pintToFace(x,y){
   if(reduce) return pourToBooking(x,y);
   let done=false; const go=c=>{ if(done) return; done=true; setTimeout(()=>pourToBooking(c.x,c.y), 700); };
   const at={x:Math.max(innerWidth*.3,Math.min(innerWidth*.7,x)), y:Math.max(innerHeight*.28,Math.min(innerHeight*.5,y))};
-  loadSplash().then(()=>window.BHSplash.play((window.bhEffects||{}).splashKind==='ice'?'ice':'ale',{at, size:1.1, cheers:false, onImpact:go})).catch(()=>go(at));
+  loadSplash().then(()=>window.BHSplash.play(splashKindNow()==='ice'?'ice':'ale',{at, size:1.1, cheers:false, onImpact:go})).catch(()=>go(at));
   setTimeout(()=>go(at), 2500);   // never leave the customer waiting
 }
 window.bhPintToFace=pintToFace;
@@ -1967,7 +1968,7 @@ function applyFx(fx){
 let cinP=null;
 function applyCinema(fx){
   const sec=$('cinema'), small=matchMedia('(max-width: 899px), (pointer: coarse)').matches, nc=navigator.connection||{};
-  const ok = fx.cinema!==false && fx.style!=='classic' && !(small && fx.cinemaPhones===false) && !nc.saveData;
+  const ok = fx.cinemaOn===true && fx.style!=='classic'   /* new key: any old saved 'cinema' setting is ignored */ && !(small && fx.cinemaPhones===false) && !nc.saveData;
   window.bhCinemaOn = ok;
   if(!ok){ sec.hidden=true; if(window.BHCinema) window.BHCinema.stop(); return; }
   sec.hidden=false;
@@ -1985,7 +1986,8 @@ function applyFestival(fx){
 let splashReady=null;
 function loadSplash(){ return splashReady || (splashReady=new Promise((ok,no)=>{ if(window.BHSplash) return ok(); const s=document.createElement('script'); s.src='./splash.js'; s.onload=ok; s.onerror=no; document.head.appendChild(s); })); }
 /* one splash when the website opens; tapping "Cheers!" throws the full round (1–3, set in admin) */
-function playSplash(n){ const fx=window.bhEffects||{}; if(!fx.splash) return; loadSplash().then(()=>window.BHSplash.series(fx.splashKind||'water', n||fx.splashCount||3)).catch(()=>{}); }
+const splashKindNow=()=>{ const k=(window.bhEffects||{}).splashKind; return k==='icecubes' ? 'ice' : (k==='ice'||!k) ? 'water' : k; };
+function playSplash(n){ const fx=window.bhEffects||{}; if(!fx.splash) return; loadSplash().then(()=>window.BHSplash.series(splashKindNow(), n||fx.splashCount||3)).catch(()=>{}); }
 function applySplash(fx){
   let b=$('splashBtn');
   if(!fx.splash){ if(b) b.hidden=true; return; }
