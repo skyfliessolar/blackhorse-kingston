@@ -137,7 +137,7 @@
     const beerGeo=lathe([[0,bottom],...profile(bottom,beerTop,.038,.05),[0,beerTop]],80);
     { const pos=beerGeo.attributes.position, col=new Float32Array(pos.count*3), a=new THREE.Color(0x3f1801), b=new THREE.Color(0xc8740f), c=new THREE.Color();
       for(let i=0;i<pos.count;i++){ const t=clamp((pos.getY(i)-bottom)/liquidH,0,1); c.copy(a).lerp(b, Math.pow(t,.8)); col.set([c.r,c.g,c.b],i*3); } beerGeo.setAttribute('color',new THREE.BufferAttribute(col,3)); }
-    const beer=new THREE.Mesh(beerGeo, new THREE.MeshPhysicalMaterial({vertexColors:true, emissive:0x5a2200, emissiveIntensity:.38, roughness:.12, metalness:0, transparent:true, opacity:.96, envMapIntensity:.8, clearcoat:1, clearcoatRoughness:.08}));
+    const beer=new THREE.Mesh(beerGeo, new THREE.MeshPhysicalMaterial({side:THREE.DoubleSide, vertexColors:true, emissive:0x5a2200, emissiveIntensity:.38, roughness:.12, metalness:0, transparent:true, opacity:.96, envMapIntensity:.8, clearcoat:1, clearcoatRoughness:.08}));
     beer.renderOrder=3; pint.add(beer);
     /* creamy foam head with an uneven top */
     const head=new THREE.Group(); pint.add(head);
@@ -176,10 +176,104 @@
     co.position.y=-1.235; scene.add(co); const logo=new Image(); logo.onload=()=>{ co.material[1].map=coaster(logo); co.material[1].needsUpdate=true; }; logo.src='logo.jpg';
     const bar=new THREE.Mesh(new THREE.PlaneGeometry(16,9), new THREE.MeshStandardMaterial({map:wood(), roughness:.65, metalness:0, envMapIntensity:.3, color:0x9a8070})); bar.rotation.x=-Math.PI/2; bar.position.y=-1.262; scene.add(bar);
     const sh=new THREE.Mesh(new THREE.PlaneGeometry(3.2,3.2), new THREE.MeshBasicMaterial({map:soft(), transparent:true, depthWrite:false})); sh.rotation.x=-Math.PI/2; sh.position.y=-1.205; scene.add(sh);
-    const pudTex=tex(256,256,(x,w)=>{ const g=x.createRadialGradient(w/2,w/2,0,w/2,w/2,w/2); g.addColorStop(0,'rgba(170,82,8,.95)'); g.addColorStop(.62,'rgba(190,98,14,.85)'); g.addColorStop(.85,'rgba(230,150,50,.45)'); g.addColorStop(1,'rgba(230,150,50,0)'); x.fillStyle=g; x.fillRect(0,0,w,w); });
-    const puddle=new THREE.Mesh(new THREE.CircleGeometry(1,48), new THREE.MeshPhysicalMaterial({map:pudTex, roughness:.04, clearcoat:1, clearcoatRoughness:.02, transparent:true, opacity:0, envMapIntensity:2.2, depthWrite:false}));
+    /* a real spill has a crisp, irregular edge with a dark meniscus line and a bright rim, not a soft glow */
+    const pudTex=tex(512,512,(x,w)=>{ x.clearRect(0,0,w,w); const c=w/2, N=90, R=[]; for(let i=0;i<N;i++){ const a=i/N*6.283; R.push(w*.4*(1+.16*Math.sin(a*3+1)+.1*Math.sin(a*5+2)+.06*Math.sin(a*11)+.04*(Math.random()-.5))); }
+      const path=k=>{ x.beginPath(); R.forEach((r,i)=>{ const a=i/N*6.283, px=c+Math.cos(a)*r*k, py=c+Math.sin(a)*r*k; i?x.lineTo(px,py):x.moveTo(px,py); }); x.closePath(); };
+      const g=x.createRadialGradient(c*.85,c*.8,0,c,c,w*.46); g.addColorStop(0,'rgba(196,110,22,.9)'); g.addColorStop(.7,'rgba(150,68,8,.88)'); g.addColorStop(1,'rgba(104,40,3,.92)');
+      path(1); x.fillStyle=g; x.fill(); x.lineWidth=5; x.strokeStyle='rgba(70,26,2,.9)'; x.stroke(); path(1.012); x.lineWidth=1.5; x.strokeStyle='rgba(255,214,150,.75)'; x.stroke();
+      for(let i=0;i<40;i++){ const a=Math.random()*6.283, d=Math.random()*w*.3; x.fillStyle='rgba(255,240,200,.5)'; x.beginPath(); x.arc(c+Math.cos(a)*d,c+Math.sin(a)*d,1+Math.random()*2,0,7); x.fill(); } });
+    const puddle=new THREE.Mesh(new THREE.CircleGeometry(1,48), new THREE.MeshPhysicalMaterial({map:pudTex, emissive:0x2a0e00, emissiveIntensity:.35, roughness:.02, clearcoat:1, clearcoatRoughness:.01, transparent:true, opacity:0, envMapIntensity:1.7, depthWrite:false}));
     puddle.rotation.x=-Math.PI/2; puddle.position.set(1.55,-1.256,.35); puddle.scale.set(.01,.01,1); scene.add(puddle);
 
+    /* ---------- KNOCKED OVER: a real pint falling on its side --------------------------------------------------------
+       - it tips about the edge of its base (a rigid body toppling under gravity: slow at first, then faster), lands on
+         its side on the bar with a small bounce
+       - the ale stays LEVEL while the glass turns (it is cut by a horizontal "surface" plane), so it rushes out of the
+         mouth as the lip drops below it; the head goes first
+       - the gush hits the bar, spreads into a glossy puddle and runs towards you as ONE stream that leaves the bottom of
+         the picture exactly where the page stream carries on down to Book a Table (one stream, never two)
+       - afterwards the picture dips to black and a fresh pint is standing there again */
+    renderer.localClippingEnabled=true;
+    const surf=new THREE.Plane(new THREE.Vector3(0,-1,0),100), foamCut=new THREE.Plane(new THREE.Vector3(0,-1,0),100);
+    beer.material.clippingPlanes=[surf]; beer.material.clipShadows=true;
+    foamMat.clippingPlanes=[foamCut];
+    const FD=new THREE.Vector3(.75,0,.66).normalize(), FAX=new THREE.Vector3(FD.z,0,-FD.x).normalize();   // falls to the right and a little towards you
+    const PIVOT=new THREE.Vector3(FD.x*.5,-1.2,FD.z*.5), REST=1.49;                                          // base edge it pivots on; angle it rests at
+    const LIP=[...Array(32)].map((_,i)=>new THREE.Vector3(Math.cos(i/32*6.283)*.735,1.22,Math.sin(i/32*6.283)*.735)), lipW=new THREE.Vector3(), tmpQ=new THREE.Quaternion(), tmpV=new THREE.Vector3();
+    const BAR_Y=-1.252;
+    /* the running spill: a glossy ribbon on the bar whose surface streams towards you */
+    const riverTex=tex(64,256,(x,w,h)=>{ x.fillStyle='#9c4e0b'; x.fillRect(0,0,w,h);
+      for(let i=0;i<70;i++){ const px=Math.random()*w, len=20+Math.random()*80, py=Math.random()*h; x.fillStyle=`rgba(${Math.random()<.5?'255,205,120':'90,35,2'},${.12+Math.random()*.2})`; x.fillRect(px,py,1+Math.random()*2,len); if(py+len>h) x.fillRect(px,py-h,1.5,len); } });
+    riverTex.wrapT=THREE.RepeatWrapping; riverTex.repeat.set(1,3);
+    const riverAlpha=tex(64,4,(x,w)=>{ const g=x.createLinearGradient(0,0,w,0); g.addColorStop(0,'#000'); g.addColorStop(.05,'#000'); g.addColorStop(.1,'#fff'); g.addColorStop(.9,'#fff'); g.addColorStop(.95,'#000'); g.addColorStop(1,'#000'); x.fillStyle=g; x.fillRect(0,0,w,4); },false);
+    const RS=40, rPos=new Float32Array((RS+1)*2*3), rUv=new Float32Array((RS+1)*2*2), rIdx=[];
+    for(let i=0;i<RS;i++){ const a=i*2,b=i*2+1,c=i*2+2,d=i*2+3; rIdx.push(a,c,b, b,c,d); }
+    const rGeo=new THREE.BufferGeometry(); rGeo.setAttribute('position',new THREE.BufferAttribute(rPos,3)); rGeo.setAttribute('uv',new THREE.BufferAttribute(rUv,2)); rGeo.setIndex(rIdx);
+    rGeo.setAttribute('normal',new THREE.BufferAttribute(new Float32Array((RS+1)*2*3).map((v,i)=>i%3===1?1:0),3));
+    const river=new THREE.Mesh(rGeo,new THREE.MeshPhysicalMaterial({map:riverTex, alphaMap:riverAlpha, color:0xffffff, emissive:0x3a1200, emissiveIntensity:.35, roughness:.02, metalness:0, clearcoat:1, clearcoatRoughness:.01, transparent:true, opacity:.9, envMapIntensity:1.7, depthWrite:false, polygonOffset:true, polygonOffsetFactor:-2}));
+    river.frustumCulled=false; river.visible=false; river.renderOrder=3; scene.add(river);
+    const F={on:false, t:0, th:0, w:0, landed:false, h:100, front:0, handed:false, L:new THREE.Vector3(), E:new THREE.Vector3(), M:new THREE.Vector3(), last:0, cut:0};
+    function fallStart(){ pour.material.size=.15; Object.assign(F,{on:true, t:0, th:0, w:2.35, landed:false, h:100, front:0, handed:false, cut:0}); F.L.set(0,0,0); bubbles.visible=false; }
+    function fallReset(){ F.on=false; F.flow=0; gush(null,0); pour.material.size=.07; surf.constant=100; foamCut.constant=100; river.visible=false; puddle.material.opacity=0; puddle.scale.set(.01,.01,1); bubbles.visible=true;
+      for(let i=0;i<P;i++){ pl[i]=0; pp[i*3+1]=-99; } pg.attributes.position.needsUpdate=true; cv.style.transition='opacity .45s'; cv.style.opacity='1'; }
+    // where the spill leaves the bottom of the picture (straight towards you from where it lands)
+    function exitPoint(from, out){ const p=from.clone().project(camera); const r=new THREE.Raycaster(); r.setFromCamera(new THREE.Vector2(p.x,-.985),camera);
+      const t=(BAR_Y-r.ray.origin.y)/r.ray.direction.y; out.copy(r.ray.direction).multiplyScalar(t).add(r.ray.origin); if(!(t>0)) out.set(from.x,BAR_Y,from.z+3); return out; }
+    const C0=new THREE.Vector3(0,1.0,7.9), T0=new THREE.Vector3(0,.32,0), C1=new THREE.Vector3(.5,3.0,7.4), T1=new THREE.Vector3(1.0,-1.05,1.3), camT=new THREE.Vector3();
+    function fallCam(k){ k=k*k*(3-2*k); camera.position.lerpVectors(C0,C1,k); camT.lerpVectors(T0,T1,k); camera.lookAt(camT); camera.updateMatrixWorld(); }
+    function fallStep(dt){
+      F.t+=dt; const t=F.t; fallCam(clamp((t-.1)/.8,0,1));
+      head.visible = F.th<.8;                                                                    // the head floats out first
+      // toppling: a rigid body about its base edge; centre of mass 0.53 rad behind the edge at rest
+      if(!F.landed || Math.abs(F.w)>.05){ const a=F.th-.53; F.w+=14*Math.sin(a)*dt; F.th+=F.w*dt;
+        if(F.th>=REST){ F.th=REST; if(Math.abs(F.w)>.7){ F.w=-F.w*.26; F.landed=true; } else { F.w=0; F.landed=true; } } }
+      tmpQ.setFromAxisAngle(FAX,F.th); pint.quaternion.copy(tmpQ);
+      pint.position.copy(PIVOT).sub(tmpV.copy(PIVOT).applyQuaternion(tmpQ)); pint.updateMatrixWorld(true);
+      // the ale stays level and spills over the lowest point of the lip
+      let low=1e9; for(const v of LIP){ tmpV.copy(v).applyMatrix4(pint.matrixWorld); if(tmpV.y<low){ low=tmpV.y; lipW.copy(tmpV); } }
+      const up=tmpV.set(0,1,0).applyQuaternion(tmpQ).y, rest=pint.position.y+beerTop*up+(1-up)*.02;
+      // liquid can only leave so fast: the level chases the lip at a limited rate, so the ale visibly gushes out over ~a second
+      const before=F.h<50?F.h:rest, want=Math.min(rest, low-.004); F.h = want<before ? Math.max(want, before-dt*2.6) : want;
+      surf.constant=F.h; foamCut.constant=F.h+.3*Math.max(0,1-F.th*1.4);
+      const spilled=Math.max(0,before-F.h), flow=Math.min(1,spilled/(dt*2.6+1e-6));
+      F.flow=(F.flow||0)+(flow-(F.flow||0))*Math.min(1,dt*12); gush(lipW, F.flow, tmpQ);
+      // the gush out of the mouth: droplets thrown along the glass, falling under gravity onto the bar
+      const mouth=tmpV.set(0,1,0).applyQuaternion(tmpQ);
+      const n=F.flow>.6 && Math.random()<dt*14 ? 1 : 0;                                        // the odd flung droplet, not sand
+      for(let j=0;j<n;j++){ const i=pIdx++%P; pp[i*3]=lipW.x+(Math.random()-.5)*.25; pp[i*3+1]=lipW.y+(Math.random()-.5)*.06; pp[i*3+2]=lipW.z+(Math.random()-.5)*.25;
+        pv[i*3]=mouth.x*1.4+FD.x*.5+(Math.random()-.5)*.6; pv[i*3+1]=mouth.y*1.1+Math.random()*.4; pv[i*3+2]=mouth.z*1.4+FD.z*.5+(Math.random()-.5)*.6; pl[i]=1; }
+      // the spill on the bar: a puddle at the mouth, then one glossy stream running to the front and out of the picture
+      if(F.th>.9 && !F.L.lengthSq()){ tmpV.set(0,1.22,0).applyMatrix4(pint.matrixWorld); F.L.set(tmpV.x+FD.x*.35,BAR_Y,tmpV.z+FD.z*.35); exitPoint(F.L,F.E);
+        F.M.set((F.L.x+F.E.x)/2+.25,BAR_Y,(F.L.z+F.E.z)/2); puddle.position.set(F.L.x,BAR_Y-.002,F.L.z); }
+      if(F.L.lengthSq()){
+        if(!F.handed){ exitPoint(F.L,F.E); F.M.set((F.L.x+F.E.x)/2+.25,BAR_Y,(F.L.z+F.E.z)/2); }
+        const ps=Math.min(1.05,puddle.scale.x+dt*.9); puddle.scale.set(ps,ps*.75,1); puddle.material.opacity=Math.min(.88,puddle.material.opacity+dt*1.6);
+        if(t>.45){ F.front=Math.min(1,F.front+dt/0.8); river.visible=true; }
+        const fr=F.front*F.front*(3-2*F.front), wob=performance.now()/1000;
+        for(let i=0;i<=RS;i++){ const u=i/RS*fr, a=1-u;
+          const x=a*a*F.L.x+2*a*u*F.M.x+u*u*F.E.x, z=a*a*F.L.z+2*a*u*F.M.z+u*u*F.E.z;
+          const dx=2*(1-u)*(F.M.x-F.L.x)+2*u*(F.E.x-F.M.x), dz=2*(1-u)*(F.M.z-F.L.z)+2*u*(F.E.z-F.M.z), dl=Math.hypot(dx,dz)||1;
+          let w=(.62-.42*u)*(1+.07*Math.sin(u*23+wob*3)); if(i===RS) w*=.6;                        // wide where it lands, narrowing as it runs off
+          const nx=-dz/dl*w*.5, nz=dx/dl*w*.5, k=i*6;
+          rPos[k]=x+nx; rPos[k+1]=BAR_Y+.003; rPos[k+2]=z+nz; rPos[k+3]=x-nx; rPos[k+4]=BAR_Y+.003; rPos[k+5]=z-nz;
+          rUv[i*4]=0; rUv[i*4+1]=u*4; rUv[i*4+2]=1; rUv[i*4+3]=u*4; }
+        rGeo.attributes.position.needsUpdate=true; rGeo.attributes.uv.needsUpdate=true; riverTex.offset.y-=dt*1.6;   // the surface streams towards you
+        if(!F.handed && F.front>=1){ F.handed=true; const s2=screenOf(F.E); hooks&&hooks.onPour&&hooks.onPour(s2.x, Math.min(s2.y, cv.getBoundingClientRect().bottom-2)); }
+      }
+      // a clean cut back to a fresh pint once the page has taken over
+      if(t>4.6 && !F.cut){ F.cut=1; cv.style.transition='opacity .4s'; cv.style.opacity='0'; }
+      if(t>5.1){ F.th=0; F.w=0; pint.quaternion.identity(); pint.position.set(0,0,0); fallCam(0); head.visible=true; fallReset(); pourT=-1; if(!visible) setRun(false); }
+    }
+    /* the gush: a thick glossy stream that arcs from the lip down onto the bar, as strong as the ale is leaving */
+    let gushMesh=null; const gPts=[...Array(14)].map(()=>new THREE.Vector3());
+    function gush(from, strength, q){
+      if(gushMesh){ scene.remove(gushMesh); gushMesh.geometry.dispose(); gushMesh=null; } if(!from || strength<.04) return;
+      const m=new THREE.Vector3(0,1,0).applyQuaternion(q); m.y=Math.max(m.y,-.2); const hd=Math.hypot(m.x,m.z)||1;
+      const vx=m.x/hd*(.5+.9*strength), vz=m.z/hd*(.5+.9*strength), vy=m.y*.8, g=9; let tEnd=0; while(from.y+vy*tEnd-.5*g*tEnd*tEnd>BAR_Y && tEnd<1.5) tEnd+=.01;
+      gPts.forEach((p,i)=>{ const tt=tEnd*i/(gPts.length-1); p.set(from.x+vx*tt, from.y+vy*tt-.5*g*tt*tt, from.z+vz*tt); });
+      const geo=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(gPts),30,.035+.1*strength,12,false);
+      const pos=geo.attributes.position, tw=performance.now()/1000; for(let i=0;i<pos.count;i++){ pos.setX(i,pos.getX(i)+Math.sin(pos.getY(i)*20+tw*16)*.008); }
+      gushMesh=new THREE.Mesh(geo,streamMat); gushMesh.renderOrder=9; scene.add(gushMesh); }
     /* interaction */
     const ray=new THREE.Raycaster(), ptr=new THREE.Vector2(); let hover=false, drag=null, spin=0, spinV=.22, tiltX=0, tiltY=0, mx=0, my=0, pourT=-1, handed=false;
     const cv=renderer.domElement; cv.style.touchAction='pan-y';
@@ -192,7 +286,7 @@
     addEventListener('pointerup',()=>{ drag=null; });
     cv.addEventListener('click',e=>{ if(drag&&drag.moved>6) return; if(hit(e)) startPour(); });
     let pourMode='face';
-    function startPour(){ if(pourT>=0) return; if(hooks&&hooks.mode&&hooks.mode()==='none'){ if(hooks.onPour) hooks.onPour(innerWidth/2,innerHeight/2); return; } pourMode=(hooks&&hooks.mode&&hooks.mode())==='pour'?'pour':'face'; pourT=0; handed=false; hover=false; setRun(true); }
+    function startPour(){ if(pourT>=0) return; if(hooks&&hooks.mode&&hooks.mode()==='none'){ if(hooks.onPour) hooks.onPour(innerWidth/2,innerHeight/2); return; } pourMode=(hooks&&hooks.mode&&hooks.mode())==='pour'?'pour':'face'; pourT=0; handed=false; hover=false; if(pourMode==='pour' && (!hooks || !hooks.fall || hooks.fall())) fallStart(); setRun(true); }
     const rimWorld=new THREE.Vector3();
     const screenOf=v=>{ const p=v.clone().project(camera), r=cv.getBoundingClientRect(); return {x:r.left+(p.x+1)/2*r.width, y:r.top+(1-p.y)/2*r.height}; };
 
@@ -207,7 +301,8 @@
       if(!drag && pourT<0){ spinV+=(.22-spinV)*Math.min(1,dt*1.5); spin+=spinV*dt; }
       tiltX+=((my*.1)-tiltX)*Math.min(1,dt*4); tiltY+=((mx*.16)-tiltY)*Math.min(1,dt*4);
       let lift=Math.sin(t*1.1)*.025, tipX=0, tipZ=0, toward=0, level=1;
-      if(pourT>=0 && pourMode==='pour'){ pourT+=dt;
+      if(F.on){ pourT+=dt; spin+=((Math.round(spin/(Math.PI*2))*Math.PI*2)-spin)*Math.min(1,dt*10); fallStep(dt); }
+      else if(pourT>=0 && pourMode==='pour'){ pourT+=dt;
         /* POUR DOWN: the glass tips over to the right and pours a glossy stream onto the bar; the page carries it down to the booking */
         const tip=ease.inOut(seg(pourT,0,.55)), back2=ease.inOut(seg(pourT,2.7,3.3)), k=tip*(1-back2);
         tipZ=-1.15*k; lift+=k*.28; toward=k*.15;
@@ -232,8 +327,8 @@
             pv[i*3]=(Math.random()-.5)*1.6; pv[i*3+1]=.6+Math.random()*1.2; pv[i*3+2]=6+Math.random()*4; pl[i]=1; } }
         if(!handed && pourT>.62){ handed=true; const s=screenOf(rimWorld); hooks&&hooks.onPour&&hooks.onPour(s.x,s.y); }
         if(pourT>4){ pourT=-1; if(!visible) setRun(false); } }
-      pint.rotation.set(tiltX+tipX, spin, tiltY*.35+tipZ); pint.position.set(0, lift, toward);
-      const hs=hover?1.035:1; pint.scale.lerp(s3.set(hs,hs,hs), Math.min(1,dt*8));
+      if(!F.on){ pint.rotation.set(tiltX+tipX, spin, tiltY*.35+tipZ); pint.position.set(0, lift, toward); }
+      const hs=hover&&!F.on?1.035:1; pint.scale.lerp(s3.set(hs,hs,hs), Math.min(1,dt*8));
       /* liquid level: the beer column shortens and the head rides down on top of it */
       beer.scale.y=level; beer.position.y=bottom*(1-level); head.position.y=(level-1)*liquidH;
       back.intensity=3.6+Math.sin(t*2.3)*.3+(hover?1:0);
@@ -241,8 +336,10 @@
       const p=bg.attributes.position.array, topNow=bottom+liquidH*level-.03;
       for(let i=0;i<N;i++){ p[i*3+1]+=bv[i]*dt; p[i*3]+=Math.sin(t*4+i)*.0006; if(p[i*3+1]>topNow) seed(i,bottom+.02); }
       bg.attributes.position.needsUpdate=true;
-      let any=false; for(let i=0;i<P;i++){ if(!pl[i]) continue; any=true; pv[i*3+1]-=5.4*dt; pp[i*3]+=pv[i*3]*dt; pp[i*3+1]+=pv[i*3+1]*dt; pp[i*3+2]+=pv[i*3+2]*dt;
-        if(pp[i*3+1]<-1.25 || pp[i*3+2]>camera.position.z-.6){ pl[i]=0; pp[i*3+1]=-99; } }
+      let any=false; const G=F.on?14:5.4;
+      for(let i=0;i<P;i++){ if(!pl[i]) continue; any=true; pv[i*3+1]-=G*dt; pp[i*3]+=pv[i*3]*dt; pp[i*3+1]+=pv[i*3+1]*dt; pp[i*3+2]+=pv[i*3+2]*dt;
+        if(F.on && pp[i*3+1]<BAR_Y+.02){ pp[i*3+1]=BAR_Y+.02; pv[i*3+1]=0; const f=Math.pow(.04,dt); pv[i*3]*=f; pv[i*3+2]=pv[i*3+2]*f+dt*2.2; if(++pl[i]>8){ pl[i]=0; pp[i*3+1]=-99; } }   // splat, spread, join the stream, soak in
+        else if(pp[i*3+1]<-1.25 || pp[i*3+2]>camera.position.z-.6){ pl[i]=0; pp[i*3+1]=-99; } }
       if(any) pg.attributes.position.needsUpdate=true;
       renderer.render(scene,camera); }
     function setRun(on){ if(on&&!running){ running=true; clock.getDelta(); frame(); } else if(!on&&running){ running=false; cancelAnimationFrame(raf); } }
@@ -250,12 +347,15 @@
     const vis=()=>setRun((visible||pourT>=0)&&!document.hidden); document.addEventListener('visibilitychange',vis);
     const rs=()=>{ camera.aspect=W()/H(); camera.fov=W()<560?44:30; camera.updateProjectionMatrix(); renderer.setSize(W(),H()); };
     addEventListener('resize',rs); rs(); renderer.render(scene,camera);
-    return { pour:startPour, destroy(){ setRun(false); io.disconnect(); document.removeEventListener('visibilitychange',vis); removeEventListener('resize',rs);
+    // test hook: run the animation forward in exact 1/60 s steps (used by the automated checks)
+    const seek=to=>{ if(pourT<0) startPour(); const g=clock.getDelta; clock.getDelta=()=>1/60; while(pourT>=0 && pourT<to){ frame(); cancelAnimationFrame(raf); } clock.getDelta=g; running=false; setRun(true); };
+    return { pour:startPour, seek, destroy(){ setRun(false); io.disconnect(); document.removeEventListener('visibilitychange',vis); removeEventListener('resize',rs);
       scene.traverse(o=>{ if(o.geometry) o.geometry.dispose(); const m=o.material; (Array.isArray(m)?m:[m]).forEach(x=>{ if(!x) return; if(x.map) x.map.dispose(); x.dispose(); }); }); renderer.dispose(); cv.remove(); } };
   }
 
   window.BHPint={ supported:webglOK,
     async mount(el, hooks){ if(state) return state; if(!webglOK()) throw new Error('no-webgl'); await loadThree(); state=build(el, typeof hooks==='function'?{onPour:hooks}:hooks); return state; },
     pour(){ state&&state.pour(); },
+    _seek(t){ state&&state.seek(t); },
     unmount(){ if(state){ state.destroy(); state=null; } } };
 })();
