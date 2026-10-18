@@ -560,7 +560,7 @@ tr.rowlink{cursor:pointer;} tr.rowlink:hover td{background:#FBF6EC;}
         <div class="fx-row"><div><b>Pub lights &amp; embers</b><p>Warm out-of-focus lights and rising embers behind the top banner.</p></div><label class="tgl"><input type="checkbox" data-fx="ambience"><span></span></label></div>
         <div class="fx-row"><div><b>Gold shimmer</b><p>A slow gold sheen across "The Black Horse" title and a glint around the logo.</p></div><label class="tgl"><input type="checkbox" data-fx="shimmer"><span></span></label></div>
         <div class="fx-row"><div><b>Scroll animations</b><p>Headings rise in word by word, cards cascade in, opening hours slide in, a gold progress line runs along the top, and the Book a Table buttons glow now and then.</p></div><label class="tgl"><input type="checkbox" data-fx="motion"><span></span></label></div>
-        <div class="fx-row"><div><b>💦 Splash in the face</b><p>A real-looking splash of drink hits the screen as if someone threw it at the visitor — drops smack onto the "glass", run down and wipe away, then "Cheers!" appears. Plays once per visit, and again when someone taps "Cheers!". Choose the drink: <select id="fxSplashKind" style="margin-left:4px"><option value="water">Water</option><option value="ale">Ale</option><option value="wine">Red wine</option><option value="prosecco">Prosecco</option></select></p></div><label class="tgl"><input type="checkbox" data-fx="splash"><span></span></label></div>
+        <div class="fx-row"><div><b>💦 Splash in the face</b><p>A real-looking splash of drink hits the screen as if someone threw it at the visitor — drops smack onto the "glass", run down and wipe away, then "Cheers!" appears. Plays once per visit, and again when someone taps "Cheers!". Choose the drink: <select id="fxSplashKind" style="margin-left:4px"><option value="ice">Ice cubes drop in — water splashes up (most realistic)</option><option value="water">Water</option><option value="ale">Ale</option><option value="wine">Red wine</option><option value="prosecco">Prosecco</option></select></p></div><label class="tgl"><input type="checkbox" data-fx="splash"><span></span></label></div>
         <div class="fx-row"><div><b>How many splashes</b><p>When a visitor arrives, the splash can hit once, or two or three times from different sides with "Cheers!" on the last one.</p></div><select id="fxSplashCount"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></div>
         <div class="fx-row"><div><b>Card spotlight &amp; tilt</b><p>Cards catch a warm light and tilt slightly under the mouse (computers only).</p></div><label class="tgl"><input type="checkbox" data-fx="tilt"><span></span></label></div>
       </div>
@@ -1835,7 +1835,7 @@ $('tmList').addEventListener('change',async e=>{ if(!e.target.matches('[data-tac
 setInterval(()=>{ if($('p-timers').classList.contains('active')) renderTimers(); },30000);
 
 /* ---------- animations & 3D ---------- */
-const FX_DEF={cinema:true, pint3d:true, ambience:true, shimmer:true, tilt:true, motion:true, splash:false, festivals:true}; let fxCfg={...FX_DEF, splashKind:'water'};
+const FX_DEF={cinema:true, pint3d:true, ambience:true, shimmer:true, tilt:true, motion:true, splash:false, festivals:true}; let fxCfg={...FX_DEF, splashKind:'ice'};
 const FX_NAMES={cinema:'Cinematic story', pint3d:'3D pint', ambience:'Pub lights & embers', shimmer:'Gold shimmer', tilt:'Card spotlight & tilt', motion:'Scroll animations', splash:'Splash in the face', festivals:'Festival themes'};
 let festLoaded=null;
 function loadFestList(){ return festLoaded ||= new Promise(ok=>{ if(window.BHFestivals) return ok(); const sc=document.createElement('script'); sc.src='./festivals.js'; sc.onload=ok; sc.onerror=ok; document.head.appendChild(sc); }); }
@@ -1852,13 +1852,13 @@ async function renderFest(){
     <div><div class="hint" style="margin:0 0 4px">${esc(f.when)} · this year: ${esc(F.datesFor(f,y))}</div><input data-fsmsg value="${esc(msgs[f.id]||'')}" placeholder="${esc(f.msg)}" maxlength="120" style="width:100%"></div></div>`).join('');
 }
 function readFest(){ const off=[], msgs={}; document.querySelectorAll('#fsList [data-fs]').forEach(r=>{ if(!r.querySelector('[data-fson]').checked) off.push(r.dataset.fs); const m=r.querySelector('[data-fsmsg]').value.trim(); if(m) msgs[r.dataset.fs]=m.slice(0,120); }); return {off, msgs, preview:$('fsPreview').value}; }
-function renderFx(){ renderFest(); $('fxCinemaPhones').value=fxCfg.cinemaPhones===false?'0':'1'; $('fxPintTap').value=['face','none'].includes(fxCfg.pintTap)?fxCfg.pintTap:'pour'; document.querySelectorAll('[name=fxStyle]').forEach(r=>r.checked=r.value===(fxCfg.style||'animated')); document.querySelectorAll('[data-fx]').forEach(i=>i.checked=!!fxCfg[i.dataset.fx]); $('fxSplashKind').value=fxCfg.splashKind||'water'; $('fxSplashCount').value=String(fxCfg.splashCount||3); }
+function renderFx(){ renderFest(); $('fxCinemaPhones').value=fxCfg.cinemaPhones===false?'0':'1'; $('fxPintTap').value=['face','none'].includes(fxCfg.pintTap)?fxCfg.pintTap:'pour'; document.querySelectorAll('[name=fxStyle]').forEach(r=>r.checked=r.value===(fxCfg.style||'animated')); document.querySelectorAll('[data-fx]').forEach(i=>i.checked=!!fxCfg[i.dataset.fx]); $('fxSplashKind').value=fxCfg.splashKind||'ice'; $('fxSplashCount').value=String(fxCfg.splashCount||3); }
 async function loadFx(){ try{ const s=await getDoc(doc(db,'site','effects')); if(s.exists()) fxCfg={...FX_DEF,...s.data()}; }catch(e){} renderFx(); }
 $('fxAllOff').onclick=()=>{ document.querySelectorAll('[data-fx]').forEach(i=>i.checked=false); flash('fxMsg','All switched off — press Save to apply.'); };
 $('saveFx').onclick=async()=>{
   const d=Object.fromEntries(Object.keys(FX_DEF).map(k=>[k, !!document.querySelector(`[data-fx="${k}"]`)?.checked]));
   const ch=Object.keys(d).filter(k=>d[k]!==fxCfg[k]).map(k=>`${FX_NAMES[k]} ${d[k]?'ON':'OFF'}`);
-  d.splashKind=$('fxSplashKind').value; if(d.splashKind!==(fxCfg.splashKind||'water')) ch.push('Splash drink → '+$('fxSplashKind').selectedOptions[0].text);
+  d.splashKind=$('fxSplashKind').value; if(d.splashKind!==(fxCfg.splashKind||'ice')) ch.push('Splash drink → '+$('fxSplashKind').selectedOptions[0].text);
   d.cinemaPhones=$('fxCinemaPhones').value==='1'; if(d.cinemaPhones!==(fxCfg.cinemaPhones!==false)) ch.push('Cinematic story on phones '+(d.cinemaPhones?'ON':'OFF'));
   d.pintTap=$('fxPintTap').value; if(d.pintTap!==(fxCfg.pintTap||'pour')) ch.push('Pint tap → '+$('fxPintTap').selectedOptions[0].text);
   d.style=(document.querySelector('[name=fxStyle]:checked')||{}).value||'animated'; if(d.style!==(fxCfg.style||'animated')) ch.unshift('Website style → '+(d.style==='classic'?'Classic':'Animated'));
