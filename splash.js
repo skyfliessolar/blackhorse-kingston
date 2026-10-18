@@ -3,7 +3,7 @@
    runs down in rivulets and fades as "Cheers!" appears. Plain 2D canvas, no libraries.
    window.BHSplash.play(kind, opts)    one splash. opts: {cheers:true, at:{x,y}, size:1, onImpact(fn({x,y}))}
    window.BHSplash.series(kind, n)     2–3 splashes from different angles, "Cheers!" on the last
-   kind: 'water' | 'ale' | 'wine' | 'prosecco'   */
+   kind: 'ice' (ice cubes drop into water, it splashes up at you) | 'water' | 'ale' | 'wine' | 'prosecco'   */
 (function(){
   'use strict';
   if(window.BHSplash) return;
@@ -11,14 +11,53 @@
     water:   {body:[150,190,215], a:.16, rim:[10,25,40],  rimA:.62, hi:.95, glow:.30, foam:0,   fizz:0},
     ale:     {body:[205,128,30],  a:.58, rim:[70,32,4],   rimA:.55, hi:.85, glow:.38, foam:.9,  fizz:.5},
     wine:    {body:[105,6,28],    a:.80, rim:[30,0,8],    rimA:.70, hi:.70, glow:.30, foam:0,   fizz:0},
-    prosecco:{body:[232,206,120], a:.34, rim:[95,72,20],  rimA:.5,  hi:.95, glow:.40, foam:.25, fizz:1}
+    prosecco:{body:[232,206,120], a:.34, rim:[95,72,20],  rimA:.5,  hi:.95, glow:.40, foam:.25, fizz:1},
+    ice:     {body:[190,222,240], a:.14, rim:[48,70,88],  rimA:.32, hi:1,   glow:.5,  foam:0,   fizz:.3}
   };
+  /* ---------- "ice": real ice cubes drop into a glass of water just below the screen and it splashes up into your face.
+     The cubes and the splash crown are photographic sprites (made in Figma), cut out on transparent backgrounds. ---------- */
+  const IMG={}; const load=(k,src)=>new Promise(ok=>{ const im=new Image(); im.decoding='async'; im.onload=()=>{ IMG[k]=im; ok(); }; im.onerror=()=>ok(); im.src=src; });
+  const imgsReady=Promise.all([load('ice','ice-cubes.webp'), load('crown','splash-crown.webp')]);
+  function iceDrop(onErupt){
+    const dpr=Math.min(2, window.devicePixelRatio||1), W=innerWidth, H=innerHeight, S=Math.min(W,H);
+    const cv=document.createElement('canvas'); cv.width=W*dpr; cv.height=H*dpr; const x=cv.getContext('2d'); x.scale(dpr,dpr);
+    cv.className='bh-splash'; cv.style.cssText='position:fixed;inset:0;width:100vw;height:100vh;z-index:9002;pointer-events:none;';
+    document.body.appendChild(cv);
+    const cube=S*(W<700?.26:.17), cx=W*.5, rimY=H*1.03;
+    const cubes=[0,1,2].map(i=>({t0:i*.12, dur:.46+i*.03, x0:cx+(i-1)*cube*.9+rnd(-20,20), x1:cx+(i-1)*cube*.35, r0:rnd(-.6,.6), spin:rnd(-2.4,2.4), f:Math.floor(Math.random()*6), s0:1.25-i*.12}));
+    const t0=performance.now(); let erupted=false, crowns=[];
+    function frame(now){
+      const t=(now-t0)/1000;
+      x.clearRect(0,0,W,H);
+      // the rim of the glass just below the screen, and the water's surface glinting
+      const ga=Math.min(1,t/.15)*(t>1.05?Math.max(0,1-(t-1.05)/.25):1);
+      if(ga>0){ x.save(); x.globalAlpha=ga;
+        const g=x.createRadialGradient(cx,rimY,0,cx,rimY,W*.5); g.addColorStop(0,'rgba(190,225,245,.20)'); g.addColorStop(1,'rgba(190,225,245,0)'); x.fillStyle=g; x.fillRect(0,H*.6,W,H*.4);
+        x.strokeStyle='rgba(235,248,255,.55)'; x.lineWidth=2.5; x.beginPath(); x.ellipse(cx,rimY,W*.44,H*.075,0,Math.PI,2*Math.PI); x.stroke();
+        x.strokeStyle='rgba(255,255,255,.25)'; x.lineWidth=7; x.beginPath(); x.ellipse(cx,rimY,W*.44,H*.075,0,Math.PI*1.08,Math.PI*1.35); x.stroke(); x.restore(); }
+      // ice cubes falling away from you into the glass (accelerating, shrinking with distance, a little motion blur)
+      for(const c of cubes){ const p=(t-c.t0)/c.dur; if(p<0||p>1.0001){ if(p>1 && !c.hit){ c.hit=true; crowns.push({t:t, k:c.f===0?1:.75+Math.random()*.2, x:c.x1}); if(!erupted){ erupted=true; setTimeout(onErupt,180); } } continue; }
+        for(let g=2; g>=0; g--){ const q=Math.max(0,p-g*.018), e=q*q, X=c.x0+(c.x1-c.x0)*e, Y=-cube+(rimY-cube*.2+cube)*e, sc=c.s0*(1-e*.55), rot=c.r0+c.spin*q;
+          if(IMG.ice){ x.save(); x.globalAlpha=g?.12/g:1; x.translate(X,Y); x.rotate(rot); const w=cube*sc; x.drawImage(IMG.ice, c.f*150,0,150,150, -w/2,-w/2,w,w); x.restore(); }
+          else { x.save(); x.globalAlpha=g?.18/g:.85; x.translate(X,Y); x.rotate(rot); const w=cube*sc*.8; x.fillStyle='rgba(220,240,255,.35)'; x.strokeStyle='rgba(255,255,255,.8)'; x.lineWidth=2; x.fillRect(-w/2,-w/2,w,w); x.strokeRect(-w/2,-w/2,w,w); x.restore(); } } }
+      // the crown of water each cube throws up, rushing towards you
+      for(const cr of crowns){ const p=(t-cr.t)/.42; if(p<0||p>1) continue; const e=1-Math.pow(1-p,3), sc=(.32+2.6*e)*cr.k, w=W*.62*sc, h=w;
+        x.save(); x.globalAlpha=(p<.6?1:1-(p-.6)/.4)*.95;
+        if(IMG.crown) x.drawImage(IMG.crown, cr.x-w/2, rimY-h*.86, w, h);
+        x.restore(); }
+      if(t<1.35) requestAnimationFrame(frame); else cv.remove();
+    }
+    requestAnimationFrame(frame);
+  }
   const rnd=(a,b)=>a+Math.random()*(b-a), clamp=(v,a,b)=>v<a?a:v>b?b:v;
   const gauss=()=>{ let u=0,v=0; while(!u) u=Math.random(); while(!v) v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); };
   let live=0;
 
   function play(kindName, opts){
     opts=opts||{};
+    if(kindName==='ice' && !opts.noIce && !matchMedia('(prefers-reduced-motion: reduce)').matches){
+      let went=false; const go=()=>{ if(went) return; went=true; iceDrop(()=>play('ice',{...opts, noIce:true})); };
+      imgsReady.then(go); setTimeout(go,700); return; }
     if(live>=4 || matchMedia('(prefers-reduced-motion: reduce)').matches){ opts.onImpact&&opts.onImpact({x:innerWidth/2,y:innerHeight*.4}); return; }
     const K=KINDS[kindName]||KINDS.water; live++;
     const dpr=Math.min(2, window.devicePixelRatio||1), W=innerWidth, H=innerHeight, S=Math.min(W,H);
@@ -192,6 +231,7 @@
   function series(kind, n){
     n=Math.max(1,Math.min(3,Math.round(n)||1)); const W=innerWidth, H=innerHeight;
     const spots=[{x:W*.28,y:H*.34,size:.75},{x:W*.72,y:H*.30,size:.8},{x:W*.5,y:H*.42,size:1.05}].slice(3-n);
+    if(kind==='ice' && !matchMedia('(prefers-reduced-motion: reduce)').matches){ let went=false; const go=()=>{ if(went) return; went=true; iceDrop(()=>spots.forEach((sp,i)=>setTimeout(()=>play('ice',{noIce:true, at:{x:sp.x,y:sp.y}, size:sp.size, cheers:i===spots.length-1}), i*850))); }; imgsReady.then(go); setTimeout(go,700); return; }
     spots.forEach((sp,i)=>setTimeout(()=>play(kind,{at:{x:sp.x+(Math.random()-.5)*W*.06,y:sp.y+(Math.random()-.5)*H*.06}, size:sp.size, cheers:i===spots.length-1}), i*850));
   }
   window.BHSplash={play, series};
