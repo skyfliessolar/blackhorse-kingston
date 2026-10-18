@@ -240,7 +240,8 @@
     const RIM=[...Array(28)].map((_,i)=>new T.Vector3(Math.cos(i/28*6.283)*0.405,1.604,Math.sin(i/28*6.283)*0.405)), tv=new T.Vector3(), lipW=new T.Vector3(), q0=new T.Quaternion();
     function pourFromPint(){
       const fx=window.bhEffects||{};
-      if(reduce || fx.pintTap==='none' || pour){ if(!pour){ tv.set(0.38,1.45,0); pint.localToWorld(tv); handOff(tv); } return; }
+      // the lift-and-tilt pour is its own admin switch (off by default): otherwise pour straight down from the pint
+      if(reduce || fx.pintTap==='none' || fx.cinemaTilt!==true || pour){ if(!pour){ tv.set(0.38,1.45,0); pint.localToWorld(tv); handOff(tv); } return; }
       camera.updateMatrixWorld(); const right=new T.Vector3().setFromMatrixColumn(camera.matrixWorld,0); right.y=0; right.normalize();
       const fwd=new T.Vector3().setFromMatrixColumn(camera.matrixWorld,2).negate(); fwd.y=0; fwd.normalize();
       const top=new T.Vector3(0,1,0).applyQuaternion(new T.Quaternion().setFromAxisAngle(fwd,0.5));
