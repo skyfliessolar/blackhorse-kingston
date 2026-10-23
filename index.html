@@ -1347,7 +1347,7 @@ window.openLb = openLb; window.renderMenu = renderMenu;
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 // "lite" database library: about a quarter of the size and no live connection to open — the public pages only need one-off reads and writes
-import { getFirestore, collection, doc, getDoc, getDocs, setDoc, query, where, writeBatch, addDoc, serverTimestamp, Timestamp }
+import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, query, where, writeBatch, addDoc, serverTimestamp, Timestamp }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-lite.js";
 import { firebaseConfig } from "./firebase-config.js";
 
@@ -1396,17 +1396,32 @@ async function loadGallery(){
 
 /* ================= EMAIL ALERTS ================= */
 let notify = {email:'contact@drunkenwok.co.uk', bookings:true, hire:true, messages:true};
-getDoc(doc(db,'site','notify')).then(s=>{ if(s.exists()) notify={...notify,...s.data()}; }).catch(()=>{});
-function emailAlert(kind, subject, fields, replyTo){
-  if(notify[kind]===false) return;
+/* New booking / enquiry / message alerts.
+   The email goes through a free form-to-email service. We now READ its answer (before, failures were silent) and write
+   the result onto the booking itself — "sent", "activate" (the inbox has not clicked Activate yet), "failed" or "off" —
+   so the admin portal can show straight away when emails are not getting through. One automatic retry on a network blip. */
+const notifyReady = getDoc(doc(db,'site','notify')).then(s=>{ if(s.exists()) notify={...notify,...s.data()}; }).catch(()=>{});
+async function emailAlert(kind, subject, fields, replyTo, ref){
+  await Promise.race([notifyReady, new Promise(r=>setTimeout(r,2500))]);       // use the address saved in admin, not the built-in one
+  const mark=st=>{ if(ref) updateDoc(ref,{alert:st}).catch(()=>{}); };
+  if(notify[kind]===false) return mark('off');
   // WhatsApp / automation (n8n): simple form post, no preflight needed
   if(notify.webhook && /^https:\/\//.test(notify.webhook)){
     const f=new URLSearchParams({type:kind, title:subject, site:'The Black Horse', ...Object.fromEntries(Object.entries(fields).map(([k,v])=>[k,String(v)]))});
     fetch(notify.webhook,{method:'POST',mode:'no-cors',body:f,keepalive:true}).catch(()=>{});
   }
-  if(!notify.email) return;
+  const to=String(notify.email||'').trim();
+  if(!to) return mark('off');
+  // an email address, or the private code the email service gives you so the address is not visible on the website
+  const target = /^[A-Za-z0-9]{16,64}$/.test(to) ? to : encodeURIComponent(to);
   const body = {_subject:subject, _template:'table', _captcha:'false', ...(replyTo?{_replyto:replyTo}:{}), ...fields};
-  fetch('https://formsubmit.co/ajax/'+encodeURIComponent(notify.email), {method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify(body)}).catch(()=>{});
+  const send=()=>fetch('https://formsubmit.co/ajax/'+target, {method:'POST', keepalive:true, headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify(body)})
+    .then(r=>r.json().catch(()=>({})).then(j=>({ok:r.ok, j})));
+  let res=null;
+  try{ res=await send(); }catch(e){ await new Promise(r=>setTimeout(r,3000)); try{ res=await send(); }catch(e2){ res=null; } }
+  if(!res) return mark('failed');
+  const msg=String(res.j.message||'');
+  mark(/activat/i.test(msg) ? 'activate' : (res.j.success===true||res.j.success==='true') ? 'sent' : 'failed');
 }
 
 /* ================= HOURS + CONTENT ================= */
@@ -1622,7 +1637,7 @@ form.addEventListener('submit', async e=>{
     locks.forEach(k=>{ const [, bt, tid]=k.split('_'); b.set(doc(db,'tableLocks',k),{date,time:bt,tableId:tid,bookingId:ref.id}); });
     await b.commit();
     const nice=new Date(date+'T00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
-    emailAlert('bookings', `${table.id==='request'?'NEEDS A TABLE — ':''}New table booking — ${name}, ${date} ${time} (${guests})`, {Name:name, Phone:phone, Email:email, Date:date, Time:time, Guests:guests, Table:table.name+(table.area?' · '+table.area:''), Extras:ex.map(x=>x.name+' £'+x.price).join(', ')||'-', 'Extras total':'£'+total, Notes:$('notes').value.trim()||'-'}, email);
+    emailAlert('bookings', `${table.id==='request'?'NEEDS A TABLE — ':''}New table booking — ${name}, ${date} ${time} (${guests})`, {Name:name, Phone:phone, Email:email, Date:date, Time:time, Guests:guests, Table:table.name+(table.area?' · '+table.area:''), Extras:ex.map(x=>x.name+' £'+x.price).join(', ')||'-', 'Extras total':'£'+total, Notes:$('notes').value.trim()||'-'}, email, ref);
     showOk(table.id==='request' ? `<b>Booking received</b> — ${esc(nice)} at ${pretty(time)} for ${guests} guests. ${table.name.startsWith('Busy')?'That time is busy, so we':'We'}'ll arrange your table and call you on ${esc(phone)} to confirm.` : `<b>Your table is reserved</b> — ${esc(nice)} at ${pretty(time)} for ${guests}.${total?` Extras: ${money(total)}, payable at the venue.`:''}<br>We'll contact you to confirm. Need to change it? Call 020 3518 2275.`);
     ['name','phone','email','notes'].forEach(i=>$(i).value=''); $('extrasOpts').querySelectorAll('input').forEach(i=>i.checked=false); updateExtras();
     taken.clear(); takenFor=''; refreshTimes();
@@ -1651,8 +1666,8 @@ $('hireForm').addEventListener('submit', async e=>{
   const guests=Math.max(1,Math.min(500,Number($('h-guests').value)||1)), date=$('h-date').value||'', type=$('h-type').value.trim(), message=$('h-msg').value.trim();
   $('h-btn').disabled=true;
   try{
-    await addDoc(collection(db,'hireEnquiries'),{name,email,phone,guests,date,type,message,status:'new',source:'website',seen:false,createdAt:serverTimestamp()});
-    emailAlert('hire', `New private hire enquiry — ${name} (${guests} guests)`, {Name:name, Phone:phone, Email:email, 'Event type':type||'-', Guests:guests, 'Preferred date':date||'-', Message:message||'-'}, email);
+    const href=await addDoc(collection(db,'hireEnquiries'),{name,email,phone,guests,date,type,message,status:'new',source:'website',seen:false,createdAt:serverTimestamp()});
+    emailAlert('hire', `New private hire enquiry — ${name} (${guests} guests)`, {Name:name, Phone:phone, Email:email, 'Event type':type||'-', Guests:guests, 'Preferred date':date||'-', Message:message||'-'}, email, href);
     $('hireForm').reset(); $('h-guests').value=30; $('h-ok').hidden=false;
   }catch(err){ console.error(err); $('h-err').innerHTML='Sorry, that didn\'t send. Please call <a href="tel:02035182275" style="color:var(--gold-light)">020 3518 2275</a>.'; $('h-err').hidden=false; }
   finally{ $('h-btn').disabled=false; }
@@ -1677,8 +1692,8 @@ $('contactForm').addEventListener('submit', async e=>{
   const name=$('m-name').value.trim(), email=$('m-email').value.trim(), message=$('m-msg').value.trim();
   if(!name||!email||!message){ $('m-err').textContent='Please add your name, email and a message.'; $('m-err').style.display='block'; return; }
   $('m-btn').disabled=true;
-  try{ await addDoc(collection(db,'messages'),{name,email,phone:$('m-phone').value.trim(),message,seen:false,createdAt:serverTimestamp()});
-    emailAlert('messages', `New website message — ${name}`, {Name:name, Email:email, Phone:$('m-phone').value.trim()||'-', Message:message}, email);
+  try{ const mref=await addDoc(collection(db,'messages'),{name,email,phone:$('m-phone').value.trim(),message,seen:false,createdAt:serverTimestamp()});
+    emailAlert('messages', `New website message — ${name}`, {Name:name, Email:email, Phone:$('m-phone').value.trim()||'-', Message:message}, email, mref);
     $('contactForm').reset(); $('m-ok').style.display='block'; }
   catch(err){ console.error(err); $('m-err').textContent="Sorry, that didn't send. Please call 020 3518 2275."; $('m-err').style.display='block'; }
   finally{ $('m-btn').disabled=false; }
